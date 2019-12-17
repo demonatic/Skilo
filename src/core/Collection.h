@@ -1,12 +1,18 @@
 #ifndef COLLECTION_H
 #define COLLECTION_H
+
 #include <string>
+#include "Document.h"
 
 class Collection
 {
 public:
     Collection();
-    bool add_document(const std::string &json_str); //TODO 这一层用json object还是json str作为参数？
+    bool add_document(const SegmentBuf &json_str);
+    
+    
+private:
+    uint32_t _collection_id;
 };
 
 #endif // COLLECTION_H

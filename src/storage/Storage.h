@@ -4,6 +4,10 @@
 #include <memory>
 #include <string_view>
 #include <rocksdb/db.h>
+#include <rocksdb/write_batch.h>
+#include <rocksdb/options.h>
+#include <rocksdb/merge_operator.h>
+#include <rocksdb/transaction_log.h>
 
 /// @class Storage Layer for Skilo
 /// @brief Abstraction for underlying KV storage
@@ -21,7 +25,7 @@ public:
     Storage(const std::string &dir);
     ~Storage();
 
-    bool close();
+    void close();
 
     /// @brief If the database contains an entry for "key" store the
     ///        corresponding value in *value and return FOUND.

@@ -1,5 +1,5 @@
 #include "Storage.h"
-#include "../../3rd/include/NanoLog/NanoLog.hpp"
+#include <g3log/g3log.hpp>
 
 Storage::Storage(const std::string &dir):_dir_path(dir)
 {
@@ -8,7 +8,7 @@ Storage::Storage(const std::string &dir):_dir_path(dir)
     _options.error_if_exists=true;
     rocksdb::Status status=rocksdb::DB::Open(_options,dir,&_db);
     if(!status.ok()){
-        LOG_CRIT<<"Error while initialize database: "<<status.ToString();
+        LOG(FATAL)<<"Error while initialize database: "<<status.ToString();
         exit(-1);
     }
 }
@@ -20,17 +20,14 @@ Storage::~Storage()
     }
 }
 
-bool Storage::close()
+void Storage::close()
 {
-    bool ok=true;
     rocksdb::Status status=_db->Close();
     if(!status.ok()){
-        LOG_WARN<<"Error while close database: "<<status.ToString();
-        ok=false;
+        LOG(WARNING)<<"Error while close database: "<<status.ToString();
     }
     delete _db;
     _db=nullptr;
-    return ok;
 }
 
 bool Storage::insert(const std::string &key, const std::string &value)
@@ -64,7 +61,7 @@ Storage::Status Storage::get(const std::string &key, std::string &value)
     if(status.IsNotFound()){
         return Status::NOT_FOUND;
     }
-    LOG_WARN<<"Error while fetching key: "<<key<<"  status="<<status.ToString();
+    LOG(WARNING)<<"Error while fetching key: "<<key<<"  status="<<status.ToString();
     return Status::ERROR;
 }
 
