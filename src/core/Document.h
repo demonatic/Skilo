@@ -1,12 +1,36 @@
 #ifndef DOCUMENT_H
 #define DOCUMENT_H
 
-#include <../../3rd/include/rapidjson/rapidjson.h>
-#include <../../3rd/include/rapidjson/document.h>
-#include "../../3rd/include/rapidjson/memorybuffer.h"
+#include "../storage/Storage.h"
+#include "../util/KeyConverter.hpp"
+#include "../../3rd/include/rapidjson/rapidjson.h"
+#include "../../3rd/include/rapidjson/document.h"
 #include <vector>
 
 using SegmentBuf=std::vector<std::pair<uint8_t *,size_t>>;
+
+class Document
+{
+public:
+    Document(uint32_t collection_id,uint32_t seq_id,const std::string &json_str);
+    /// @brief parse json from some segment of buffers,
+    /// where uint8_t* points to start of this segment and size_t indicates the length of this segment
+    Document(uint32_t collection_id,uint32_t seq_id,const SegmentBuf &json_str);
+
+    uint32_t doc_id() const;
+    void dump() const;
+    bool write_to_storage(Storage *storage);
+
+private:
+    void init();
+
+private:
+    uint32_t _seq_id;
+    uint32_t _doc_id;
+    uint32_t _collection_id;
+
+    rapidjson::Document _document;
+};
 
 namespace detail{
 
@@ -60,21 +84,5 @@ struct SegmentBufferStream{
 
 }
 
-class Document
-{
-public:
-    Document(const std::string &json_str);
-    /// @brief parse json from some segment of buffers,
-    /// where uint8_t* points to start of this segment and size_t indicates the length of this segment
-    Document(const SegmentBuf &json_seg_buf);
-
-    std::string doc_id() const;
-    void dump() const;
-
-private:
-    std::string _doc_id;
-    rapidjson::Document _document;
-
-};
 
 #endif // DOCUMENT_H

@@ -1,12 +1,15 @@
 #include "Storage.h"
 #include <g3log/g3log.hpp>
 
-Storage::Storage(const std::string &dir):_dir_path(dir)
+Storage::Storage(const std::string &db_path):_db_path(db_path)
 {
     //TODO consider using bloom filter
     _options.IncreaseParallelism();
-    _options.error_if_exists=true;
-    rocksdb::Status status=rocksdb::DB::Open(_options,dir,&_db);
+    _options.create_if_missing=true;
+    _options.write_buffer_size=4*1310724;
+    _options.max_background_flushes=2;
+    _options.compression=rocksdb::CompressionType::kSnappyCompression;
+    rocksdb::Status status=rocksdb::DB::Open(_options,db_path,&_db);
     if(!status.ok()){
         LOG(FATAL)<<"Error while initialize database: "<<status.ToString();
         exit(-1);
@@ -39,7 +42,7 @@ bool Storage::insert(const std::string &key, const std::string &value)
 bool Storage::batch_write(const Storage::Batch &batch)
 {
     rocksdb::WriteBatch db_batch;
-    for(const auto &[key,val]:batch){
+    for(const auto &[key,val]:batch.data){
         db_batch.Put(rocksdb::Slice(key),rocksdb::Slice(val));
     }
     rocksdb::Status status=_db->Write(rocksdb::WriteOptions(),&db_batch);

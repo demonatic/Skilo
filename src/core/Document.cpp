@@ -3,19 +3,21 @@
 #include "../../3rd/include/rapidjson/stringbuffer.h"
 #include "../../3rd/include/rapidjson/writer.h"
 
-Document::Document(const std::string &json_str,uint32_t seq_id):_seq_id(seq_id)
+Document::Document(uint32_t collection_id,uint32_t seq_id,const std::string &json_str):
+    _seq_id(seq_id),_collection_id(collection_id)
 {
     if(_document.Parse(json_str.c_str()).HasParseError()||!_document.IsObject()){
-        throw std::runtime_error("Error when parse document from json_str: "+json_str);
+        throw std::runtime_error("Error when parse document from json");
     }
     this->init();
 }
 
-Document::Document(const SegmentBuf &json_str,uint32_t seq_id):_seq_id(seq_id)
+Document::Document(uint32_t collection_id,uint32_t seq_id,const SegmentBuf &json_str):
+    _seq_id(seq_id),_collection_id(collection_id)
 {
     detail::SegmentBufferStream stream(json_str);
     if(_document.ParseStream(stream).HasParseError()||!_document.IsObject()){
-        throw std::runtime_error("Error when parse document from json_seg_buf");
+        throw std::runtime_error("Error when parse document from json");
     }
     this->init();
 }
@@ -35,10 +37,10 @@ bool Document::write_to_storage(Storage *storage)
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     _document.Accept(writer);
+
     Storage::Batch batch;
-    //TODO
-    std::string doc_key=std::to_string(_doc_id);
-    std::string seq_key=std::to_string(_seq_id);
+    const std::string doc_key(KeyConverter::doc_id_key(_collection_id,_doc_id));
+    const std::string seq_key(KeyConverter::doc_seq_key(_collection_id,_seq_id));
     batch.put(doc_key,seq_key);
     batch.put(seq_key,buffer.GetString());
     return storage->batch_write(batch);

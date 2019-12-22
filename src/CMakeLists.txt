@@ -17,6 +17,8 @@ file(GLOB SOURCES
     storage/*.cpp
     core/*.h
     core/*.cpp
+    core/art/*.hpp
+    util/*.hpp
 )
 
 add_executable(Skilo main.cpp ${SOURCES})

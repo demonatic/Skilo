@@ -14,15 +14,21 @@
 
 class Storage
 {
+public:
     enum Status{
         FOUND,
         NOT_FOUND,
         ERROR
     };
-    using Batch=std::vector<std::pair<std::string_view,std::string_view>>;
+    struct Batch{
+        void put(std::string_view key,std::string_view val){
+            data.emplace_back(key,val);
+        }
+        std::vector<std::pair<std::string_view,std::string_view>> data;
+    };
 
 public:
-    Storage(const std::string &dir);
+    Storage(const std::string &db_path);
     ~Storage();
 
     void close();
@@ -49,7 +55,7 @@ public:
 private:
     rocksdb::DB *_db;
     rocksdb::Options _options;
-    const std::string _dir_path;
+    const std::string _db_path;
 
 };
 
