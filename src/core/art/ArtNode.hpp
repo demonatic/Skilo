@@ -12,6 +12,43 @@ namespace Art {
 
 struct ArtNode{ using Ptr=ArtNode*; };
 
+template<class T>
+struct ArtLeaf:public ArtNode{
+
+    static ArtLeaf* make_leaf(const unsigned char *key,size_t key_len,const T &value){
+        ArtLeaf *leaf=new ArtLeaf;
+        leaf->key=calloc(key_len+1,1); //TODO ok?
+        std::memcpy(leaf->key,key,key_len);
+        leaf->key_len=key_len;
+        leaf->data=new T(value);
+    }
+
+    bool key_match(const unsigned char *key,size_t key_len){
+        if(key_len!=this->key_len){
+            return false;
+        }
+        return std::memcmp(key,this->key,key_len);
+    }
+
+    ArtLeaf* leaf_node_ptr(ArtNode::Ptr ptr){
+       return reinterpret_cast<ArtLeaf*>(reinterpret_cast<uintptr_t>(ptr)&(~0x1ul));
+    }
+
+    const char *key; //a full key, should contain '\0'
+    size_t key_len;
+    T *data;
+};
+
+bool is_leaf(ArtNode::Ptr ptr){
+    return reinterpret_cast<uintptr_t>(ptr)&0x1;
+}
+
+ArtNode::Ptr as_leaf(ArtNode::Ptr ptr){
+    return reinterpret_cast<ArtNode::Ptr>((reinterpret_cast<uintptr_t>(ptr)|0x1));
+}
+
+ArtNode *find_first_leaf(ArtNode *node);
+
 struct InnerNode:public ArtNode
 {
     enum NodeType:uint8_t{
@@ -23,20 +60,35 @@ struct InnerNode:public ArtNode
 
     InnerNode(NodeType node_type):_node_type(node_type),_prefix_len(0){}
 
-    /// @return the first position that mismatch, return prefix_len if match all
-    int check_prefix(const char *partial_key,int key_len){
-        for(int i=0;i<_prefix_len&&i<key_len;i++){
-            if(_prefix[i]!=partial_key[i]){
-                return i;
+    /// @return the length match [0,_prefinx_len] and the prefix's key
+    template<class T>
+    std::pair<uint32_t,const unsigned char *> check_prefix(const char *key,uint32_t depth,uint32_t key_len){
+        uint32_t match_len=0;
+        for(;match_len<std::min(key_len-depth,std::min(_prefix_len,PREFIX_VEC_LEN));match_len++){
+            if(_prefix[match_len]!=key[depth+match_len]){
+                return {match_len,_prefix};
             }
         }
-        return _prefix_len;
+        if(_prefix_len>PREFIX_VEC_LEN)
+            return {match_len,_prefix};
+
+        //if the prefix is larger than PREFIX_VEC_LEN, we must find the remaining key from a leaf to compare
+        ArtLeaf<T> *leaf=find_first_leaf(this);
+        if(_prefix_len>PREFIX_VEC_LEN){
+            //resume compare of the remaining key doesn't stored in the inner node
+            for(;match_len<min(_prefix_len,min(key_len,leaf->key_len)-depth);match_len++){
+                if(leaf->key[depth+match_len]!=key[depth+match_len]){
+                    return {match_len,leaf->key+depth};
+                }
+            }
+        }
+        return {match_len,leaf->key+depth};
     }
 
     NodeType _node_type;
-    uint8_t _prefix_len;
-    static constexpr size_t MAX_PREFIX_LEN=13;
-    unsigned char _prefix[MAX_PREFIX_LEN];
+    uint32_t _prefix_len; //may larger than PREFIX_VEC_LEN
+    static constexpr uint32_t PREFIX_VEC_LEN=8;
+    unsigned char _prefix[PREFIX_VEC_LEN];
 };
 
 
@@ -68,9 +120,9 @@ public:
 };
 
 struct ArtNode48:public InnerNode{
-    static constexpr char InvalidIndex=48;
+    static constexpr unsigned char InvalidIndex=48;
 
-    ArtNode48():InnerNode(Node48),_num_children(0),_child_indexs(),_children(){}
+    ArtNode48():InnerNode(Node48),_num_children(0),_child_indexs{InvalidIndex},_children(){}
 
     ArtNode::Ptr* find_child(const unsigned char key){
         int index=_child_indexs[key];
@@ -213,34 +265,36 @@ struct ArtNode4:public InnerNode{
     ArtNode *_children[4];
 };
 
+ArtNode *find_first_leaf(ArtNode *node){
+    if(!node)
+        return nullptr;
 
-template<class T>
-struct ArtLeaf:public ArtNode{
-    static ArtLeaf* make_leaf(const unsigned char *key,size_t key_len,const T &value){
-        ArtLeaf *leaf=new ArtLeaf;
-        leaf->key=malloc(key_len);
-        std::memcpy(leaf->key,key,key_len);
-        leaf->key_len=key_len;
-        leaf->data=value;
+    if(is_leaf(node))
+        return as_leaf(node);
+
+    InnerNode *inner_node=static_cast<InnerNode*>(node);
+    switch (inner_node->_node_type){
+        case InnerNode::Node4:{
+            return find_first_leaf(static_cast<ArtNode4*>(inner_node)->_children[0]);
+        }
+        case InnerNode::Node16:{
+            return find_first_leaf(static_cast<ArtNode16*>(inner_node)->_children[0]);
+        }
+        case InnerNode::Node48:{
+            return find_first_leaf(static_cast<ArtNode48*>(inner_node)->_children[0]);
+        }
+        case InnerNode::Node256:{
+            int idx=0;
+            ArtNode256 *node=static_cast<ArtNode256*>(inner_node);
+            while(node->_children[idx]) idx++;
+            return find_first_leaf(node->_children[idx]);
+        }
     }
-
-    ArtLeaf* leaf_node_ptr(ArtNode::Ptr ptr){
-       return reinterpret_cast<ArtLeaf*>(reinterpret_cast<uintptr_t>(ptr)&(~0x1ul));
-    }
-
-    const char *key; //TODO should contain '\0'
-    size_t key_len;
-    T data;
-};
-
-bool is_leaf(ArtNode::Ptr ptr){
-    return reinterpret_cast<uintptr_t>(ptr)&0x1;
 }
 
-void set_leaf(ArtNode::Ptr &ptr){
-    ptr=reinterpret_cast<ArtNode::Ptr>((reinterpret_cast<uintptr_t>(ptr)|0x1));
+InnerNode *as_inner_node(ArtNode *ptr){
+    return static_cast<InnerNode*>(ptr);
 }
-
 
 }
 
