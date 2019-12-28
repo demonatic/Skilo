@@ -16,7 +16,6 @@ file(GLOB SOURCES
     storage/*.h
     storage/*.cpp
     core/*.h
-    core/*.cpp
     core/art/*.hpp
     util/*.hpp
 )

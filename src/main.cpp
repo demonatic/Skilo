@@ -2,6 +2,8 @@
 #include <g3log/g3log.hpp>
 #include <g3log/logworker.hpp>
 
+#include "core/art/Art.hpp"
+
 using namespace std;
 using namespace g3;
 
@@ -28,7 +30,6 @@ enum FG_Color {YELLOW = 33, RED = 31, GREEN=32, WHITE = 97};
 
 int main()
 {
-
     auto log_worker = LogWorker::createLogWorker();
 
     // logger is initialized

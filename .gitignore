@@ -33,3 +33,9 @@
 
 *.user
 *.autosave
+
+/CMakeFiles/*
+/external-Linux/*
+*.cbp
+*.cmake
+CmakeCache.txt

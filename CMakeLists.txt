@@ -9,4 +9,6 @@ include_directories(3rd/include)
 link_directories(3rd/lib /usr/local/lib)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/src)
+add_subdirectory(${CMAKE_SOURCE_DIR}/test)
 
+enable_testing()
