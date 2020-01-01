@@ -11,16 +11,24 @@ public:
     ARTree():_root(nullptr),_size(0){}
     ~ARTree();
 
-    /// @param key can be any byte sequence doesn't have '\0' except it's end
-    T* insert(const char *key,size_t key_len,const T &val);
+    /// @param child_key can be any byte sequence doesn't have '\0' except it's end
+    /// @reuturn nullptr if insert success, otherwise return the already existing value
+    T* insert(const char *child_key,size_t child_key_len,const T &val);
+
     /// @return nullptr if not find, otherwise return the pointer to the value
-    T *find(const char *key,size_t key_len);
+    T *find(const char *child_key,size_t child_key_len);
+
+    void erase(const char *child_key,size_t child_key_len);
+
+    size_t size() const;
 
 private:
-    ArtNode::Ptr *find_child(InnerNode *node,const unsigned char key);
-    void add_child(InnerNode *node,ArtNode::Ptr *node_ptr,const unsigned char child_key,ArtNode *child);
+    ArtNode::Ptr *find_child(InnerNode *node,const unsigned char child_key);
+    void add_child(InnerNode *node,ArtNode::Ptr &node_ptr,const unsigned char child_child_key,ArtNode *child);
+    void remove_child(InnerNode *node,ArtNode::Ptr &node_ptr,ArtNode::Ptr *child_ptr,unsigned char key);
 
-    T* insert_impl(ArtNode *node,ArtNode::Ptr *node_ptr,const unsigned char *key,size_t key_len,size_t depth,const T &val);
+    T* insert_impl(ArtNode *node,ArtNode::Ptr &node_ptr,const unsigned char *child_key,size_t child_key_len,size_t depth,const T &val);
+    bool erase_impl(ArtNode *node,ArtNode::Ptr &node_ptr,const unsigned char *child_key,size_t child_key_len,size_t depth);
 
 private:
     ArtNode *_root;
@@ -34,36 +42,32 @@ ARTree<T>::~ARTree(){
 }
 
 template<class T>
-T *ARTree<T>::insert(const char *key, size_t key_len,const T &val)
+T *ARTree<T>::insert(const char *child_key, size_t child_key_len,const T &val)
 {
-    T *old_val=insert_impl(_root,&_root,reinterpret_cast<const unsigned char*>(key),key_len,0,val);
-    if(!old_val){
+    T *existed_val=insert_impl(_root,_root,reinterpret_cast<const unsigned char*>(child_key),child_key_len,0,val);
+    if(!existed_val)
         _size++;
-    }
-    return old_val;
+
+    return existed_val;
 }
 
 /// Optimistic Search
 /// InnerNode lookups just skip the node's prefix without comparing them.
-/// Instead, when a lookup arrives at a leaf its key must be compared to the search
-/// key to ensure that no “wrong turn” was taken
+/// Instead, when a lookup arrives at a leaf its child_key must be compared to the search
+/// child_key to ensure that no “wrong turn” was taken
 template<class T>
-T *ARTree<T>::find(const char *key,size_t key_len)
+T *ARTree<T>::find(const char *child_key,size_t child_key_len)
 {
-//    cout<<"@find key="<<key<<"  key_len="<<key_len<<endl;
     ArtNode *node=_root;
     size_t depth=0;
     while(node){
         if(is_leaf(node)){
-//            cout<<"is leaf"<<endl;
-            ArtLeaf<T> *leaf=ArtLeaf<T>::leaf_node_ptr(node);
-            return leaf->key_match(reinterpret_cast<const unsigned char*>(key),key_len)?leaf->data:nullptr;
+            ArtLeaf<T> *leaf=ArtLeaf<T>::as_leaf_node(node);
+            return leaf->key_match(reinterpret_cast<const unsigned char*>(child_key),child_key_len)?leaf->data:nullptr;
         }
-
         InnerNode *inner_node=as_inner_node(node);
         depth+=inner_node->prefix_len;
-//        std::cout<<"depth="<<depth<<" *key="<<key[depth]<<endl;
-        ArtNode::Ptr *child=this->find_child(inner_node,key[depth]);
+        ArtNode::Ptr *child=this->find_child(inner_node,child_key[depth]);
 
         node=child?*child:nullptr;
         depth++;
@@ -72,66 +76,79 @@ T *ARTree<T>::find(const char *key,size_t key_len)
 }
 
 template<class T>
-T *ARTree<T>::insert_impl(ArtNode *node,ArtNode::Ptr *node_ptr, const unsigned char *key, size_t key_len, size_t depth, const T &val)
+void ARTree<T>::erase(const char *child_key, size_t child_key_len)
+{
+    bool ok=this->erase_impl(_root,_root,reinterpret_cast<const unsigned char*>(child_key),child_key_len,0);
+    if(ok) _size--;
+}
+
+template<class T>
+size_t ARTree<T>::size() const
+{
+    return _size;
+}
+
+template<class T>
+T *ARTree<T>::insert_impl(ArtNode *node,ArtNode::Ptr &node_ptr, const unsigned char *key, size_t key_len, size_t depth, const T &val)
 {
     if(!node){
-        *node_ptr=as_leaf(ArtLeaf<T>::make_leaf(key,key_len,val));
+        node_ptr=store_as_leaf(ArtLeaf<T>::make_leaf(key,key_len,val));
         return nullptr;
     }
 
     if(is_leaf(node)){
-        ArtLeaf<T> *leaf=ArtLeaf<T>::leaf_node_ptr(node);
-        if(leaf->key_match(key,key_len)){ //the key we are updating already exists
+        ArtLeaf<T> *leaf=ArtLeaf<T>::as_leaf_node(node);
+        if(leaf->key_match(key,key_len)){ //the child_key we are updating already exists
             return leaf->data;
         }
 
         /// two leaves(origin leaf node and the inserted one) become two children of a node4
         ArtNode4 *new_node=new ArtNode4();
 
-        size_t match_cur; //the longest common prefix length of key in the leaf node and 'key'
+        size_t match_cur; //the longest common prefix length of child_key in the leaf node and 'child_key'
         for(match_cur=depth;match_cur-depth<InnerNode::PREFIX_VEC_LEN&&key[match_cur]==leaf->key[match_cur];match_cur++){
             new_node->prefix[match_cur-depth]=key[match_cur];
         }
         // the prefix_len field may longer than the actual prefix array
         new_node->prefix_len=match_cur-depth;
-        new_node->add_child(leaf->key[match_cur],as_leaf(node));
+        new_node->add_child(leaf->key[match_cur],store_as_leaf(node));
 
         ArtLeaf<T> *insert_leaf=ArtLeaf<T>::make_leaf(key,key_len,val);
-        new_node->add_child(key[match_cur],as_leaf(insert_leaf));
+        new_node->add_child(key[match_cur],store_as_leaf(insert_leaf));
 
-        *node_ptr=new_node;
+        node_ptr=new_node;
         return nullptr;
     }
 
     InnerNode *inner_node=as_inner_node(node);
     if(inner_node->prefix_len){
-        const auto [match_len,prefix_key]=inner_node->check_prefix<T>(key,depth,key_len);
+        const auto [match_len,prefix_child_key]=inner_node->check_prefix<T>(key,depth,key_len);
         if(match_len>=inner_node->prefix_len){
             depth+=inner_node->prefix_len;
             goto RECURSIVE_INSERT;
         }
 
         //prefix mismatch, create a new branch
-        ArtNode4 *new_node=new ArtNode4();;
+        ArtNode4 *new_node=new ArtNode4();
         new_node->prefix_len=match_len;
         memcpy(new_node->prefix,inner_node->prefix,std::min(InnerNode::PREFIX_VEC_LEN,match_len));
-        *node_ptr=new_node;
+        node_ptr=new_node;
 
         //adjust old node, part of the old node's previous prefix now will be hold by the new node
+        new_node->add_child(prefix_child_key[match_len],node);
+        inner_node->prefix_len-=match_len+1; //the 1 is for the 1 byte child_key that differs
 
-        new_node->add_child(prefix_key[match_len],node);
-        assert(prefix_key[match_len]!='\0');
-        inner_node->prefix_len-=match_len+1; //the 1 is for the 1 byte key that differs
-
+        const unsigned char *copy_src=prefix_child_key+match_len+1;
+        size_t copy_len=std::min(inner_node->prefix_len,InnerNode::PREFIX_VEC_LEN);
         if(inner_node->prefix_len<=InnerNode::PREFIX_VEC_LEN){      
-            memmove(inner_node->prefix,prefix_key+match_len+1,std::min(inner_node->prefix_len,InnerNode::PREFIX_VEC_LEN));
+            memmove(inner_node->prefix,copy_src,copy_len);
         }
         else{
-            memcpy(inner_node->prefix,prefix_key+match_len+1,std::min(inner_node->prefix_len,InnerNode::PREFIX_VEC_LEN));
+            memcpy(inner_node->prefix,copy_src,copy_len);
         }
 
-        //make a leaf for the insert 'key'
-        ArtNode *leaf=as_leaf(ArtLeaf<T>::make_leaf(key,key_len,val));
+        //make a leaf for the insert 'child_key'
+        ArtNode *leaf=store_as_leaf(ArtLeaf<T>::make_leaf(key,key_len,val));
         new_node->add_child(key[depth+match_len],leaf);
         return nullptr;
     }
@@ -139,82 +156,172 @@ T *ARTree<T>::insert_impl(ArtNode *node,ArtNode::Ptr *node_ptr, const unsigned c
 RECURSIVE_INSERT:
     ArtNode::Ptr *child=this->find_child(inner_node,key[depth]);
     if(child){ //recursive search child if current node matches
-        return this->insert_impl(*child,child,key,key_len,depth+1,val);
+        return this->insert_impl(*child,*child,key,key_len,depth+1,val);
     }
 
     //if child not exists, assign a leaf as node's child
-    ArtNode *leaf=as_leaf(ArtLeaf<T>::make_leaf(key,key_len,val));
-
-    this->add_child(inner_node,node_ptr,key[depth],leaf);
+    ArtLeaf<T> *leaf=ArtLeaf<T>::make_leaf(key,key_len,val);
+    this->add_child(inner_node,node_ptr,key[depth],store_as_leaf(leaf));
     return nullptr;
 }
 
 template<class T>
-ArtNode::Ptr* ARTree<T>::find_child(InnerNode *node, const unsigned char key)
+bool ARTree<T>::erase_impl(ArtNode *node, ArtNode::Ptr &node_ptr, const unsigned char *child_key, size_t child_key_len, size_t depth)
 {
-    assert(!is_leaf(node));
+    if(!node)
+        return false;
+
+    if(is_leaf(node_ptr)){
+        ArtLeaf<T> *leaf=ArtLeaf<T>::as_leaf_node(node);
+        if(leaf->key_match(child_key,child_key_len)){
+            delete leaf;
+            node_ptr=nullptr;
+            return true;
+        }
+        return false;
+    }
+
+    InnerNode *inner_node=as_inner_node(node);
+    depth+=inner_node->prefix_len;
+    ArtNode::Ptr *child=this->find_child(inner_node,child_key[depth]);
+    if(!child)
+        return false;
+
+    // the child node is a leaf, delete this child
+    if(is_leaf(*child)){
+        ArtLeaf<T> *leaf=ArtLeaf<T>::as_leaf_node(*child);
+        if(!leaf->key_match(child_key,child_key_len)){
+            return false;
+        }
+        this->remove_child(inner_node,node_ptr,child,child_key[depth]);
+        delete leaf;
+        return true;
+
+    }
+    return erase_impl(*child,*child,child_key,child_key_len,depth+1);
+}
+
+template<class T>
+void ARTree<T>::remove_child(InnerNode *node, ArtNode::Ptr &node_ptr,ArtNode::Ptr *child_ptr,unsigned char key)
+{
     switch(node->type) {
         case InnerNode::Node4:{
-            return static_cast<ArtNode4*>(node)->find_child(key);
-        }
+            ArtNode4 *node4=static_cast<ArtNode4*>(node);
+            node4->remove_child(child_ptr);
+
+            if(node4->num_children==1){ //collapse node with only one child
+                ArtNode *child=node4->children[0];
+                if(!is_leaf(child)){ //child is inner node, first prepend node's prefix to child inner node
+                    InnerNode *child_inner=as_inner_node(child);
+                    size_t prefix_prepend_len=std::min(node4->prefix_len+1,InnerNode::PREFIX_VEC_LEN); //1 for the key
+                    if(prefix_prepend_len<InnerNode::PREFIX_VEC_LEN){
+                       std::memmove(child_inner->prefix+prefix_prepend_len,child_inner->prefix,InnerNode::PREFIX_VEC_LEN-prefix_prepend_len);
+                       child_inner->prefix[prefix_prepend_len]=node4->keys[0];
+                    }
+                    std::memcpy(node4->prefix,child_inner->prefix,prefix_prepend_len-1);
+                    child_inner->prefix_len+=node->prefix_len+1;
+                }
+                //if child is leaf, just delete node4 anyway
+                node_ptr=child;
+                delete node4;
+            }
+        }break;
+
         case InnerNode::Node16:{
-            return static_cast<ArtNode16*>(node)->find_child(key);
-        }
+            ArtNode16 *node16=static_cast<ArtNode16*>(node);
+            node16->remove_child(child_ptr);
+            if(node16->can_shrink()){
+                ArtNode4 *node4=node16->shrink();
+                node_ptr=node4;
+            }
+        }break;
+
         case InnerNode::Node48:{
-            return static_cast<ArtNode48*>(node)->find_child(key);
-        }
+            ArtNode48 *node48=static_cast<ArtNode48*>(node);
+            node48->remove_child(key);
+            if(node48->can_shrink()){
+                ArtNode16 *node16=node48->shrink();
+                node_ptr=node16;
+            }
+        }break;
+
         case InnerNode::Node256:{
-            return static_cast<ArtNode256*>(node)->find_child(key);
+            ArtNode256 *node256=static_cast<ArtNode256*>(node);
+            node256->remove_child(key);
+            if(node256->can_shrink()){
+                ArtNode48 *node48=node256->shrink();
+                node_ptr=node48;
+            }
         }
     }
 }
 
 template<class T>
-void ARTree<T>::add_child(InnerNode *node, ArtNode::Ptr *node_ptr, const unsigned char key, ArtNode *child)
+void ARTree<T>::add_child(InnerNode *node, ArtNode::Ptr &node_ptr, const unsigned char child_key, ArtNode *child)
 {
     switch(node->type) {
         case InnerNode::Node4:{
             ArtNode4 *node4=static_cast<ArtNode4*>(node);
             if(!node4->is_full()){
-                node4->add_child(key,child);
+                node4->add_child(child_key,child);
             }
             else{
-                ArtNode16 *node16=static_cast<ArtNode16*>(node4->expand());
-                *node_ptr=node16;
-                node16->add_child(key,child);
+                ArtNode16 *node16=node4->expand();
+                node_ptr=node16;
+                node16->add_child(child_key,child);
             }
         }break;
 
         case InnerNode::Node16:{
             ArtNode16 *node16=static_cast<ArtNode16*>(node);
             if(!node16->is_full()){
-                node16->add_child(key,child);
+                node16->add_child(child_key,child);
             }
             else{
-                ArtNode48 *node48=static_cast<ArtNode48*>(node16->expand());
-                *node_ptr=node48;
-                node48->add_child(key,child);
+                ArtNode48 *node48=node16->expand();
+                node_ptr=node48;
+                node48->add_child(child_key,child);
             }
         }break;
 
         case InnerNode::Node48:{
             ArtNode48 *node48=static_cast<ArtNode48*>(node);
             if(!node48->is_full()){
-                node48->add_child(key,child);
+                node48->add_child(child_key,child);
             }
             else{
-                ArtNode256 *node256=static_cast<ArtNode256*>(node48->expand());
-                *node_ptr=node256;
-                node256->add_child(key,child);
+                ArtNode256 *node256=node48->expand();
+                node_ptr=node256;
+                node256->add_child(child_key,child);
             }
         }break;
 
         case InnerNode::Node256:{
             ArtNode256 *node256=static_cast<ArtNode256*>(node);
-            node256->add_child(key,child);
+            node256->add_child(child_key,child);
         }
     }
 }
+
+template<class T>
+ArtNode::Ptr* ARTree<T>::find_child(InnerNode *node, const unsigned char child_key)
+{
+    switch(node->type) {
+        case InnerNode::Node4:{
+            return static_cast<ArtNode4*>(node)->find_child(child_key);
+        }
+        case InnerNode::Node16:{
+            return static_cast<ArtNode16*>(node)->find_child(child_key);
+        }
+        case InnerNode::Node48:{
+            return static_cast<ArtNode48*>(node)->find_child(child_key);
+        }
+        case InnerNode::Node256:{
+            return static_cast<ArtNode256*>(node)->find_child(child_key);
+        }
+    }
+}
+
 
 }
 

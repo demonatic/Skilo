@@ -3,11 +3,8 @@
 
 #include <algorithm>
 #include <cstring>
-#include <assert.h>
-#if defined(__i386__) || defined(__amd64__)
 #include <emmintrin.h>
-#endif
-
+#include <assert.h>
 #include <iostream>
 using namespace std;
 
@@ -17,6 +14,10 @@ struct ArtNode{ using Ptr=ArtNode*; };
 
 template<class T>
 struct ArtLeaf:public ArtNode{
+    ~ArtLeaf(){
+        free(key);
+        delete data;
+    }
 
     static ArtLeaf* make_leaf(const unsigned char *key,size_t key_len,const T &value){
         ArtLeaf *leaf=new ArtLeaf;
@@ -27,16 +28,15 @@ struct ArtLeaf:public ArtNode{
         return leaf;
     }
 
-    static ArtLeaf<T>* leaf_node_ptr(ArtNode::Ptr ptr){
+    static ArtLeaf<T>* as_leaf_node(ArtNode::Ptr ptr){
        return reinterpret_cast<ArtLeaf<T>*>(reinterpret_cast<uintptr_t>(ptr)&(~0x1ul));
     }
 
-    bool key_match(const unsigned char *query_key,size_t key_len){
+    bool key_match(const unsigned char *key,size_t key_len){
         if(key_len!=this->key_len){
             return false;
         }
-        auto *cmp_key=reinterpret_cast<const unsigned char *>(query_key);
-        return std::memcmp(cmp_key,this->key,key_len)==0;
+        return std::memcmp(key,this->key,key_len)==0;
     }
 
     unsigned char *key; //a full key, should contain '\0'
@@ -48,7 +48,7 @@ inline bool is_leaf(ArtNode::Ptr ptr){
     return reinterpret_cast<uintptr_t>(ptr)&0x1;
 }
 
-inline ArtNode::Ptr as_leaf(ArtNode::Ptr ptr){
+inline ArtNode::Ptr store_as_leaf(ArtNode::Ptr ptr){
     return reinterpret_cast<ArtNode::Ptr>((reinterpret_cast<uintptr_t>(ptr)|0x1));
 }
 
@@ -92,163 +92,15 @@ struct InnerNode:public ArtNode
     }
 
     NodeType type;
-    uint32_t prefix_len; //may larger than PREFIX_VEC_LEN
-    static constexpr uint32_t PREFIX_VEC_LEN=10;
+    uint32_t prefix_len; //0-n, may larger than PREFIX_VEC_LEN
+    static constexpr uint32_t PREFIX_VEC_LEN=7;
     unsigned char prefix[PREFIX_VEC_LEN];
 };
 
-
-struct ArtNode256:public InnerNode{
-public:
-    ArtNode256():InnerNode(InnerNode::Node256),num_children(0),children(){}
-
-    ArtNode::Ptr* find_child(const unsigned char key){
-        ArtNode *child=children[key];
-        return child!=nullptr?&children[key]:nullptr;
-    }
-
-    void add_child(const unsigned char key,ArtNode *child_node){
-        children[key]=child_node;
-        num_children++;
-    }
-
-    bool is_full(){
-        return num_children==256;
-    }
-
-    bool can_shrink(){
-        return num_children<=48;
-    }
-
-    uint16_t num_children; //0-256
-    ArtNode *children[256];
-};
-
-struct ArtNode48:public InnerNode{
-    ArtNode48():InnerNode(Node48),num_children(0),child_indexs(),children(){
-
-    }
-
-    ArtNode::Ptr* find_child(const unsigned char key){
-        unsigned char index=child_indexs[key];
-        return index?&children[index-1]:nullptr;
-    }
-
-    void add_child(const unsigned char key,ArtNode *child_node){
-        assert(num_children<48);
-        child_indexs[key]=num_children+1;
-        children[num_children]=child_node;
-        num_children++;
-    }
-
-    bool is_full(){
-        return num_children==48;
-    }
-
-    bool can_shrink(){
-        return num_children<=16;
-    }
-
-    InnerNode *expand(){
-        ArtNode256 *new_node=new ArtNode256();
-        std::memcpy(new_node->prefix,this->prefix,prefix_len);
-        new_node->prefix_len=this->prefix_len;
-        new_node->num_children=this->num_children;
-        for(int i=0;i<256;i++){
-            unsigned char index=child_indexs[i];
-            if(index){
-                new_node->children[i]=this->children[index-1];
-            }
-        }
-        delete this;
-        return new_node;
-    }
-
-    uint8_t num_children;
-    unsigned char child_indexs[256]; //index=k则位于children[k-1]处
-    ArtNode *children[48];
-};
-
-struct ArtNode16:public InnerNode{
-public:
-    ArtNode16():InnerNode(InnerNode::Node16),num_children(0),keys(),children(){}
-
-    ArtNode::Ptr* find_child(const unsigned char key){
-#if defined(__i386__)||defined (__amd64__)
-        int match_result = _mm_movemask_epi8(_mm_cmpeq_epi8(_mm_set1_epi8(key),_mm_loadu_si128((__m128i *)keys)));
-         // build a mask to select only the first _num_children values from the comparison
-        int mask=(1<<num_children)-1;
-        int bit_field=match_result&mask;
-         // find the index of the first '1' in the bitfield by counting the leading zeros.
-        int index=__builtin_ctz(bit_field);
-        return bit_field!=0?&children[index]:nullptr;
-
-#else
-        int low=0,mid,high=num_children;
-        while(low<high){
-            mid=(low+high)/2;
-            if(key<keys[mid]){
-                high=mid;
-            }else if(key>keys[mid]){
-                low=mid+1;
-            }else{
-                return &children[mid];
-            }
-        }
-        return nullptr;
-#endif
-    }
-
-    void add_child(const unsigned char key,ArtNode *child_node){
-#if defined(__i386__)||defined (__amd64__)
-        keys[num_children]=key;
-        children[num_children]=child_node;
-        num_children++;
-#else
-        int i=0; //insert position
-        if(num_children){
-            for(i=num_children;i>0;i--){
-                if(key>keys[i-1]){
-                   break;
-                }
-                children[i]=children[i-1];
-                keys[i]=keys[i-1];
-            }
-        }
-        keys[i]=key;
-        children[i]=child_node;
-        num_children++;
-
-#endif
-    }
-
-    bool is_full(){
-        return num_children==16;
-    }
-
-    bool can_shrink(){
-        return num_children<=4;
-    }
-
-    InnerNode *expand(){
-        ArtNode48 *new_node=new ArtNode48();
-        std::memcpy(new_node->prefix,this->prefix,prefix_len);
-        new_node->prefix_len=this->prefix_len;
-        new_node->num_children=this->num_children;
-        std::memcpy(new_node->children,this->children,sizeof(children));
-        for(uint8_t i=0;i<num_children;i++){
-            new_node->child_indexs[this->keys[i]]=i+1;
-        }
-
-        delete this;
-        return new_node;
-    }
-
-    uint8_t num_children;
-    unsigned char keys[16]; //sorted if __i386__ or __amd64__ is not defined
-    ArtNode *children[16];
-};
-
+struct ArtNode4;
+struct ArtNode16;
+struct ArtNode48;
+struct ArtNode256;
 
 struct ArtNode4:public InnerNode{
 
@@ -271,35 +123,142 @@ struct ArtNode4:public InnerNode{
         children[num_children]=child_node;
         num_children++;
     }
+    
+    void remove_child(ArtNode::Ptr *child_addr){
+        int pos=child_addr-children;
+        int last_index=num_children-1;
+        keys[pos]=keys[last_index];
+        children[pos]=children[last_index];
+        num_children--;
+    }
 
     bool is_full(){
         return num_children==4;
     }
 
-    bool can_shrink(){
-        return false;
-    }
-
-    InnerNode *expand(){
-        ArtNode16 *new_node=new ArtNode16();
-        std::memcpy(new_node->prefix,this->prefix,prefix_len);
-        new_node->prefix_len=this->prefix_len;
-        new_node->num_children=this->num_children;
-        std::memcpy(new_node->keys,this->keys,4);
-        std::memcpy(new_node->children,this->children,4*sizeof(ArtNode4*));
-#if !defined(__i386__)&&!defined(__amd64__)
-        std::sort(new_node->_keys,new_node->_keys+sizeof(_keys));
-        std::sort(new_node->_children,new_node->_children+sizeof(_children));
-#endif
-        return new_node;
-    }
+    ArtNode16 *expand();
 
     uint8_t num_children;
     unsigned char keys[4];
     ArtNode *children[4];
 };
 
-inline ArtNode *find_first_leaf_impl(ArtNode *node){
+struct ArtNode16:public InnerNode{
+public:
+    ArtNode16():InnerNode(InnerNode::Node16),num_children(0),keys(),children(){}
+
+    ArtNode::Ptr* find_child(const unsigned char key){
+        int match_result = _mm_movemask_epi8(_mm_cmpeq_epi8(_mm_set1_epi8(key),_mm_loadu_si128((__m128i *)keys)));
+         // build a mask to select only the first _num_children values from the comparison
+        int mask=(1<<num_children)-1;
+        int bit_field=match_result&mask;
+         // find the index of the first '1' in the bitfield by counting the leading zeros.
+        int index=__builtin_ctz(bit_field);
+        return bit_field!=0?&children[index]:nullptr;
+    }
+
+    void add_child(const unsigned char key,ArtNode *child_node){
+        keys[num_children]=key;
+        children[num_children]=child_node;
+        num_children++;
+    }
+    
+    void remove_child(ArtNode::Ptr *child_addr){
+        int pos=child_addr-children;
+        int last_index=num_children-1;
+        keys[pos]=keys[last_index];
+        children[pos]=children[last_index];
+        num_children--;
+    }
+
+    bool is_full(){
+        return num_children==16;
+    }
+
+    bool can_shrink(){
+        return num_children<=3;
+    }
+
+    ArtNode48 *expand();
+    ArtNode4 *shrink();
+
+    uint8_t num_children;
+    unsigned char keys[16];
+    ArtNode *children[16];
+};
+
+struct ArtNode48:public InnerNode{
+    ArtNode48():InnerNode(Node48),num_children(0),child_indexs(),children(){}
+
+    ArtNode::Ptr* find_child(const unsigned char key){
+        unsigned char index=child_indexs[key];
+        return index?&children[index-1]:nullptr;
+    }
+
+    void add_child(const unsigned char key,ArtNode *child_node){
+        child_indexs[key]=num_children+1;
+        children[num_children]=child_node;
+        num_children++;
+    }
+    
+    void remove_child(unsigned char key){
+        int index=child_indexs[key];
+        child_indexs[key]=0;
+        children[index-1]=nullptr;
+        num_children--;
+    }
+
+    bool is_full(){
+        return num_children==48;
+    }
+
+    bool can_shrink(){
+        return num_children<=12;
+    }
+
+    ArtNode256 *expand();
+    ArtNode16 *shrink();
+
+    uint8_t num_children;
+    unsigned char child_indexs[256]; //index=k represents at children[k-1]
+    ArtNode *children[48];
+};
+
+struct ArtNode256:public InnerNode{
+public:
+    ArtNode256():InnerNode(InnerNode::Node256),num_children(0),children(){}
+
+    ArtNode::Ptr* find_child(const unsigned char key){
+        ArtNode *child=children[key];
+        return child!=nullptr?&children[key]:nullptr;
+    }
+
+    void add_child(const unsigned char key,ArtNode *child_node){
+        children[key]=child_node;
+        num_children++;
+    }
+    
+    void remove_child(unsigned char key){
+        children[key]=nullptr;
+        num_children--;
+    }
+
+    bool is_full(){
+        return num_children==256;
+    }
+
+    bool can_shrink(){
+        return num_children<=40;
+    }
+
+    ArtNode48 *shrink();
+
+    uint16_t num_children; //0-256
+    ArtNode *children[256];
+};
+
+
+ArtNode *find_first_leaf_impl(ArtNode *node){
     if(!node)
         return nullptr;
 
@@ -329,11 +288,99 @@ inline ArtNode *find_first_leaf_impl(ArtNode *node){
 
 template<class T>
 inline ArtLeaf<T> *find_first_leaf(ArtNode *node){
-   return ArtLeaf<T>::leaf_node_ptr(find_first_leaf_impl(node));
+   return ArtLeaf<T>::as_leaf_node(find_first_leaf_impl(node));
 }
 
 inline InnerNode *as_inner_node(ArtNode *ptr){
     return static_cast<InnerNode*>(ptr);
+}
+
+ArtNode16 *ArtNode4::expand()
+{
+    ArtNode16 *new_node=new ArtNode16();
+    std::memcpy(new_node->prefix,this->prefix,prefix_len);
+    new_node->prefix_len=this->prefix_len;
+    new_node->num_children=this->num_children;
+    std::memcpy(new_node->keys,this->keys,sizeof(keys));
+    std::memcpy(new_node->children,this->children,sizeof(children));
+    delete this;
+    return new_node;
+}
+
+ArtNode4 *ArtNode16::shrink()
+{
+    ArtNode4 *new_node=new ArtNode4;
+    std::memcpy(new_node->prefix,this->prefix,prefix_len);
+    new_node->prefix_len=this->prefix_len;
+    new_node->num_children=this->num_children;
+    std::memcpy(new_node->keys,this->keys,this->num_children*sizeof(unsigned char));
+    std::memcpy(new_node->children,this->children,this->num_children*sizeof(ArtNode*));
+    delete this;
+    return new_node;
+}
+
+ArtNode48 *ArtNode16::expand()
+{
+    ArtNode48 *new_node=new ArtNode48();
+    std::memcpy(new_node->prefix,this->prefix,prefix_len);
+    new_node->prefix_len=this->prefix_len;
+    new_node->num_children=this->num_children;
+    std::memcpy(new_node->children,this->children,sizeof(children));
+    for(uint8_t i=0;i<num_children;i++){
+        new_node->child_indexs[this->keys[i]]=i+1;
+    }
+    delete this;
+    return new_node;
+}
+
+ArtNode16 *ArtNode48::shrink()
+{
+    ArtNode16 *new_node=new ArtNode16();
+    std::memcpy(new_node->prefix,this->prefix,prefix_len);
+    new_node->prefix_len=this->prefix_len;
+    new_node->num_children=this->num_children;
+    int pos=0;
+    for(int i=0;i<256;i++){
+         unsigned char index=child_indexs[i];
+         if(index){
+             new_node->keys[pos]=static_cast<unsigned char>(i);
+             new_node->children[pos]=this->children[index-1];
+             pos++;
+         }
+    }
+    delete this;
+    return new_node;
+}
+
+ArtNode256 *ArtNode48::expand()
+{
+    ArtNode256 *new_node=new ArtNode256();
+    std::memcpy(new_node->prefix,this->prefix,prefix_len);
+    new_node->prefix_len=this->prefix_len;
+    new_node->num_children=this->num_children;
+    for(int i=0;i<256;i++){
+        unsigned char index=child_indexs[i];
+        if(index){
+            new_node->children[i]=this->children[index-1];
+        }
+    }
+    delete this;
+    return new_node;
+}
+
+ArtNode48 *ArtNode256::shrink()
+{
+    ArtNode48 *new_node=new ArtNode48();
+    std::memcpy(new_node->prefix,this->prefix,prefix_len);
+    new_node->prefix_len=this->prefix_len;
+    for(int i=0;i<256;i++){
+        if(this->children[i]){
+            unsigned char key=static_cast<unsigned char>(i);
+            new_node->add_child(key,this->children[i]);
+        }
+    }
+    delete this;
+    return new_node;
 }
 
 }
