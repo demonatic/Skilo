@@ -29,6 +29,7 @@ private:
 
     T* insert_impl(ArtNode *node,ArtNode::Ptr &node_ptr,const unsigned char *child_key,size_t child_key_len,size_t depth,const T &val);
     bool erase_impl(ArtNode *node,ArtNode::Ptr &node_ptr,const unsigned char *child_key,size_t child_key_len,size_t depth);
+    void destroy_impl(ArtNode *node);
 
 private:
     ArtNode *_root;
@@ -38,7 +39,7 @@ private:
 
 template<class T>
 ARTree<T>::~ARTree(){
-
+    this->destroy_impl(this->_root);
 }
 
 template<class T>
@@ -202,11 +203,61 @@ bool ARTree<T>::erase_impl(ArtNode *node, ArtNode::Ptr &node_ptr, const unsigned
 }
 
 template<class T>
+void ARTree<T>::destroy_impl(ArtNode *node)
+{
+    if(!node)
+        return;
+
+    if(is_leaf(node)){
+        ArtLeaf<T> *leaf=ArtLeaf<T>::as_leaf_node(node);
+        delete leaf;
+    }
+    else{
+        InnerNode *inner_node=as_inner_node(node);
+        switch(inner_node->type){
+            case InnerNode::Node4:{
+                ArtNode4 *node4=as_node4(inner_node);
+                for(int i=0;i<node4->num_children;i++){
+                    destroy_impl(node4->children[i]);
+                }
+                delete node4;
+            }
+            break;
+            case InnerNode::Node16:{
+                ArtNode16 *node16=as_node16(inner_node);
+                for(int i=0;i<node16->num_children;i++){
+                    destroy_impl(node16->children[i]);
+                }
+                delete node16;
+            }
+            break;
+            case InnerNode::Node48:{
+                ArtNode48 *node48=as_node48(inner_node);
+                for(int i=0;i<node48->num_children;i++){
+                    destroy_impl(node48->children[i]);
+                }
+                delete node48;
+            }
+            break;
+            case InnerNode::Node256:{
+                ArtNode256 *node256=as_node256(inner_node);
+                for(int i=0;i<256;i++){
+                    if(node256->children[i]){
+                        destroy_impl(node256->children[i]);
+                    }
+                }
+                delete node256;
+            }
+        }
+    }
+}
+
+template<class T>
 void ARTree<T>::remove_child(InnerNode *node, ArtNode::Ptr &node_ptr,ArtNode::Ptr *child_ptr,unsigned char key)
 {
     switch(node->type) {
         case InnerNode::Node4:{
-            ArtNode4 *node4=static_cast<ArtNode4*>(node);
+            ArtNode4 *node4=as_node4(node);
             node4->remove_child(child_ptr);
 
             if(node4->num_children==1){ //collapse node with only one child
@@ -228,7 +279,7 @@ void ARTree<T>::remove_child(InnerNode *node, ArtNode::Ptr &node_ptr,ArtNode::Pt
         }break;
 
         case InnerNode::Node16:{
-            ArtNode16 *node16=static_cast<ArtNode16*>(node);
+            ArtNode16 *node16=as_node16(node);
             node16->remove_child(child_ptr);
             if(node16->can_shrink()){
                 ArtNode4 *node4=node16->shrink();
@@ -237,7 +288,7 @@ void ARTree<T>::remove_child(InnerNode *node, ArtNode::Ptr &node_ptr,ArtNode::Pt
         }break;
 
         case InnerNode::Node48:{
-            ArtNode48 *node48=static_cast<ArtNode48*>(node);
+            ArtNode48 *node48=as_node48(node);
             node48->remove_child(key);
             if(node48->can_shrink()){
                 ArtNode16 *node16=node48->shrink();
@@ -246,7 +297,7 @@ void ARTree<T>::remove_child(InnerNode *node, ArtNode::Ptr &node_ptr,ArtNode::Pt
         }break;
 
         case InnerNode::Node256:{
-            ArtNode256 *node256=static_cast<ArtNode256*>(node);
+            ArtNode256 *node256=as_node256(node);
             node256->remove_child(key);
             if(node256->can_shrink()){
                 ArtNode48 *node48=node256->shrink();
@@ -261,7 +312,7 @@ void ARTree<T>::add_child(InnerNode *node, ArtNode::Ptr &node_ptr, const unsigne
 {
     switch(node->type) {
         case InnerNode::Node4:{
-            ArtNode4 *node4=static_cast<ArtNode4*>(node);
+            ArtNode4 *node4=as_node4(node);
             if(!node4->is_full()){
                 node4->add_child(child_key,child);
             }
@@ -273,7 +324,7 @@ void ARTree<T>::add_child(InnerNode *node, ArtNode::Ptr &node_ptr, const unsigne
         }break;
 
         case InnerNode::Node16:{
-            ArtNode16 *node16=static_cast<ArtNode16*>(node);
+            ArtNode16 *node16=as_node16(node);
             if(!node16->is_full()){
                 node16->add_child(child_key,child);
             }
@@ -285,7 +336,7 @@ void ARTree<T>::add_child(InnerNode *node, ArtNode::Ptr &node_ptr, const unsigne
         }break;
 
         case InnerNode::Node48:{
-            ArtNode48 *node48=static_cast<ArtNode48*>(node);
+            ArtNode48 *node48=as_node48(node);
             if(!node48->is_full()){
                 node48->add_child(child_key,child);
             }
@@ -297,7 +348,7 @@ void ARTree<T>::add_child(InnerNode *node, ArtNode::Ptr &node_ptr, const unsigne
         }break;
 
         case InnerNode::Node256:{
-            ArtNode256 *node256=static_cast<ArtNode256*>(node);
+            ArtNode256 *node256=as_node256(node);
             node256->add_child(child_key,child);
         }
     }
@@ -308,16 +359,16 @@ ArtNode::Ptr* ARTree<T>::find_child(InnerNode *node, const unsigned char child_k
 {
     switch(node->type) {
         case InnerNode::Node4:{
-            return static_cast<ArtNode4*>(node)->find_child(child_key);
+            return as_node4(node)->find_child(child_key);
         }
         case InnerNode::Node16:{
-            return static_cast<ArtNode16*>(node)->find_child(child_key);
+            return as_node16(node)->find_child(child_key);
         }
         case InnerNode::Node48:{
-            return static_cast<ArtNode48*>(node)->find_child(child_key);
+            return as_node48(node)->find_child(child_key);
         }
         case InnerNode::Node256:{
-            return static_cast<ArtNode256*>(node)->find_child(child_key);
+            return as_node256(node)->find_child(child_key);
         }
     }
 }

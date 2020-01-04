@@ -15,8 +15,13 @@ struct ArtNode{ using Ptr=ArtNode*; };
 template<class T>
 struct ArtLeaf:public ArtNode{
     ~ArtLeaf(){
+        static size_t count=0;
         free(key);
         delete data;
+        count++;
+        if(count%100000){
+            cout<<count<<endl;
+        }
     }
 
     static ArtLeaf* make_leaf(const unsigned char *key,size_t key_len,const T &value){
@@ -291,7 +296,7 @@ inline ArtLeaf<T> *find_first_leaf(ArtNode *node){
    return ArtLeaf<T>::as_leaf_node(find_first_leaf_impl(node));
 }
 
-inline InnerNode *as_inner_node(ArtNode *ptr){
+InnerNode *as_inner_node(ArtNode *ptr){
     return static_cast<InnerNode*>(ptr);
 }
 
@@ -383,6 +388,25 @@ ArtNode48 *ArtNode256::shrink()
     return new_node;
 }
 
+ArtNode4 *as_node4(InnerNode *inner_node){
+    assert(innner_node->type==InnerNode::Node4);
+    return static_cast<ArtNode4*>(inner_node);
+}
+
+ArtNode16 *as_node16(InnerNode *inner_node){
+    assert(innner_node->type==InnerNode::Node16);
+    return static_cast<ArtNode16*>(inner_node);
+}
+
+ArtNode48 *as_node48(InnerNode *inner_node){
+    assert(innner_node->type==InnerNode::Node48);
+    return static_cast<ArtNode48*>(inner_node);
+}
+
+ArtNode256 *as_node256(InnerNode *inner_node){
+    assert(innner_node->type==InnerNode::Node256);
+    return static_cast<ArtNode256*>(inner_node);
+}
 }
 
 
