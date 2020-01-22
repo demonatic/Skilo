@@ -1,4 +1,4 @@
-#include "../src/core/art/Art.hpp"
+#include "../src/core/index/Art.hpp"
 #include <gtest/gtest.h>
 #include <unordered_map>
 #include <map>

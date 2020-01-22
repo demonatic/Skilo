@@ -39,3 +39,6 @@
 *.cbp
 *.cmake
 CmakeCache.txt
+Makefile
+src/CMakeFiles/*
+test/libart/

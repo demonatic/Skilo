@@ -15,13 +15,8 @@ struct ArtNode{ using Ptr=ArtNode*; };
 template<class T>
 struct ArtLeaf:public ArtNode{
     ~ArtLeaf(){
-        static size_t count=0;
         free(key);
         delete data;
-        count++;
-        if(count%100000){
-            cout<<count<<endl;
-        }
     }
 
     static ArtLeaf* make_leaf(const unsigned char *key,size_t key_len,const T &value){
@@ -263,7 +258,7 @@ public:
 };
 
 
-ArtNode *find_first_leaf_impl(ArtNode *node){
+inline ArtNode *find_first_leaf_impl(ArtNode *node){
     if(!node)
         return nullptr;
 
@@ -296,11 +291,11 @@ inline ArtLeaf<T> *find_first_leaf(ArtNode *node){
    return ArtLeaf<T>::as_leaf_node(find_first_leaf_impl(node));
 }
 
-InnerNode *as_inner_node(ArtNode *ptr){
+inline InnerNode *as_inner_node(ArtNode *ptr){
     return static_cast<InnerNode*>(ptr);
 }
 
-ArtNode16 *ArtNode4::expand()
+inline ArtNode16 *ArtNode4::expand()
 {
     ArtNode16 *new_node=new ArtNode16();
     std::memcpy(new_node->prefix,this->prefix,prefix_len);
@@ -312,7 +307,7 @@ ArtNode16 *ArtNode4::expand()
     return new_node;
 }
 
-ArtNode4 *ArtNode16::shrink()
+inline ArtNode4 *ArtNode16::shrink()
 {
     ArtNode4 *new_node=new ArtNode4;
     std::memcpy(new_node->prefix,this->prefix,prefix_len);
@@ -324,7 +319,7 @@ ArtNode4 *ArtNode16::shrink()
     return new_node;
 }
 
-ArtNode48 *ArtNode16::expand()
+inline ArtNode48 *ArtNode16::expand()
 {
     ArtNode48 *new_node=new ArtNode48();
     std::memcpy(new_node->prefix,this->prefix,prefix_len);
@@ -338,7 +333,7 @@ ArtNode48 *ArtNode16::expand()
     return new_node;
 }
 
-ArtNode16 *ArtNode48::shrink()
+inline ArtNode16 *ArtNode48::shrink()
 {
     ArtNode16 *new_node=new ArtNode16();
     std::memcpy(new_node->prefix,this->prefix,prefix_len);
@@ -357,7 +352,7 @@ ArtNode16 *ArtNode48::shrink()
     return new_node;
 }
 
-ArtNode256 *ArtNode48::expand()
+inline ArtNode256 *ArtNode48::expand()
 {
     ArtNode256 *new_node=new ArtNode256();
     std::memcpy(new_node->prefix,this->prefix,prefix_len);
@@ -373,7 +368,7 @@ ArtNode256 *ArtNode48::expand()
     return new_node;
 }
 
-ArtNode48 *ArtNode256::shrink()
+inline ArtNode48 *ArtNode256::shrink()
 {
     ArtNode48 *new_node=new ArtNode48();
     std::memcpy(new_node->prefix,this->prefix,prefix_len);
@@ -388,23 +383,23 @@ ArtNode48 *ArtNode256::shrink()
     return new_node;
 }
 
-ArtNode4 *as_node4(InnerNode *inner_node){
-    assert(innner_node->type==InnerNode::Node4);
+inline ArtNode4 *as_node4(InnerNode *inner_node){
+    assert(inner_node->type==InnerNode::Node4);
     return static_cast<ArtNode4*>(inner_node);
 }
 
-ArtNode16 *as_node16(InnerNode *inner_node){
-    assert(innner_node->type==InnerNode::Node16);
+inline ArtNode16 *as_node16(InnerNode *inner_node){
+    assert(inner_node->type==InnerNode::Node16);
     return static_cast<ArtNode16*>(inner_node);
 }
 
-ArtNode48 *as_node48(InnerNode *inner_node){
-    assert(innner_node->type==InnerNode::Node48);
+inline ArtNode48 *as_node48(InnerNode *inner_node){
+    assert(inner_node->type==InnerNode::Node48);
     return static_cast<ArtNode48*>(inner_node);
 }
 
-ArtNode256 *as_node256(InnerNode *inner_node){
-    assert(innner_node->type==InnerNode::Node256);
+inline ArtNode256 *as_node256(InnerNode *inner_node){
+    assert(inner_node->type==InnerNode::Node256);
     return static_cast<ArtNode256*>(inner_node);
 }
 }

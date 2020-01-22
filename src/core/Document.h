@@ -2,7 +2,7 @@
 #define DOCUMENT_H
 
 #include "../storage/Storage.h"
-#include "../util/KeyConverter.hpp"
+#include "../storage/KeyConverter.hpp"
 #include "../../3rd/include/rapidjson/rapidjson.h"
 #include "../../3rd/include/rapidjson/document.h"
 #include <vector>
