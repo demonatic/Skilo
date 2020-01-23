@@ -152,7 +152,7 @@ public:
          // build a mask to select only the first _num_children values from the comparison
         int mask=(1<<num_children)-1;
         int bit_field=match_result&mask;
-         // find the index of the first '1' in the bitfield by counting the leading zeros.
+         // find the index of the first '1' in the bitfield by counting the tailing zeros.
         int index=__builtin_ctz(bit_field);
         return bit_field!=0?&children[index]:nullptr;
     }

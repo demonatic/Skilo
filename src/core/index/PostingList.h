@@ -1,8 +1,11 @@
 #ifndef POSTINGLIST_H
 #define POSTINGLIST_H
 
-#include "CompressableArray.h"
+#include "CompressedScalar.hpp"
 #include <roaring/roaring.hh>
+
+namespace Skilo {
+namespace Index{
 
 /// @class containing a list of 'document(id) and the corresponding info(Term Frequency,Posision,Offset)'
 class PostingList
@@ -11,8 +14,10 @@ public:
     PostingList();
 
 private:
-    Roaring _doc_ids;
-    CompressableArray<uint32_t,true> _doc_freqs;
+    CompressedScalar<ScalarType::Sorted> _doc_ids;
+    CompressedScalar<ScalarType::Sorted> _doc_freqs;
 };
 
+} //namespace Index
+} //namespace Skilo
 #endif // POSTINGLIST_H

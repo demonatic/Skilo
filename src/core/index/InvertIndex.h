@@ -4,6 +4,9 @@
 #include "Art.hpp"
 #include "PostingList.h"
 
+namespace Skilo {
+namespace Index{
+
 class InvertIndex
 {
 public:
@@ -18,4 +21,7 @@ private:
     Art::ARTree<TermEntry> _index;
 };
 
+
+} //namespace Index
+} //namespace Skilo
 #endif // INVERTINDEX_H
