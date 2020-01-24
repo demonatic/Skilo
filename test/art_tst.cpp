@@ -56,10 +56,10 @@ private:
 };
 
 
-TEST(PERFORMANCE_TEST,data) {
+TEST(ART_TEST,PERFORMANCE_TEST) {
 
     std::unordered_map<string, string> dataset;
-    uint32_t n = 10000000;
+    uint32_t n = 1000; //10000000
     size_t len=16;
     cout<<"generating "<<to_string(n)<<" keys if length "<<len<<" for test"<<endl;
     while (n--) {
@@ -238,10 +238,10 @@ TEST(PERFORMANCE_TEST,data) {
     }
 }
 
-TEST(CORRECTNESS_TST,data){
+TEST(ART_TEST,CORRECTNESS_TST){
       Art::ARTree<string> art;
       std::unordered_map<string,string> data;
-      while(data.size()<10000000){
+      while(data.size()<1000){
           std::string str;
           size_t len=random()%23;
           for(size_t j=0;j<len;j++){
@@ -272,7 +272,7 @@ TEST(CORRECTNESS_TST,data){
       }
 }
 
-TEST(SIMPLE_TEST,data){
+TEST(ART_TEST,SIMPLE_TEST){
     Art::ARTree<const char *> art;
     const char *s1="hello";
     const char *s2="bye bye";

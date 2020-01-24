@@ -70,7 +70,7 @@ public:
     }
 
     uint32_t at(const uint32_t index) const{
-        if(index<0||index>_elm_count){
+        if(index<0||index>=_elm_count){
             throw std::out_of_range("index is out of scalar range");
         }
         return (*this)[index];
@@ -103,6 +103,15 @@ public:
         else{
             return for_linear_search(_data,_elm_count,value);
         }
+    }
+
+    std::unique_ptr<uint32_t[]> intersect(const CompressedScalar<ScalarType::Sorted> &scalar2)
+    {
+        static_assert(type==ScalarType::Sorted,"Scalar intersection of Unsorted is not implemented");
+        if(!this->length()||!scalar2.length()){
+            return nullptr;
+        }
+        //todo
     }
 
     /// @return num of elements
@@ -138,6 +147,7 @@ private:
     uint32_t _min_val=std::numeric_limits<uint32_t>::max();
     uint32_t _max_val=std::numeric_limits<uint32_t>::min();
 };
+
 
 } //namespace Index
 } //namespace Skilo

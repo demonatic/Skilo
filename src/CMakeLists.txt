@@ -9,9 +9,12 @@ if(NOT EXISTS ${DEP_ROOT_DIR})
     file(MAKE_DIRECTORY ${DEP_ROOT_DIR})
 endif()
 
+set(BUILD_DEPS "yes" CACHE STRING "")
+
 #include(../cmake/RocksDB.cmake)
 #include(../cmake/g3logger.cmake)
 include(../cmake/CRoaring.cmake)
+include(../cmake/libfor.cmake)
 
 file(GLOB SOURCES
     storage/*.h
@@ -19,11 +22,12 @@ file(GLOB SOURCES
     core/*.h
     core/*.cpp
     core/index/*.h
+    core/index/*.hpp
     core/index/*.cpp
     util/*.hpp
 )
 
 add_executable(Skilo main.cpp ${SOURCES})
 
-set(CORE_LIBS ${G3LOGGER_LIBRARIES} g3logger pthread rocksdb roaring)
+set(CORE_LIBS ${G3LOGGER_LIBRARIES} g3logger pthread rocksdb roaring for)
 target_link_libraries(Skilo ${CORE_LIBS})
