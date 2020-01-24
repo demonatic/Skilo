@@ -4,6 +4,8 @@
 #include "Collection.h"
 #include "../../3rd/include/parallel_hashmap/phmap.h"
 
+namespace Skilo {
+
 class CollectionManager
 {
 public:
@@ -12,6 +14,7 @@ public:
     /// @return error string if error exists
     std::optional<std::string> create_collection(const std::string &collection_name,Schema &schema);
 
+    bool add_document(const SegmentBuf &json_str);
 
 private:
     phmap::flat_hash_map<uint32_t,std::string> _collection_id_name_map;
@@ -20,5 +23,7 @@ private:
 
     std::unique_ptr<Storage> _storage;
 };
+
+} //namespace Skilo
 
 #endif // COLLECTIONMANAGER_H

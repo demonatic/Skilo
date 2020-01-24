@@ -1,5 +1,7 @@
 #include "Collection.h"
 
+namespace Skilo {
+
 Collection::Collection(uint32_t collection_id,const std::string &collection_name, Storage *storage):
    _collection_id(collection_id),_collection_name(collection_name),_storage(storage)
 {
@@ -11,14 +13,16 @@ Collection::Collection(uint32_t collection_id,const std::string &collection_name
     }
 }
 
-bool Collection::add_document(const SegmentBuf &json_str)
+bool Collection::index_document(const Skilo::Document &document)
 {
-    try {
-        Document doc(_collection_id,_next_seq_id,json_str);
-        doc.write_to_storage(_storage);
-    }  catch (std::exception &e) {
-
+    if(!validate_document(document)){
+        return false;
     }
-
-
 }
+
+bool Collection::validate_document(const Skilo::Document &document)
+{
+    return true;
+}
+
+} //namespace Skilo

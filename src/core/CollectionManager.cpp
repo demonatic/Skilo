@@ -1,4 +1,5 @@
 #include "CollectionManager.h"
+namespace Skilo {
 
 CollectionManager::CollectionManager(const std::string &db_path):_storage(std::make_unique<Storage>(db_path))
 {
@@ -15,3 +16,15 @@ std::optional<std::string> CollectionManager::create_collection(const std::strin
 
     return std::nullopt;
 }
+
+bool Skilo::CollectionManager::add_document(const Skilo::SegmentBuf &json_str)
+{
+//    try {
+//        Document doc(_collection_id,_next_seq_id,json_str);
+//        doc.write_to_storage(_storage);
+//    }  catch (std::exception &e) {
+
+//    }
+}
+
+} //namespace Skilo

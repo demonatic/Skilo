@@ -7,6 +7,8 @@
 #include "../../3rd/include/rapidjson/document.h"
 #include <vector>
 
+namespace Skilo {
+
 using SegmentBuf=std::vector<std::pair<uint8_t *,size_t>>;
 
 class Document
@@ -83,6 +85,6 @@ struct SegmentBufferStream{
 };
 
 }
-
+} //namespace Skilo
 
 #endif // DOCUMENT_H

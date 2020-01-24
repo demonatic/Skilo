@@ -12,8 +12,9 @@ public:
     ~ARTree();
 
     /// @param child_key can be any byte sequence doesn't have '\0' except it's end
+    /// @param val's resource will be hold by ARTree
     /// @reuturn nullptr if insert success, otherwise return the already existing value
-    T* insert(const char *child_key,size_t child_key_len,const T &val);
+    T* insert(const char *child_key,size_t child_key_len,T *val);
 
     /// @return nullptr if not find, otherwise return the pointer to the value
     T *find(const char *child_key,size_t child_key_len);
@@ -27,7 +28,7 @@ private:
     void add_child(InnerNode *node,ArtNode::Ptr &node_ptr,const unsigned char child_child_key,ArtNode *child);
     void remove_child(InnerNode *node,ArtNode::Ptr &node_ptr,ArtNode::Ptr *child_ptr,unsigned char key);
 
-    T* insert_impl(ArtNode *node,ArtNode::Ptr &node_ptr,const unsigned char *child_key,size_t child_key_len,size_t depth,const T &val);
+    T* insert_impl(ArtNode *node,ArtNode::Ptr &node_ptr,const unsigned char *child_key,size_t child_key_len,size_t depth,T *val);
     bool erase_impl(ArtNode *node,ArtNode::Ptr &node_ptr,const unsigned char *child_key,size_t child_key_len,size_t depth);
     void destroy_impl(ArtNode *node);
 
@@ -43,7 +44,7 @@ ARTree<T>::~ARTree(){
 }
 
 template<class T>
-T *ARTree<T>::insert(const char *child_key, size_t child_key_len,const T &val)
+T *ARTree<T>::insert(const char *child_key, size_t child_key_len,T *val)
 {
     T *existed_val=insert_impl(_root,_root,reinterpret_cast<const unsigned char*>(child_key),child_key_len,0,val);
     if(!existed_val)
@@ -90,7 +91,7 @@ size_t ARTree<T>::size() const
 }
 
 template<class T>
-T *ARTree<T>::insert_impl(ArtNode *node,ArtNode::Ptr &node_ptr, const unsigned char *key, size_t key_len, size_t depth, const T &val)
+T *ARTree<T>::insert_impl(ArtNode *node,ArtNode::Ptr &node_ptr, const unsigned char *key, size_t key_len, size_t depth, T *val)
 {
     if(!node){
         node_ptr=store_as_leaf(ArtLeaf<T>::make_leaf(key,key_len,val));

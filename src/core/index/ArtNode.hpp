@@ -19,12 +19,12 @@ struct ArtLeaf:public ArtNode{
         delete data;
     }
 
-    static ArtLeaf* make_leaf(const unsigned char *key,size_t key_len,const T &value){
+    static ArtLeaf* make_leaf(const unsigned char *key,size_t key_len,T *value){
         ArtLeaf *leaf=new ArtLeaf;
         leaf->key=static_cast<unsigned char *>(malloc(key_len+1));
         std::memcpy(leaf->key,key,key_len+1); //1 for '\0'
         leaf->key_len=key_len;
-        leaf->data=new T(value);
+        leaf->data=value;
         return leaf;
     }
 

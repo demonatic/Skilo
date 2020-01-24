@@ -2,6 +2,7 @@
 #include <stdexcept>
 #include "../../3rd/include/rapidjson/stringbuffer.h"
 #include "../../3rd/include/rapidjson/writer.h"
+namespace Skilo {
 
 Document::Document(uint32_t collection_id,uint32_t seq_id,const std::string &json_str):
     _seq_id(seq_id),_collection_id(collection_id)
@@ -53,3 +54,5 @@ void Document::init()
         _doc_id=doc_id.GetUint();
     }
 }
+
+} //namespace Skilo

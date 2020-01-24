@@ -3,15 +3,22 @@
 
 #include "Art.hpp"
 #include "PostingList.h"
+#include "../Document.h"
+#include "../Schema.h"
 
 namespace Skilo {
 namespace Index{
+
+struct IndexRecord{
+    uint32_t seq_id;
+    std::vector<std::string_view> terms;
+};
 
 class InvertIndex
 {
 public:
     InvertIndex();
-    void index_document();
+    void add_record(const IndexRecord &record);
 
 private:
     struct TermEntry{

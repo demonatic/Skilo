@@ -79,7 +79,7 @@ TEST(ART_TEST,PERFORMANCE_TEST) {
         {
             auto start = system_clock::now();
             for(const auto &[key,val]:dataset){
-                art.insert(key.c_str(),key.size(),val);
+                art.insert(key.c_str(),key.size(),new std::string(val));
             }
             auto end   = system_clock::now();
             auto duration = duration_cast<microseconds>(end - start);
@@ -253,7 +253,7 @@ TEST(ART_TEST,CORRECTNESS_TST){
       cout<<"data set size="<<data.size()<<endl;
       size_t num=0;
       for(const auto &[key,val]:data){
-          art.insert(key.c_str(),key.size(),val);
+          art.insert(key.c_str(),key.size(),new std::string(val));
           string *res=art.find(key.c_str(),key.size());
           EXPECT_EQ(res!=nullptr,true);
           EXPECT_EQ(*res,val);
@@ -273,24 +273,24 @@ TEST(ART_TEST,CORRECTNESS_TST){
 }
 
 TEST(ART_TEST,SIMPLE_TEST){
-    Art::ARTree<const char *> art;
-    const char *s1="hello";
-    const char *s2="bye bye";
-    const char *s3="hello too";
-    const char *s4="hello shit";
-    const char *s5="hello!";
-    const char *s6="helloworld!";
-    art.insert(s1,strlen(s1),s1);
-    art.insert(s2,strlen(s2),s2);
-    art.insert(s3,strlen(s3),s3);
-    art.insert(s4,strlen(s4),s4);
-    art.insert(s5,strlen(s5),s5);
-    EXPECT_EQ(*art.find(s1,strlen(s1)),s1);
-    EXPECT_EQ(*art.find(s2,strlen(s2)),s2);
-    EXPECT_EQ(*art.find(s3,strlen(s3)),s3);
-    EXPECT_EQ(*art.find(s4,strlen(s4)),s4);
-    EXPECT_EQ(*art.find(s5,strlen(s5)),s5);
-    EXPECT_EQ(art.find(s6,strlen(s6)),nullptr);
-    art.erase(s3,strlen(s3));
-    EXPECT_EQ(art.find(s3,strlen(s3)),nullptr);
+    Art::ARTree<std::string> art;
+    string *s1=new string("hello");
+    string *s2=new string("bye bye");
+    string *s3=new string("hello too");
+    string *s4=new string("hello shit");
+    string *s5=new string("hello!");
+    string *s6=new string("helloworld!");
+    art.insert(s1->data(),s1->length(),s1);
+    art.insert(s2->data(),s2->length(),s2);
+    art.insert(s3->data(),s3->length(),s3);
+    art.insert(s4->data(),s4->length(),s4);
+    art.insert(s5->data(),s5->length(),s5);
+    EXPECT_EQ(art.find(s1->data(),s1->length()),s1);
+    EXPECT_EQ(art.find(s2->data(),s2->length()),s2);
+    EXPECT_EQ(art.find(s3->data(),s3->length()),s3);
+    EXPECT_EQ(art.find(s4->data(),s4->length()),s4);
+    EXPECT_EQ(art.find(s5->data(),s5->length()),s5);
+    EXPECT_EQ(art.find(s6->data(),s6->length()),nullptr);
+    art.erase(s3->data(),s3->length());
+    EXPECT_EQ(art.find(s3->data(),s3->length()),nullptr);
 }
