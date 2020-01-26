@@ -6,7 +6,7 @@ using namespace std;
 using namespace Skilo;
 using namespace Skilo::Schema;
 
-TEST(SCHEMA_TEST,SORTED_CRUD_TEST) {
+TEST(SCHEMA_TEST,PARSE_TEST) {
     std::string schema_str="{\
                            \"$schema\": {\
                                \"product name\":{\
