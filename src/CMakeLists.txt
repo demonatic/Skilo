@@ -10,6 +10,8 @@ if(NOT EXISTS ${DEP_ROOT_DIR})
 endif()
 
 set(BUILD_DEPS "yes" CACHE STRING "")
+set(ALL_SRCS ${ALL_SRCS} ${SOURCES} CACHE INTERNAL "description")
+set(CORE_LIBS ${G3LOGGER_LIBRARIES} g3logger pthread rocksdb roaring for)
 
 #include(../cmake/RocksDB.cmake)
 #include(../cmake/g3logger.cmake)
@@ -21,6 +23,8 @@ file(GLOB SOURCES
     storage/*.cpp
     core/*.h
     core/*.cpp
+    core/schema/*/h
+    core/schema/*/cpp
     core/index/*.h
     core/index/*.hpp
     core/index/*.cpp
@@ -28,6 +32,4 @@ file(GLOB SOURCES
 )
 
 add_executable(Skilo main.cpp ${SOURCES})
-
-set(CORE_LIBS ${G3LOGGER_LIBRARIES} g3logger pthread rocksdb roaring for)
 target_link_libraries(Skilo ${CORE_LIBS})

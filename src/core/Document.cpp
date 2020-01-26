@@ -47,6 +47,11 @@ bool Document::write_to_storage(Storage *storage)
     return storage->batch_write(batch);
 }
 
+rapidjson::Document &Document::get_raw()
+{
+    return _document;
+}
+
 void Document::init()
 {
     const rapidjson::Value &doc_id=_document["id"];

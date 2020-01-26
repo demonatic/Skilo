@@ -12,3 +12,4 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/src)
 add_subdirectory(${CMAKE_SOURCE_DIR}/test)
 
 enable_testing()
+set(ALL_SRCS CACHE INTERNAL "mydescription" FORCE)

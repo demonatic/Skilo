@@ -5,8 +5,14 @@ include_directories(${GTEST_INCLUDE_DIR})
 include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(libart)
 
-add_executable(skilo_test libart/art.c art_tst.cpp scalar_tst.cpp)
-target_link_libraries(skilo_test gtest gtest_main for)
+set(ALL_SRCS ${ALL_SRCS} libart/art.c art_tst.cpp scalar_tst.cpp schema_tst.cpp CACHE INTERNAL "description")
+set(CORE_LIBS ${G3LOGGER_LIBRARIES} g3logger gtest pthread rocksdb roaring for)
+
+add_executable(skilo_test ${ALL_SRCS} libart/art.c art_tst.cpp scalar_tst.cpp schema_tst.cpp)
 set_source_files_properties(libart/art.c PROPERTIES LANGUAGE CXX )
+
+
+target_link_libraries(skilo_test ${CORE_LIBS})
+
 
 gtest_discover_tests(skilo_test)

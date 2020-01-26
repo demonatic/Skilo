@@ -10,8 +10,8 @@ InvertIndex::InvertIndex()
 
 void InvertIndex::add_record(const IndexRecord &record)
 {
-    for(size_t i=0;i<record.terms.size();i++){
-        string_view term=record.terms[i];
+    for(size_t i=0;i<record.tokens.size();i++){
+        string_view term=record.tokens[i];
         TermEntry *term_entry=_index.find(term.data(),term.length());
         if(!term_entry){
             term_entry=new TermEntry();

@@ -12,6 +12,8 @@ class PostingList
 {
 public:
     PostingList();
+    void add_doc(uint32_t seq_id);
+    std::vector<uint32_t> get_common_doc_id(const PostingList &other);
 
 private:
     CompressedScalar<ScalarType::Sorted> _doc_ids;

@@ -6,7 +6,7 @@ CollectionManager::CollectionManager(const std::string &db_path):_storage(std::m
 
 }
 
-std::optional<std::string> CollectionManager::create_collection(const std::string &collection_name,Schema &schema)
+std::optional<std::string> CollectionManager::create_collection(const std::string &collection_name,Schema::CollectionSchema &schema)
 {
     const std::string collection_meta_key=KeyConverter::collection_meta_key(collection_name);
     if(_collection_name_map.contains(collection_name)||_storage->contains(collection_meta_key)){

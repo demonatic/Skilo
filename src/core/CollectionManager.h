@@ -12,7 +12,7 @@ public:
     CollectionManager(const std::string &db_path);
 
     /// @return error string if error exists
-    std::optional<std::string> create_collection(const std::string &collection_name,Schema &schema);
+    std::optional<std::string> create_collection(const std::string &collection_name,Schema::CollectionSchema &schema);
 
     bool add_document(const SegmentBuf &json_str);
 

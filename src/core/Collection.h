@@ -4,7 +4,7 @@
 #include <string>
 #include <optional>
 #include "Document.h"
-#include "Schema.h"
+#include "schema/Schema.h"
 
 namespace Skilo {
 

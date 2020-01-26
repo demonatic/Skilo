@@ -23,6 +23,7 @@ public:
     void dump() const;
     bool write_to_storage(Storage *storage);
 
+    rapidjson::Document& get_raw();
 private:
     void init();
 
