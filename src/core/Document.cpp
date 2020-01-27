@@ -47,7 +47,7 @@ bool Document::write_to_storage(Storage *storage)
     return storage->batch_write(batch);
 }
 
-rapidjson::Document &Document::get_raw()
+const rapidjson::Document &Document::get_raw() const
 {
     return _document;
 }

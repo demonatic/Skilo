@@ -11,7 +11,8 @@ TEST(SCHEMA_TEST,PARSE_TEST) {
                             \"type\":\"object\",\
                             \"$fields\": {\
                                \"product name\":{\
-                                   \"type\":\"string\"\
+                                   \"type\":\"string\",\
+                                   \"index\":true\
                                },\
                                \"product id\":{\
                                    \"type\":\"integer\"\
@@ -50,6 +51,6 @@ TEST(SCHEMA_TEST,PARSE_TEST) {
 
     CollectionSchema schema(schema_document);
     Document document(0,0,json_str);
-
+//    EXPECT_TRUE(schema.validate(document));
 
 }
