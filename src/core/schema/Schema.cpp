@@ -1,5 +1,6 @@
 #include "Schema.h"
 #include <exception>
+#include <iostream>
 namespace Skilo{
 namespace Schema{
 
@@ -7,14 +8,33 @@ namespace Schema{
 Field::Field(const std::string &name,const rapidjson::Value &schema)
 {
     this->name=name;
+    std::cout<<name<<std::endl;
     this->type=get_field_type(schema);
+    if(type==FieldType::ARRAY){
+        const char *item_keyword="$items";
+        if(!schema.HasMember(item_keyword)){
+            throw std::runtime_error("array type must have \""+std::string(item_keyword)+"\" keyword");
+        }
+        std::unique_ptr<Field> sub_field=create_field(item_keyword,schema[item_keyword]);
+        this->sub_fields[sub_field->name]=std::move(sub_field);
+    }
     if(type==FieldType::OBJECT){
-        const rapidjson::Value &sub_schema=schema["$schema"];
-        for(rapidjson::Value::ConstMemberIterator it=sub_schema.MemberBegin();it!=sub_schema.MemberEnd();++it){
-            std::unique_ptr<Field> sub_field=create_field(it->name.GetString(),it->value);
-            if(sub_field){
-                sub_fields[sub_field->name]=std::move(sub_field);
-            }
+        const char *field_keyword="$fields";
+        if(!schema.HasMember(field_keyword)){
+            throw std::runtime_error("object type must have \""+std::string(field_keyword)+"\" keyword");
+        }
+        parse_sub_fields(schema[field_keyword]);
+    }
+}
+
+
+void Field::parse_sub_fields(const rapidjson::Value &sub_schema)
+{
+    if(!sub_schema.IsObject()) return;
+    for(rapidjson::Value::ConstMemberIterator it=sub_schema.MemberBegin();it!=sub_schema.MemberEnd();++it){
+        std::unique_ptr<Field> sub_field=create_field(it->name.GetString(),it->value);
+        if(sub_field){
+            sub_fields[sub_field->name]=std::move(sub_field);
         }
     }
 }
@@ -41,12 +61,10 @@ ValidateCode Field::validate(const rapidjson::Value &schema)
     return validate_code;
 }
 
+
 FieldType Field::get_field_type(const rapidjson::Value &schema)
 {
-    if(schema.HasMember("$schema")){
-        return FieldType::OBJECT;
-    }
-    else if(schema.HasMember("type")){
+    if(schema.HasMember("type")){
         const rapidjson::Value &type_val=schema["type"];
         if(!type_val.IsString()){
             throw std::runtime_error("type must be a string");
@@ -66,6 +84,9 @@ FieldType Field::get_field_type(const rapidjson::Value &schema)
         }
         else if(type_str=="boolean"){
             return FieldType::BOOLEAN;
+        }
+        else if(type_str=="object"){
+            return FieldType::OBJECT;
         }
         else{
             throw std::runtime_error("unknown type keyword, type must be \"integer\"/\"float\"/\"string\"/\"array\"/\"boolean\"");
@@ -137,7 +158,7 @@ FieldArray::FieldArray(const std::string &name,const rapidjson::Value &schema):F
 
 CollectionSchema::CollectionSchema(Document &schema)
 {
-    this->_fields=Field::create_field("root",schema.get_raw());
+    this->_fields=Field::create_field("$schema",schema.get_raw());
 }
 
 bool CollectionSchema::validate(const Document &document)

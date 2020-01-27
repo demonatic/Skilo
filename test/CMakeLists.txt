@@ -16,5 +16,4 @@ set_source_files_properties(libart/art.c PROPERTIES LANGUAGE CXX )
 
 target_link_libraries(skilo_test gtest gtest_main ${CORE_LIBS})
 
-
 gtest_discover_tests(skilo_test)

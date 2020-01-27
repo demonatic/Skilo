@@ -10,7 +10,7 @@ Document::Document(uint32_t collection_id,uint32_t seq_id,const std::string &jso
     if(_document.Parse(json_str.c_str()).HasParseError()||!_document.IsObject()){
         throw std::runtime_error("Error when parse document from json");
     }
-    this->init();
+//    this->init();
 }
 
 Document::Document(uint32_t collection_id,uint32_t seq_id,const SegmentBuf &json_str):

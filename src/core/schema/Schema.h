@@ -12,8 +12,8 @@ namespace Schema{
 /********************************************************
  * The Document string example:
 {
-    "item name":"Car Model",
-    "item id":"1001",
+    "product name":"Car Model",
+    "product id":"1001",
     "price":"6.5",
     "composition":["Engine","Wheel","Body"],
     "dimensions":{
@@ -25,24 +25,24 @@ namespace Schema{
  ********************************************************
  *The corresponding Schema is:
 {
-    "$schema": {
+    "$fields": {
         "product name":{
             "type":"string"
         },
         "product id":{
             "type":"integer"
-        }
+        },
         "price":{
             "type":"float"
         },
         "composition": {
             "type": "array",
-            "items": {
+            "$items": {
                 "type": "string"
             }
         },
         "dimensions": {
-            "$schema": {
+            "$fields": {
                 "length": {"type": "float"},
                 "width": {"type": "float"},
                 "height": {"type": "float"}
@@ -76,7 +76,7 @@ struct Field{
     Field(const std::string &name,const rapidjson::Value &schema);
     virtual ~Field()=default;
     virtual ValidateCode validate(const rapidjson::Value &schema);
-
+    void parse_sub_fields(const rapidjson::Value &sub_schema);
     static FieldType get_field_type(const rapidjson::Value &schema);
     static std::unique_ptr<Field> create_field(const std::string &name,const rapidjson::Value &schema);
 
@@ -87,28 +87,28 @@ struct Field{
 };
 
 struct FieldString:Field{
-    FieldString(const std::string &name,const rapidjson::Value &schema);
+    FieldString(const std::string &field_name,const rapidjson::Value &schema);
 };
 
 struct FieldInteger:Field{
-    FieldInteger(const std::string &name,const rapidjson::Value &schema);
+    FieldInteger(const std::string &field_name,const rapidjson::Value &schema);
 };
 
 struct FieldFloat:Field{
-    FieldFloat(const std::string &name,const rapidjson::Value &schema);
+    FieldFloat(const std::string &field_name,const rapidjson::Value &schema);
 };
 
 struct FieldBoolean:Field{
-    FieldBoolean(const std::string &name,const rapidjson::Value &schema);
+    FieldBoolean(const std::string &field_name,const rapidjson::Value &schema);
 };
 
 struct FieldObject:Field{
-    FieldObject(const std::string &name,const rapidjson::Value &schema);
+    FieldObject(const std::string &field_name,const rapidjson::Value &schema);
 
 };
 
 struct FieldArray:Field{
-    FieldArray(const std::string &name,const rapidjson::Value &schema);
+    FieldArray(const std::string &field_name,const rapidjson::Value &schema);
 
 };
 
