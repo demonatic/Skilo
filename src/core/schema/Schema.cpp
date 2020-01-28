@@ -20,6 +20,11 @@ std::optional<std::string> CollectionSchema::validate(const Document &document) 
     return std::nullopt;
 }
 
+Field *CollectionSchema::get_root_field() const
+{
+    return this->_fields.get();
+}
+
 void SchemaValidator::visit_field_string(const FieldString *field_string, const rapidjson::Value &document) const
 {
     std::cout<<"visit "<<field_string->name<<std::endl;

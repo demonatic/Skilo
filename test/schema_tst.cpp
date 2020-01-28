@@ -50,6 +50,31 @@ TEST(SCHEMA_TEST,PARSE_TEST) {
     Document schema_document(0,0,schema_str);
 
     CollectionSchema schema(schema_document);
+    Field &root_field=*schema.get_root_field();
+    EXPECT_EQ(root_field.name,"$schema");
+    EXPECT_EQ(root_field.type,FieldType::OBJECT);
+    EXPECT_EQ(root_field["product name"].type,FieldType::STRING);
+    EXPECT_EQ(root_field["product name"].name,"product name");
+    EXPECT_EQ(root_field["product id"].type,FieldType::INTEGER);
+    EXPECT_EQ(root_field["product id"].name,"product id");
+    EXPECT_EQ(root_field["price"].type,FieldType::FLOAT);
+    EXPECT_EQ(root_field["price"].name,"price");
+    EXPECT_EQ(root_field["composition"].type,FieldType::ARRAY);
+    EXPECT_EQ(root_field["composition"].name,"composition");
+    EXPECT_EQ(root_field["composition"]["$items"].type,FieldType::STRING);
+    EXPECT_EQ(root_field["composition"]["$items"].name,"$items");
+    EXPECT_EQ(root_field["dimensions"].type,FieldType::OBJECT);
+    EXPECT_EQ(root_field["dimensions"].name,"dimensions");
+    EXPECT_EQ(root_field["dimensions"]["length"].type,FieldType::FLOAT);
+    EXPECT_EQ(root_field["dimensions"]["length"].name,"length");
+    EXPECT_EQ(root_field["dimensions"]["width"].type,FieldType::FLOAT);
+    EXPECT_EQ(root_field["dimensions"]["width"].name,"width");
+    EXPECT_EQ(root_field["dimensions"]["height"].type,FieldType::FLOAT);
+    EXPECT_EQ(root_field["dimensions"]["height"].name,"height");
+
+    Field::ArrtibuteValue attr=root_field["product name"].arrtibute("index");
+    EXPECT_EQ(std::get<bool>(attr),true);
+
     Document document(0,0,json_str);
     std::optional<std::string> err_str=schema.validate(document);
     if(err_str){

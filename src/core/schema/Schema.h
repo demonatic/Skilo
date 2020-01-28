@@ -70,6 +70,7 @@ public:
     /// @brief check whether the document adhere to the corresponding schema
     /// @return error string if any error occurs
     std::optional<std::string> validate(const Document &document) const;
+    Field* get_root_field() const;
 
 private:
     std::unique_ptr<Field> _fields;

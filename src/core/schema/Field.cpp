@@ -25,6 +25,18 @@ Field::Field(const std::string &name,const rapidjson::Value &schema)
     }
 }
 
+Field::ArrtibuteValue Field::arrtibute(const std::string &attribute_name)
+{
+    auto it=attributes.find(attribute_name);
+    return it!=attributes.end()?it->second:ArrtibuteValue{};
+}
+
+Field &Field::operator[](const std::string &sub_field_name)
+{
+    assert(sub_fields[sub_field_name]!=nullptr);
+    return *sub_fields[sub_field_name];
+}
+
 void Field::get_arrtibutes(const rapidjson::Value &schema)
 {
     if(schema.IsObject()){
@@ -64,7 +76,6 @@ void Field::parse_sub_fields(const rapidjson::Value &sub_schema)
     }
 }
 
-
 FieldType Field::get_field_type(const rapidjson::Value &schema)
 {
     if(schema.HasMember("type")){
@@ -103,40 +114,26 @@ FieldType Field::get_field_type(const rapidjson::Value &schema)
 std::unique_ptr<Field> Field::create_field(const std::string &name,const rapidjson::Value &schema)
 {
     FieldType type=Field::get_field_type(schema);
-    std::unique_ptr<Field> field;
     switch(type){
         case FieldType::STRING:
-            field=std::make_unique<FieldString>(name,schema);
-        break;
+            return std::make_unique<FieldString>(name,schema);
+
         case FieldType::INTEGER:
-            field=std::make_unique<FieldInteger>(name,schema);
-        break;
+            return std::make_unique<FieldInteger>(name,schema);
+
         case FieldType::FLOAT:
-            field=std::make_unique<FieldFloat>(name,schema);
-        break;
+            return std::make_unique<FieldFloat>(name,schema);
+
         case FieldType::BOOLEAN:
-            field=std::make_unique<FieldBoolean>(name,schema);
-        break;
+            return std::make_unique<FieldBoolean>(name,schema);
+
         case FieldType::ARRAY:
-            field=std::make_unique<FieldArray>(name,schema);
-        break;
+            return std::make_unique<FieldArray>(name,schema);
+
         case FieldType::OBJECT:
-            field=std::make_unique<FieldObject>(name,schema);
-        break;
+            return std::make_unique<FieldObject>(name,schema);
     }
-    return field;
-}
-
-FieldString::FieldString(const std::string &field_name,const rapidjson::Value &schema):Field(field_name,schema)
-{
-    validators.push_back([](const rapidjson::Value &schema){
-        return schema.IsString()?ValidateCode::OK:ValidateCode::ERR_NOT_STRING;
-    });
-}
-
-ValidateCode FieldString::validate(const rapidjson::Value &document)
-{
-    return ValidateCode::OK;
+    return nullptr;
 }
 
 void FieldString::accept(const FieldVisitor &field_visitor, const rapidjson::Value &document)
@@ -144,33 +141,9 @@ void FieldString::accept(const FieldVisitor &field_visitor, const rapidjson::Val
     field_visitor.visit_field_string(this,document);
 }
 
-FieldInteger::FieldInteger(const std::string &field_name,const rapidjson::Value &schema):Field(field_name,schema)
-{
-    validators.push_back([](const rapidjson::Value &schema){
-        return schema.IsInt()?ValidateCode::OK:ValidateCode::ERR_NOT_INTEGER;
-    });
-}
-
-ValidateCode FieldInteger::validate(const rapidjson::Value &document)
-{
-
-}
-
 void FieldInteger::accept(const FieldVisitor &field_visitor, const rapidjson::Value &document)
 {
     field_visitor.visit_field_integer(this,document);
-}
-
-FieldFloat::FieldFloat(const std::string &field_name,const rapidjson::Value &schema):Field(field_name,schema)
-{
-    validators.push_back([](const rapidjson::Value &schema){
-        return schema.IsFloat()?ValidateCode::OK:ValidateCode::ERR_NOT_FLOAT;
-    });
-}
-
-ValidateCode FieldFloat::validate(const rapidjson::Value &document)
-{
-
 }
 
 void FieldFloat::accept(const FieldVisitor &field_visitor, const rapidjson::Value &document)
@@ -178,50 +151,9 @@ void FieldFloat::accept(const FieldVisitor &field_visitor, const rapidjson::Valu
     field_visitor.visit_field_float(this,document);
 }
 
-FieldBoolean::FieldBoolean(const std::string &field_name,const rapidjson::Value &schema):Field(field_name,schema)
-{
-    validators.push_back([](const rapidjson::Value &schema){
-        return schema.IsBool()?ValidateCode::OK:ValidateCode::ERR_NOT_BOOLEAN;
-    });
-}
-
-ValidateCode FieldBoolean::validate(const rapidjson::Value &document)
-{
-
-}
-
 void FieldBoolean::accept(const FieldVisitor &field_visitor, const rapidjson::Value &document)
 {
     field_visitor.visit_field_boolean(this,document);
-}
-
-FieldObject::FieldObject(const std::string &field_name,const rapidjson::Value &schema):Field(field_name,schema)
-{
-    validators.push_back([](const rapidjson::Value &schema){
-        return schema.IsObject()?ValidateCode::OK:ValidateCode::ERR_NOT_OBJECT;
-    });
-}
-
-ValidateCode FieldObject::validate(const rapidjson::Value &document)
-{
-    Schema::ValidateCode validate_code=ValidateCode::OK;
-    for(FieldValidator validator:validators){
-        validate_code=validator(document);
-        if(validate_code!=ValidateCode::OK){
-            return validate_code;
-        }
-    }
-    for(const auto &[field_name,field]:sub_fields){
-        rapidjson::Value::ConstMemberIterator it=document.FindMember(field_name.c_str());
-        if(it==document.MemberEnd()){
-            throw std::runtime_error("field \""+field_name+"\" not found");
-        }
-        validate_code=field->validate(it->value);
-        if(validate_code!=ValidateCode::OK){
-            break;
-        }
-    }
-    return validate_code;
 }
 
 void FieldObject::accept(const FieldVisitor &field_visitor, const rapidjson::Value &document)
@@ -236,18 +168,6 @@ void FieldObject::accept(const FieldVisitor &field_visitor, const rapidjson::Val
         }
         field->accept(field_visitor,it->value);
     }
-}
-
-FieldArray::FieldArray(const std::string &field_name,const rapidjson::Value &schema):Field(field_name,schema)
-{
-    validators.push_back([](const rapidjson::Value &schema){
-        return schema.IsArray()?ValidateCode::OK:ValidateCode::ERR_NOT_ARRAY;
-    });
-}
-
-ValidateCode FieldArray::validate(const rapidjson::Value &document)
-{
-
 }
 
 void FieldArray::accept(const FieldVisitor &field_visitor, const rapidjson::Value &document)
