@@ -1,4 +1,5 @@
 #include "Field.h"
+#include <iostream>
 
 namespace Skilo {
 namespace Schema{
@@ -10,7 +11,6 @@ Field::Field(const std::string &name,const rapidjson::Value &schema)
     get_arrtibutes(schema);
 
     if(type==FieldType::ARRAY){
-        const char *item_keyword="$items";
         if(!schema.HasMember(item_keyword)){
             throw std::runtime_error("array type must have \""+std::string(item_keyword)+"\" keyword");
         }
@@ -18,7 +18,6 @@ Field::Field(const std::string &name,const rapidjson::Value &schema)
         this->sub_fields[sub_field->name]=std::move(sub_field);
     }
     if(type==FieldType::OBJECT){
-        const char *field_keyword="$fields";
         if(!schema.HasMember(field_keyword)){
             throw std::runtime_error("object type must have \""+std::string(field_keyword)+"\" keyword");
         }
@@ -140,6 +139,11 @@ ValidateCode FieldString::validate(const rapidjson::Value &document)
     return ValidateCode::OK;
 }
 
+void FieldString::accept(const FieldVisitor &field_visitor, const rapidjson::Value &document)
+{
+    field_visitor.visit_field_string(this,document);
+}
+
 FieldInteger::FieldInteger(const std::string &field_name,const rapidjson::Value &schema):Field(field_name,schema)
 {
     validators.push_back([](const rapidjson::Value &schema){
@@ -150,6 +154,11 @@ FieldInteger::FieldInteger(const std::string &field_name,const rapidjson::Value 
 ValidateCode FieldInteger::validate(const rapidjson::Value &document)
 {
 
+}
+
+void FieldInteger::accept(const FieldVisitor &field_visitor, const rapidjson::Value &document)
+{
+    field_visitor.visit_field_integer(this,document);
 }
 
 FieldFloat::FieldFloat(const std::string &field_name,const rapidjson::Value &schema):Field(field_name,schema)
@@ -164,6 +173,11 @@ ValidateCode FieldFloat::validate(const rapidjson::Value &document)
 
 }
 
+void FieldFloat::accept(const FieldVisitor &field_visitor, const rapidjson::Value &document)
+{
+    field_visitor.visit_field_float(this,document);
+}
+
 FieldBoolean::FieldBoolean(const std::string &field_name,const rapidjson::Value &schema):Field(field_name,schema)
 {
     validators.push_back([](const rapidjson::Value &schema){
@@ -174,6 +188,11 @@ FieldBoolean::FieldBoolean(const std::string &field_name,const rapidjson::Value 
 ValidateCode FieldBoolean::validate(const rapidjson::Value &document)
 {
 
+}
+
+void FieldBoolean::accept(const FieldVisitor &field_visitor, const rapidjson::Value &document)
+{
+    field_visitor.visit_field_boolean(this,document);
 }
 
 FieldObject::FieldObject(const std::string &field_name,const rapidjson::Value &schema):Field(field_name,schema)
@@ -205,17 +224,18 @@ ValidateCode FieldObject::validate(const rapidjson::Value &document)
     return validate_code;
 }
 
-void FieldObject::accept(FieldVisitor &field_visitor, const rapidjson::Value &document)
+void FieldObject::accept(const FieldVisitor &field_visitor, const rapidjson::Value &document)
 {
     field_visitor.visit_field_object(this,document);
     for(const auto &[field_name,field]:sub_fields){
+        std::cout<<"@FieldObject::accept "<<field_name<<std::endl;
         rapidjson::Value::ConstMemberIterator it=document.FindMember(field_name.c_str());
         if(it==document.MemberEnd()){
-            throw std::runtime_error("field \""+field_name+"\" not found when visit field "+field_name);
+            throw std::runtime_error("field \""+field_name+"\" not found when visit sub_field "
+                                     +field_name+" from parent field \""+this->name+"\"");
         }
         field->accept(field_visitor,it->value);
     }
-
 }
 
 FieldArray::FieldArray(const std::string &field_name,const rapidjson::Value &schema):Field(field_name,schema)
@@ -228,6 +248,15 @@ FieldArray::FieldArray(const std::string &field_name,const rapidjson::Value &sch
 ValidateCode FieldArray::validate(const rapidjson::Value &document)
 {
 
+}
+
+void FieldArray::accept(const FieldVisitor &field_visitor, const rapidjson::Value &document)
+{
+    assert(document.IsArray());
+    field_visitor.visit_field_array(this,document);
+    for(const auto &elm:document.GetArray()){
+        this->sub_fields[Field::item_keyword]->accept(field_visitor,elm);
+    }
 }
 
 } //namespace Schema

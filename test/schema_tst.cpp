@@ -38,19 +38,23 @@ TEST(SCHEMA_TEST,PARSE_TEST) {
                        }";
     std::string json_str="{\
                              \"product name\":\"Car Model\",\
-                             \"product id\":\"1001\",\
-                             \"price\":\"6.5\",\
+                             \"product id\":1001,\
+                             \"price\":6.5,\
                              \"composition\":[\"Engine\",\"Wheel\",\"Body\"],\
                              \"dimensions\":{\
-                                 \"length\":\"12.0\",\
-                                 \"width\":\"4.5\",\
-                                 \"height\":\"3.0\"\
+                                 \"length\":12.0,\
+                                 \"width\":4.5,\
+                                 \"height\":3.6\
                              }\
                          }";\
     Document schema_document(0,0,schema_str);
 
     CollectionSchema schema(schema_document);
     Document document(0,0,json_str);
-//    EXPECT_TRUE(schema.validate(document));
+    std::optional<std::string> err_str=schema.validate(document);
+    if(err_str){
+        cout<<err_str.value()<<endl;
+        EXPECT_EQ(err_str,std::nullopt);
+    }
 
 }

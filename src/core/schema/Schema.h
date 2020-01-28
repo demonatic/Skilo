@@ -2,6 +2,7 @@
 #define SCHEMA_H
 
 #include "Field.h"
+#include <optional>
 
 namespace Skilo {
 namespace Schema{
@@ -53,22 +54,26 @@ namespace Schema{
 *********************************************************/
 
 struct SchemaValidator:FieldVisitor{
-    virtual void visit_field_string(const FieldString &field_string)=0;
-    virtual void visit_field_integer(const FieldInteger &field_integer)=0;
-    virtual void visit_field_float(const FieldFloat &field_float)=0;
-    virtual void visit_field_boolean(const FieldBoolean &field_boolean)=0;
-    virtual void visit_field_array(const FieldArray &field_array)=0;
-    virtual void visit_field_object(const FieldString &field_object)=0;
+    virtual void visit_field_string(const FieldString *field_string,const rapidjson::Value &document) const override;
+    virtual void visit_field_integer(const FieldInteger *field_integer,const rapidjson::Value &document) const override;
+    virtual void visit_field_float(const FieldFloat *field_float,const rapidjson::Value &document) const override;
+    virtual void visit_field_boolean(const FieldBoolean *field_boolean,const rapidjson::Value &document) const override;
+    virtual void visit_field_array(const FieldArray *field_array,const rapidjson::Value &document) const override;
+    virtual void visit_field_object(const FieldObject *field_object,const rapidjson::Value &document) const override;
 };
 
 class CollectionSchema
 {
 public:
     CollectionSchema(const Document &schema);
-    bool validate(const Document &document) const;
+
+    /// @brief check whether the document adhere to the corresponding schema
+    /// @return error string if any error occurs
+    std::optional<std::string> validate(const Document &document) const;
 
 private:
     std::unique_ptr<Field> _fields;
+    SchemaValidator _validator;
 };
 
 } //namespace Schema
