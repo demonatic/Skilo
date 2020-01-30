@@ -6,14 +6,14 @@
 namespace Skilo {
 
 DocumentBase::DocumentBase(const std::string &json_str){
-    if(_document.Parse(json_str.c_str()).HasParseError()||!_document.IsObject()){
+    if(_document.Parse(json_str.c_str()).HasParseError()){
         throw std::runtime_error("Error when parse document from json");
     }
 }
 
 DocumentBase::DocumentBase(const SegmentBuf &json_str){
     detail::SegmentBufferStream stream(json_str);
-    if(_document.ParseStream(stream).HasParseError()||!_document.IsObject()){
+    if(_document.ParseStream(stream).HasParseError()){
         throw std::runtime_error("Error when parse document from json");
     }
 }

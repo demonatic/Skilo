@@ -7,7 +7,7 @@
 
 namespace Skilo {
 
-using SegmentBuf=std::vector<std::pair<uint8_t *,size_t>>;
+using SegmentBuf=std::vector<std::pair<uint8_t*,size_t>>;
 
 class DocumentBase
 {
