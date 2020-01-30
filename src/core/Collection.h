@@ -15,10 +15,10 @@ class Collection
 {
 public:
     Collection(const CollectionMeta &collection_meta,StorageService *storage_service);
-    bool index_document(const Document &document);
+    std::optional<std::string> add_document(const Document &document);
 
     /// @brief check whether document adhere to the schema
-    bool validate_document(const Document &document);
+    std::optional<std::string> validate_document(const Document &document);
     
 private:
     uint32_t _collection_id;

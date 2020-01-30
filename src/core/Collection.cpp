@@ -13,16 +13,18 @@ Collection::Collection(const CollectionMeta &collection_meta,StorageService *sto
     _next_seq_id=next_seq_id.value();
 }
 
-bool Collection::index_document(const Document &document)
+std::optional<std::string> Collection::add_document(const Document &document)
 {
-    if(!validate_document(document)){
-        return false;
+    std::optional<std::string> validation_err=this->validate_document(document);
+    if(validation_err.has_value()){
+        return validation_err;
     }
+
 }
 
-bool Collection::validate_document(const Document &document)
+std::optional<std::string> Collection::validate_document(const Document &document)
 {
-    return true;
+    return _schema.validate(document);
 }
 
 } //namespace Skilo

@@ -6,34 +6,43 @@ CollectionManager::CollectionManager(const std::string &db_path):_storage_servic
 
 }
 
-std::optional<std::string> CollectionManager::create_collection(const std::string &collection_name,CollectionMeta &collection_meta)
+Status CollectionManager::create_collection(const std::string &collection_name,CollectionMeta &collection_meta)
 {
-
     if(_collection_name_id_map.find(collection_name)!=_collection_name_id_map.end()||_storage_service->contain_collection(collection_name)){
-        return std::make_optional<std::string>("The collection with name `"+collection_name+"` already exists");
+        return Status{RetCode::CONFLICT,"The collection with name `"+collection_name+"` already exists"};
     }
     try {
         uint32_t collection_id=this->get_next_collection_id();
-
         collection_meta.add_collection_id(collection_id);
         collection_meta.add_create_time(312312);//TODO
         if(!_storage_service->write_new_collection(_next_collection_id,collection_meta)){
-            return std::make_optional<std::string>("Could not write meta data to on disk storage");
+            return Status{RetCode::INTERNAL_SERVER_ERROR,"Could not write meta data to on disk storage"};
         }
-        //TODO first record collection next seq id
+
         std::unique_ptr<Collection> new_colletion=std::make_unique<Collection>(collection_meta,_storage_service.get());
         _collection_name_id_map[collection_name]=collection_id;
         _collection_map[collection_id]=std::move(new_colletion);
 
-    }  catch (const std::runtime_error &err) {
-        return std::make_optional<std::string>(std::string("error when creating collection: ")+err.what());
+    }  catch (const std::runtime_error &err){
+        return Status{RetCode::BAD_REQUEST,std::string("error when creating collection: ")+err.what()};
     }
-    return std::nullopt;
+    return Status{RetCode::CREATED,"create collection ok"};
 }
 
-std::optional<std::string> Skilo::CollectionManager::add_document(uint32_t collection_name,const Document &document)
+Status Skilo::CollectionManager::add_document(const std::string &collection_name,const Document &document)
 {
-
+    auto collection_id_it=_collection_name_id_map.find(collection_name);
+    if(collection_id_it==_collection_name_id_map.end()){
+        return Status{RetCode::BAD_REQUEST,"collection \'"+collection_name+"\" not exist"};
+    }
+    uint32_t collection_id=collection_id_it->second;
+    auto collection_it=_collection_map.find(collection_id);
+    if(collection_it==_collection_map.end()){
+        return Status{RetCode::BAD_REQUEST,"collection \'"+collection_name+"\" not exist"};
+    }
+    Collection *collection=collection_it->second.get();
+    std::optional<std::string> err=collection->add_document(document);
+    return err.has_value()?Status{RetCode::BAD_REQUEST,err.value()}:Status{RetCode::CREATED,"add document success"};
 }
 
 uint32_t CollectionManager::get_next_collection_id()

@@ -1,7 +1,7 @@
 #include "StorageService.h"
 #include "KeyConverter.hpp"
-#include "../../3rd/include/rapidjson/stringbuffer.h"
-#include "../../3rd/include/rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 
 namespace Skilo {
 namespace Storage{

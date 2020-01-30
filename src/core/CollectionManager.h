@@ -2,19 +2,20 @@
 #define COLLECTIONMANAGER_H
 
 #include "Collection.h"
-#include "../../3rd/include/parallel_hashmap/phmap.h"
+#include "parallel_hashmap/phmap.h"
 
 namespace Skilo {
 
+struct Status;
 class CollectionManager
 {
 public:
     CollectionManager(const std::string &db_path);
 
     /// @return error string if error exists
-    std::optional<std::string> create_collection(const std::string &collection_name,CollectionMeta &collection_meta);
+    Status create_collection(const std::string &collection_name,CollectionMeta &collection_meta);
 
-    std::optional<std::string> add_document(uint32_t collection_name,const Document &document);
+    Status add_document(const std::string &collection_name,const Document &document);
 
 private:
     uint32_t get_next_collection_id();
@@ -26,6 +27,23 @@ private:
     std::unique_ptr<StorageService> _storage_service;
 
     uint32_t _next_collection_id;
+};
+
+enum class RetCode{
+    OK=200,
+    CREATED=201,
+    NOT_CONTENT=204,
+    BAD_REQUEST=400,
+    FORBIDDEN=403,
+    NOT_FOUND=404,
+    METHOD_NOT_ALLOWED=405,
+    CONFLICT=409,
+    INTERNAL_SERVER_ERROR=500
+};
+
+struct Status{
+    RetCode code;
+    std::string info;
 };
 
 } //namespace Skilo

@@ -1,8 +1,8 @@
 #ifndef DOCUMENT_H
 #define DOCUMENT_H
 
-#include "../../3rd/include/rapidjson/rapidjson.h"
-#include "../../3rd/include/rapidjson/document.h"
+#include "rapidjson/rapidjson.h"
+#include "rapidjson/document.h"
 #include <vector>
 
 namespace Skilo {
