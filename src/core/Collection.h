@@ -5,13 +5,16 @@
 #include <optional>
 #include "Document.h"
 #include "schema/Schema.h"
+#include "../storage/StorageService.h"
 
 namespace Skilo {
+
+using Storage::StorageService;
 
 class Collection
 {
 public:
-    Collection(uint32_t collection_id,const std::string &collection_name,Storage *storage);
+    Collection(const CollectionMeta &collection_meta,StorageService *storage_service);
     bool index_document(const Document &document);
 
     /// @brief check whether document adhere to the schema
@@ -22,7 +25,8 @@ private:
     uint32_t _next_seq_id;
     std::string _collection_name;
 
-    Storage *_storage;
+    Schema::CollectionSchema _schema;
+    StorageService *_storage_service;
 };
 
 

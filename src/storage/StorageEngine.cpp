@@ -1,7 +1,10 @@
-#include "Storage.h"
+#include "StorageEngine.h"
 #include <g3log/g3log.hpp>
 
-Storage::Storage(const std::string &db_path):_db_path(db_path)
+namespace Skilo {
+namespace Storage{
+
+StorageEngine::StorageEngine(const std::string &db_path):_db_path(db_path)
 {
     //TODO consider using bloom filter
     _options.IncreaseParallelism();
@@ -16,14 +19,14 @@ Storage::Storage(const std::string &db_path):_db_path(db_path)
     }
 }
 
-Storage::~Storage()
+StorageEngine::~StorageEngine()
 {
     if(_db){
         close();
     }
 }
 
-void Storage::close()
+void StorageEngine::close()
 {
     rocksdb::Status status=_db->Close();
     if(!status.ok()){
@@ -33,13 +36,13 @@ void Storage::close()
     _db=nullptr;
 }
 
-bool Storage::insert(const std::string &key, const std::string &value)
+bool StorageEngine::insert(const std::string &key, const std::string &value)
 {
     rocksdb::Status status=_db->Put(rocksdb::WriteOptions(),key,value);
     return status.ok();
 }
 
-bool Storage::batch_write(const Storage::Batch &batch)
+bool StorageEngine::batch_write(const StorageEngine::Batch &batch)
 {
     rocksdb::WriteBatch db_batch;
     for(const auto &[key,val]:batch.data){
@@ -49,13 +52,13 @@ bool Storage::batch_write(const Storage::Batch &batch)
     return status.ok();
 }
 
-bool Storage::remove(const std::string &key)
+bool StorageEngine::remove(const std::string &key)
 {
     rocksdb::Status status=_db->Delete(rocksdb::WriteOptions(),key);
     return status.ok();
 }
 
-Storage::Status Storage::get(const std::string &key, std::string &value)
+StorageEngine::Status StorageEngine::get(const std::string &key, std::string &value) const
 {
     rocksdb::Status status=_db->Get(rocksdb::ReadOptions(),key,&value);
     if(status.ok()&&!status.IsNotFound()){
@@ -68,8 +71,12 @@ Storage::Status Storage::get(const std::string &key, std::string &value)
     return Status::ERROR;
 }
 
-bool Storage::contains(const std::string &key)
+bool StorageEngine::contains(const std::string &key)
 {
     std::string value;
-    return this->get(key,value)==Storage::FOUND;
+    return this->get(key,value)==StorageEngine::FOUND;
 }
+
+} //namespace Storage
+
+} //namespace skilo

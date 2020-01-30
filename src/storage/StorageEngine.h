@@ -12,7 +12,10 @@
 /// @class Storage Layer for Skilo
 /// @brief Abstraction for underlying KV storage
 
-class Storage
+namespace Skilo {
+namespace Storage{
+
+class StorageEngine
 {
 public:
     enum Status{
@@ -28,8 +31,8 @@ public:
     };
 
 public:
-    Storage(const std::string &db_path);
-    ~Storage();
+    StorageEngine(const std::string &db_path);
+    ~StorageEngine();
 
     void close();
 
@@ -37,7 +40,7 @@ public:
     ///        corresponding value in *value and return FOUND.
     ///        If there is no entry for "key" leave *value unchanged,
     ///        return NOT_FOUND if no error occurs,
-    Status get(const std::string &key,std::string &value);
+    Status get(const std::string &key,std::string &value) const;
 
     /// @brief return true if the "key" exists
     bool contains(const std::string &key);
@@ -59,4 +62,6 @@ private:
 
 };
 
+} //namespace storage
+} //namespace skilo
 #endif // STORAGE_H

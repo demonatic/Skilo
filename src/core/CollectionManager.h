@@ -12,16 +12,20 @@ public:
     CollectionManager(const std::string &db_path);
 
     /// @return error string if error exists
-    std::optional<std::string> create_collection(const std::string &collection_name,Schema::CollectionSchema &schema);
+    std::optional<std::string> create_collection(const std::string &collection_name,CollectionMeta &collection_meta);
 
-    bool add_document(const SegmentBuf &json_str);
+    std::optional<std::string> add_document(uint32_t collection_name,const Document &document);
 
 private:
-    phmap::flat_hash_map<uint32_t,std::string> _collection_id_name_map;
+    uint32_t get_next_collection_id();
 
-    phmap::flat_hash_map<std::string,std::unique_ptr<Collection>> _collection_name_map;
+private:
+    std::unordered_map<std::string,uint32_t> _collection_name_id_map;
+    std::unordered_map<uint32_t,std::unique_ptr<Collection>> _collection_map;
 
-    std::unique_ptr<Storage> _storage;
+    std::unique_ptr<StorageService> _storage_service;
+
+    uint32_t _next_collection_id;
 };
 
 } //namespace Skilo

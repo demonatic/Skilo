@@ -2,6 +2,7 @@
 #define SCHEMA_H
 
 #include "Field.h"
+#include <memory>
 #include <optional>
 
 namespace Skilo {
@@ -65,7 +66,8 @@ struct SchemaValidator:FieldVisitor{
 class CollectionSchema
 {
 public:
-    CollectionSchema(const Document &schema);
+    CollectionSchema(const CollectionMeta &meta_data);
+    CollectionSchema(CollectionSchema &&collection_schema);
 
     /// @brief check whether the document adhere to the corresponding schema
     /// @return error string if any error occurs

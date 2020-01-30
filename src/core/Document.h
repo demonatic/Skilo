@@ -1,8 +1,6 @@
 #ifndef DOCUMENT_H
 #define DOCUMENT_H
 
-#include "../storage/Storage.h"
-#include "../storage/KeyConverter.hpp"
 #include "../../3rd/include/rapidjson/rapidjson.h"
 #include "../../3rd/include/rapidjson/document.h"
 #include <vector>
@@ -11,28 +9,87 @@ namespace Skilo {
 
 using SegmentBuf=std::vector<std::pair<uint8_t *,size_t>>;
 
-class Document
+class DocumentBase
 {
 public:
-    Document(uint32_t collection_id,uint32_t seq_id,const std::string &json_str);
+    DocumentBase()=default;
+    /// @throw std::runtime_error when parse json failed
+    DocumentBase(const std::string &json_str);
     /// @brief parse json from some segment of buffers,
     /// where uint8_t* points to start of this segment and size_t indicates the length of this segment
-    Document(uint32_t collection_id,uint32_t seq_id,const SegmentBuf &json_str);
+    DocumentBase(const SegmentBuf &json_str);
 
-    uint32_t doc_id() const;
-    void dump() const;
-    bool write_to_storage(Storage *storage);
+    std::string dump() const;
 
     const rapidjson::Document& get_raw() const;
-private:
-    void init();
-
-private:
-    uint32_t _seq_id;
-    uint32_t _doc_id;
-    uint32_t _collection_id;
-
+protected:
     rapidjson::Document _document;
+};
+
+/// Collection Document example:
+/// "id" field is required in collection document but could omit in the schema
+/****************************************************
+{
+    "id": 1001,
+    "product name":{
+        "type":"string"
+        "index":true
+    },
+    "price":{
+        "type":"float"
+    }
+}
+***************************************************/
+
+class Document:public DocumentBase{
+public:
+    Document(const std::string &collection_name,const std::string &json_str);
+    /// @brief parse json from some segment of buffers,
+    /// where uint8_t* points to start of this segment and size_t indicates the length of this segment
+    Document(const std::string &collection_name,const SegmentBuf &json_str);
+
+    uint32_t get_doc_id() const;
+
+private:
+    uint32_t _doc_id;
+    std::string _collection_name;
+};
+
+/// ColletionMeta data example:
+/// where "id" and "create time" are added by Skilo automatically
+/****************************************************
+{
+    "name": "company products",
+    "schema": {
+        "type":"object",
+        "$fields": {
+            "product name":{
+                "type":"string"
+                "index":true
+            },
+            "price":{
+                "type":"float"
+            }
+        }
+    }
+    "id":1
+    "create time":5342534432
+}
+***************************************************/
+
+
+class CollectionMeta:public DocumentBase{
+public:
+    CollectionMeta(const std::string &json_str);
+    CollectionMeta(const SegmentBuf &json_str);
+
+    /// @throw runtime error if "schema" field is not found
+    const rapidjson::Value &get_schema() const;
+    /// @throw runtime error if "name" field is not found
+    const char* get_collection_name() const;
+
+    void add_create_time(uint64_t created_time);
+    void add_collection_id(uint32_t collection_id);
 };
 
 namespace detail{

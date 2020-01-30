@@ -5,9 +5,15 @@
 namespace Skilo{
 namespace Schema{
 
-CollectionSchema::CollectionSchema(const Document &schema)
+CollectionSchema::CollectionSchema(const CollectionMeta &meta_data)
 {
-    this->_fields=Field::create_field("$schema",schema.get_raw());
+    this->_fields=Field::create_field("$schema",meta_data.get_schema());
+}
+
+CollectionSchema::CollectionSchema(CollectionSchema &&collection_schema)
+{
+    _fields=std::move(collection_schema._fields);
+    _validator=collection_schema._validator;
 }
 
 std::optional<std::string> CollectionSchema::validate(const Document &document) const

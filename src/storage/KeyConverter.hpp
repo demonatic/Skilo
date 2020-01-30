@@ -9,6 +9,7 @@ static constexpr const char *DOC_ID_KEY_PREFIX="$DC";
 static constexpr const char *DOC_SEQ_KEY_PREFIX="$DS";
 static constexpr const char *COLLECTION_META_KEY_PREFIX="$CM";
 static constexpr const char *COLLECTION_NEXT_SEQ_KEY_PREFIX="$CS";
+static constexpr const char *NEXT_COLLECTION_ID="$CI";
 
 inline std::string doc_id_key(uint32_t collection_id,uint32_t doc_id){
     return std::to_string(collection_id)+'_'+DOC_ID_KEY_PREFIX+std::to_string(doc_id);
@@ -24,6 +25,10 @@ inline std::string collection_next_seq_key(const std::string &collection_name){
 
 inline std::string collection_meta_key(const std::string &collection_name){
     return std::string(COLLECTION_META_KEY_PREFIX)+'_'+collection_name;
+}
+
+inline const char* get_next_collection_id_key(){
+    return NEXT_COLLECTION_ID;
 }
 
 }

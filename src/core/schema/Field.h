@@ -7,6 +7,7 @@
 #include <variant>
 #include <functional>
 #include <unordered_set>
+#include <memory>
 #include "../Document.h"
 
 namespace Skilo {
@@ -26,8 +27,8 @@ struct Field{
     using ArrtibuteValue=std::variant<std::string,bool,int,float>;
     std::string name;
     FieldType type;
-    std::map<std::string,ArrtibuteValue> attributes;
-    std::map<std::string,std::unique_ptr<Field>> sub_fields;
+    std::unordered_map<std::string,ArrtibuteValue> attributes;
+    std::unordered_map<std::string,std::unique_ptr<Field>> sub_fields;
 
     //TODO object不能包含index attribute
     Field(const std::string &name,const rapidjson::Value &schema);

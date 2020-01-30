@@ -2,25 +2,25 @@
 
 namespace Skilo {
 
-Collection::Collection(uint32_t collection_id,const std::string &collection_name, Storage *storage):
-   _collection_id(collection_id),_collection_name(collection_name),_storage(storage)
+Collection::Collection(const CollectionMeta &collection_meta,StorageService *storage_service):
+    _schema(collection_meta),_storage_service(storage_service)
 {
-
-    std::string next_seq_key;
-    Storage::Status next_seq_status=_storage->get(KeyConverter::collection_next_seq_key(collection_name),next_seq_key);
-    if(next_seq_status==Storage::ERROR){
-
+    _collection_name=collection_meta.get_collection_name();
+    std::optional<uint32_t> next_seq_id=_storage_service->get_collection_next_seq_id(_collection_name);
+    if(!next_seq_id){
+        throw std::runtime_error("error when get collection \""+_collection_name+"\" next seq id ");
     }
+    _next_seq_id=next_seq_id.value();
 }
 
-bool Collection::index_document(const Skilo::Document &document)
+bool Collection::index_document(const Document &document)
 {
     if(!validate_document(document)){
         return false;
     }
 }
 
-bool Collection::validate_document(const Skilo::Document &document)
+bool Collection::validate_document(const Document &document)
 {
     return true;
 }

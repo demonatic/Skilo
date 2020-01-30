@@ -7,35 +7,36 @@ using namespace Skilo;
 using namespace Skilo::Schema;
 
 TEST(SCHEMA_TEST,PARSE_TEST) {
-    std::string schema_str="{\
-                            \"type\":\"object\",\
-                            \"$fields\": {\
-                               \"product name\":{\
-                                   \"type\":\"string\",\
-                                   \"index\":true\
-                               },\
-                               \"product id\":{\
-                                   \"type\":\"integer\"\
-                               },\
-                               \"price\":{\
-                                   \"type\":\"float\"\
-                               },\
-                               \"composition\": {\
-                                   \"type\": \"array\",\
-                                   \"$items\": {\
-                                       \"type\": \"string\"\
-                                   }\
-                               },\
-                               \"dimensions\": {\
-                                   \"type\":\"object\",\
-                                   \"$fields\": {\
-                                       \"length\": {\"type\": \"float\"},\
-                                       \"width\": {\"type\": \"float\"},\
-                                       \"height\": {\"type\": \"float\"}\
+    std::string schema_str="{\"schema\":{\
+                                \"type\":\"object\",\
+                                \"$fields\": {\
+                                   \"product name\":{\
+                                       \"type\":\"string\",\
+                                       \"index\":true\
+                                   },\
+                                   \"product id\":{\
+                                       \"type\":\"integer\"\
+                                   },\
+                                   \"price\":{\
+                                       \"type\":\"float\"\
+                                   },\
+                                   \"composition\": {\
+                                       \"type\": \"array\",\
+                                       \"$items\": {\
+                                           \"type\": \"string\"\
+                                       }\
+                                   },\
+                                   \"dimensions\": {\
+                                       \"type\":\"object\",\
+                                       \"$fields\": {\
+                                           \"length\": {\"type\": \"float\"},\
+                                           \"width\": {\"type\": \"float\"},\
+                                           \"height\": {\"type\": \"float\"}\
+                                       }\
                                    }\
                                }\
-                           }\
-                       }";
+                             }\
+                          }";
     std::string json_str="{\
                              \"product name\":\"Car Model\",\
                              \"product id\":1001,\
@@ -47,9 +48,9 @@ TEST(SCHEMA_TEST,PARSE_TEST) {
                                  \"height\":3.6\
                              }\
                          }";\
-    Document schema_document(0,0,schema_str);
+    CollectionMeta collection_meta(schema_str);
 
-    CollectionSchema schema(schema_document);
+    CollectionSchema schema(collection_meta);
     Field &root_field=*schema.get_root_field();
     EXPECT_EQ(root_field.name,"$schema");
     EXPECT_EQ(root_field.type,FieldType::OBJECT);
@@ -75,7 +76,7 @@ TEST(SCHEMA_TEST,PARSE_TEST) {
     Field::ArrtibuteValue attr=root_field["product name"].arrtibute("index");
     EXPECT_EQ(std::get<bool>(attr),true);
 
-    Document document(0,0,json_str);
+    Document document("products",json_str);
     std::optional<std::string> err_str=schema.validate(document);
     if(err_str){
         cout<<err_str.value()<<endl;
