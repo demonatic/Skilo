@@ -10,7 +10,7 @@ set(CORE_LIBS ${G3LOGGER_LIBRARIES} g3logger pthread rocksdb roaring for)
 
 #message("SRCS: " ${ALL_SRCS})
 
-add_executable(skilo_test ${ALL_SRCS} libart/art.c art_tst.cpp scalar_tst.cpp schema_tst.cpp document_tst.cpp)
+add_executable(skilo_test ${ALL_SRCS} libart/art.c art_tst.cpp scalar_tst.cpp schema_tst.cpp document_tst.cpp tokenizer_tst.cpp)
 set_source_files_properties(libart/art.c PROPERTIES LANGUAGE CXX )
 
 

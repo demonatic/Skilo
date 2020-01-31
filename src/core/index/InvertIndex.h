@@ -1,6 +1,7 @@
 #ifndef INVERTINDEX_H
 #define INVERTINDEX_H
 
+#include <unordered_map>
 #include "Art.hpp"
 #include "PostingList.h"
 #include "../Document.h"
@@ -28,6 +29,13 @@ private:
     Art::ARTree<TermEntry> _index;
 };
 
+class CollectionIndexes:public Schema::FieldVisitor{
+public:
+    CollectionIndexes(const Schema::CollectionSchema &schema);
+    virtual void visit_field_string(const Schema::FieldString *field_string) override;
+private:
+    std::unordered_map<std::string,InvertIndex> _indexes; //<field_path,index>
+};
 
 } //namespace Index
 } //namespace Skilo

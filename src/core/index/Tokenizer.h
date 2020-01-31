@@ -3,7 +3,8 @@
 
 #include <string>
 #include <vector>
-#include <set>
+#include <unordered_set>
+#include <unordered_map>
 #include "cppjieba/Jieba.hpp"
 
 namespace Skilo {
@@ -14,16 +15,22 @@ class TokenizeStrategy
 public:
     TokenizeStrategy();
     virtual ~TokenizeStrategy()=default;
-    virtual std::vector<std::string> tokenize(const std::string &sentence)=0;
+
+    /// @return word->offsets
+    virtual std::unordered_map<std::string, std::vector<uint32_t>> tokenize(const std::string &sentence)=0;
 };
 
-
+/// @threadsafe The JiebaTokenizer is threadsafe
 class JiebaTokenizer{
     using Word=cppjieba::Word;
 public:
     JiebaTokenizer();
     virtual ~JiebaTokenizer()=default;
-    virtual std::vector<std::string> tokenize(const std::string &sentence);
+    virtual std::unordered_map<std::string, std::vector<uint32_t>> tokenize(const std::string &sentence);
+
+    /// @brief load stop words from file
+    /// @return the num of stop words loaded
+    size_t load_stop_words(const std::string &file_path);
 
 private:
     const char* const DICT_PATH = "../dict/jieba.dict.utf8";
@@ -33,7 +40,7 @@ private:
     const char* const STOP_WORD_PATH = "../dict/stop_words.utf8";
 
     cppjieba::Jieba _jieba;
-    std::set<std::string> _stop_words;
+    std::unordered_set<std::string> _stop_words;
 };
 
 #endif // TOKENIZER_H

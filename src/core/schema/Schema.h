@@ -1,9 +1,9 @@
 #ifndef SCHEMA_H
 #define SCHEMA_H
 
-#include "Field.h"
 #include <memory>
 #include <optional>
+#include "Field.h"
 
 namespace Skilo {
 namespace Schema{
@@ -55,12 +55,12 @@ namespace Schema{
 *********************************************************/
 
 struct SchemaValidator:FieldVisitor{
-    virtual void visit_field_string(const FieldString *field_string,const rapidjson::Value &document) const override;
-    virtual void visit_field_integer(const FieldInteger *field_integer,const rapidjson::Value &document) const override;
-    virtual void visit_field_float(const FieldFloat *field_float,const rapidjson::Value &document) const override;
-    virtual void visit_field_boolean(const FieldBoolean *field_boolean,const rapidjson::Value &document) const override;
-    virtual void visit_field_array(const FieldArray *field_array,const rapidjson::Value &document) const override;
-    virtual void visit_field_object(const FieldObject *field_object,const rapidjson::Value &document) const override;
+    virtual void visit_field_string(const FieldString *field_string,const rapidjson::Value &document) override;
+    virtual void visit_field_integer(const FieldInteger *field_integer,const rapidjson::Value &document) override;
+    virtual void visit_field_float(const FieldFloat *field_float,const rapidjson::Value &document) override;
+    virtual void visit_field_boolean(const FieldBoolean *field_boolean,const rapidjson::Value &document) override;
+    virtual void visit_field_array(const FieldArray *field_array,const rapidjson::Value &document) override;
+    virtual void visit_field_object(const FieldObject *field_object,const rapidjson::Value &document) override;
 };
 
 class CollectionSchema
@@ -71,7 +71,11 @@ public:
 
     /// @brief check whether the document adhere to the corresponding schema
     /// @return error string if any error occurs
-    std::optional<std::string> validate(const Document &document) const;
+    std::optional<std::string> validate(const Document &document);
+
+    void accept(FieldVisitor &field_visitor) const;
+    void accept(FieldVisitor &field_visitor,const rapidjson::Value &document) const;
+
     Field* get_root_field() const;
 
 private:

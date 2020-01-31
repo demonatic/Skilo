@@ -4,24 +4,25 @@
 namespace Skilo {
 namespace Schema{
 
-Field::Field(const std::string &name,const rapidjson::Value &schema)
+Field::Field(const std::string &name,const std::string &path,const rapidjson::Value &schema)
 {
     this->name=name;
     this->type=get_field_type(schema);
-    get_arrtibutes(schema);
+    this->path=path.empty()?name:path+"."+name;
+    parse_arrtibutes(schema);
 
     if(type==FieldType::ARRAY){
         if(!schema.HasMember(item_keyword)){
             throw std::runtime_error("array type must have \""+std::string(item_keyword)+"\" keyword");
         }
-        std::unique_ptr<Field> sub_field=create_field(item_keyword,schema[item_keyword]);
+        std::unique_ptr<Field> sub_field=create_field(item_keyword,this->path,schema[item_keyword]);
         this->sub_fields[sub_field->name]=std::move(sub_field);
     }
     if(type==FieldType::OBJECT){
         if(!schema.HasMember(field_keyword)){
             throw std::runtime_error("object type must have \""+std::string(field_keyword)+"\" keyword");
         }
-        parse_sub_fields(schema[field_keyword]);
+        parse_sub_fields(schema[field_keyword],this->path);
     }
 }
 
@@ -37,7 +38,7 @@ Field &Field::operator[](const std::string &sub_field_name)
     return *sub_fields[sub_field_name];
 }
 
-void Field::get_arrtibutes(const rapidjson::Value &schema)
+void Field::parse_arrtibutes(const rapidjson::Value &schema)
 {
     if(schema.IsObject()){
         for(rapidjson::Value::ConstMemberIterator it=schema.MemberBegin();it!=schema.MemberEnd();++it){
@@ -64,12 +65,11 @@ void Field::get_arrtibutes(const rapidjson::Value &schema)
     }
 }
 
-
-void Field::parse_sub_fields(const rapidjson::Value &sub_schema)
+void Field::parse_sub_fields(const rapidjson::Value &sub_schema,const std::string &path)
 {
     if(!sub_schema.IsObject()) return;
     for(rapidjson::Value::ConstMemberIterator it=sub_schema.MemberBegin();it!=sub_schema.MemberEnd();++it){
-        std::unique_ptr<Field> sub_field=create_field(it->name.GetString(),it->value);
+        std::unique_ptr<Field> sub_field=create_field(it->name.GetString(),path,it->value);
         if(sub_field){
             sub_fields[sub_field->name]=std::move(sub_field);
         }
@@ -111,72 +111,106 @@ FieldType Field::get_field_type(const rapidjson::Value &schema)
     }
 }
 
-std::unique_ptr<Field> Field::create_field(const std::string &name,const rapidjson::Value &schema)
+std::unique_ptr<Field> Field::create_field(const std::string &name,const std::string &path,const rapidjson::Value &schema)
 {
     FieldType type=Field::get_field_type(schema);
     switch(type){
         case FieldType::STRING:
-            return std::make_unique<FieldString>(name,schema);
+            return std::make_unique<FieldString>(name,path,schema);
 
         case FieldType::INTEGER:
-            return std::make_unique<FieldInteger>(name,schema);
+            return std::make_unique<FieldInteger>(name,path,schema);
 
         case FieldType::FLOAT:
-            return std::make_unique<FieldFloat>(name,schema);
+            return std::make_unique<FieldFloat>(name,path,schema);
 
         case FieldType::BOOLEAN:
-            return std::make_unique<FieldBoolean>(name,schema);
+            return std::make_unique<FieldBoolean>(name,path,schema);
 
         case FieldType::ARRAY:
-            return std::make_unique<FieldArray>(name,schema);
+            return std::make_unique<FieldArray>(name,path,schema);
 
         case FieldType::OBJECT:
-            return std::make_unique<FieldObject>(name,schema);
+            return std::make_unique<FieldObject>(name,path,schema);
     }
     return nullptr;
 }
 
-void FieldString::accept(const FieldVisitor &field_visitor, const rapidjson::Value &document)
+
+void FieldObject::accept(FieldVisitor &field_visitor)
 {
-    field_visitor.visit_field_string(this,document);
+    field_visitor.visit_field_object(this);
+    for(const auto &[field_name,field]:sub_fields){
+        field->accept(field_visitor);
+    }
 }
 
-void FieldInteger::accept(const FieldVisitor &field_visitor, const rapidjson::Value &document)
-{
-    field_visitor.visit_field_integer(this,document);
-}
-
-void FieldFloat::accept(const FieldVisitor &field_visitor, const rapidjson::Value &document)
-{
-    field_visitor.visit_field_float(this,document);
-}
-
-void FieldBoolean::accept(const FieldVisitor &field_visitor, const rapidjson::Value &document)
-{
-    field_visitor.visit_field_boolean(this,document);
-}
-
-void FieldObject::accept(const FieldVisitor &field_visitor, const rapidjson::Value &document)
+void FieldObject::accept(FieldVisitor &field_visitor, const rapidjson::Value &document)
 {
     field_visitor.visit_field_object(this,document);
     for(const auto &[field_name,field]:sub_fields){
-        std::cout<<"@FieldObject::accept "<<field_name<<std::endl;
         rapidjson::Value::ConstMemberIterator it=document.FindMember(field_name.c_str());
         if(it==document.MemberEnd()){
             throw std::runtime_error("field \""+field_name+"\" not found when visit sub_field "
-                                     +field_name+" from parent field \""+this->name+"\"");
+                                     +field_name+" from path:\""+this->path+"\"");
         }
         field->accept(field_visitor,it->value);
     }
 }
 
-void FieldArray::accept(const FieldVisitor &field_visitor, const rapidjson::Value &document)
+void FieldArray::accept(FieldVisitor &field_visitor)
+{
+    field_visitor.visit_field_array(this);
+    this->sub_fields[item_keyword]->accept(field_visitor);
+}
+
+void FieldArray::accept(FieldVisitor &field_visitor, const rapidjson::Value &document)
 {
     assert(document.IsArray());
     field_visitor.visit_field_array(this,document);
     for(const auto &elm:document.GetArray()){
         this->sub_fields[Field::item_keyword]->accept(field_visitor,elm);
     }
+}
+
+void FieldString::accept(FieldVisitor &field_visitor)
+{
+    field_visitor.visit_field_string(this);
+}
+
+void FieldString::accept(FieldVisitor &field_visitor, const rapidjson::Value &document)
+{
+    field_visitor.visit_field_string(this,document);
+}
+
+void FieldInteger::accept(FieldVisitor &field_visitor)
+{
+    field_visitor.visit_field_integer(this);
+}
+
+void FieldInteger::accept(FieldVisitor &field_visitor, const rapidjson::Value &document)
+{
+    field_visitor.visit_field_integer(this,document);
+}
+
+void FieldFloat::accept(FieldVisitor &field_visitor)
+{
+    field_visitor.visit_field_float(this);
+}
+
+void FieldFloat::accept(FieldVisitor &field_visitor, const rapidjson::Value &document)
+{
+    field_visitor.visit_field_float(this,document);
+}
+
+void FieldBoolean::accept(FieldVisitor &field_visitor)
+{
+    field_visitor.visit_field_boolean(this);
+}
+
+void FieldBoolean::accept(FieldVisitor &field_visitor, const rapidjson::Value &document)
+{
+    field_visitor.visit_field_boolean(this,document);
 }
 
 } //namespace Schema

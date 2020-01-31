@@ -26,23 +26,26 @@ struct FieldVisitor;
 struct Field{
     using ArrtibuteValue=std::variant<std::string,bool,int,float>;
     std::string name;
+    std::string path;
     FieldType type;
     std::unordered_map<std::string,ArrtibuteValue> attributes;
     std::unordered_map<std::string,std::unique_ptr<Field>> sub_fields;
 
-    //TODO object不能包含index attribute
-    Field(const std::string &name,const rapidjson::Value &schema);
+    Field(const std::string &name,const std::string &path,const rapidjson::Value &schema);
     virtual ~Field()=default;
-    virtual void accept(const FieldVisitor &field_visitor,const rapidjson::Value &document)=0;
+    static std::unique_ptr<Field> create_field(const std::string &name,const std::string &path,const rapidjson::Value &schema);
+
+    virtual void accept(FieldVisitor &field_visitor)=0;
+    virtual void accept(FieldVisitor &field_visitor,const rapidjson::Value &document)=0;
 
     ArrtibuteValue arrtibute(const std::string &arrtibute_name);
     Field &operator[](const std::string &sub_field_name);
 
+protected:
     static FieldType get_field_type(const rapidjson::Value &schema);
-    static std::unique_ptr<Field> create_field(const std::string &name,const rapidjson::Value &schema);
 
-    void get_arrtibutes(const rapidjson::Value &schema);
-    void parse_sub_fields(const rapidjson::Value &sub_schema);
+    void parse_arrtibutes(const rapidjson::Value &schema);
+    void parse_sub_fields(const rapidjson::Value &sub_schema,const std::string &path);
 
     inline static const char *item_keyword="$items";
     inline static const char *field_keyword="$fields";
@@ -50,43 +53,56 @@ struct Field{
 };
 
 struct FieldString:Field{
-    FieldString(const std::string &field_name,const rapidjson::Value &schema):Field(field_name,schema){}
-    virtual void accept(const FieldVisitor &field_visitor,const rapidjson::Value &document) override;
+    FieldString(const std::string &field_name,const std::string &field_path,const rapidjson::Value &schema):Field(field_name,field_path,schema){}
+    virtual void accept(FieldVisitor &field_visitor) override;
+    virtual void accept(FieldVisitor &field_visitor,const rapidjson::Value &document) override;
 };
 
 struct FieldInteger:Field{
-    FieldInteger(const std::string &field_name,const rapidjson::Value &schema):Field(field_name,schema){}
-    virtual void accept(const FieldVisitor &field_visitor,const rapidjson::Value &document) override;
+    FieldInteger(const std::string &field_name,const std::string &field_path,const rapidjson::Value &schema):Field(field_name,field_path,schema){}
+    virtual void accept(FieldVisitor &field_visitor) override;
+    virtual void accept(FieldVisitor &field_visitor,const rapidjson::Value &document) override;
 };
 
 struct FieldFloat:Field{
-    FieldFloat(const std::string &field_name,const rapidjson::Value &schema):Field(field_name,schema){}
-    virtual void accept(const FieldVisitor &field_visitor,const rapidjson::Value &document) override;
+    FieldFloat(const std::string &field_name,const std::string &field_path,const rapidjson::Value &schema):Field(field_name,field_path,schema){}
+    virtual void accept(FieldVisitor &field_visitor) override;
+    virtual void accept(FieldVisitor &field_visitor,const rapidjson::Value &document) override;
 };
 
 struct FieldBoolean:Field{
-    FieldBoolean(const std::string &field_name,const rapidjson::Value &schema):Field(field_name,schema){}
-    virtual void accept(const FieldVisitor &field_visitor,const rapidjson::Value &document) override;
+    FieldBoolean(const std::string &field_name,const std::string &field_path,const rapidjson::Value &schema):Field(field_name,field_path,schema){}
+    virtual void accept(FieldVisitor &field_visitor) override;
+    virtual void accept(FieldVisitor &field_visitor,const rapidjson::Value &document) override;
 };
 
 struct FieldArray:Field{
-    FieldArray(const std::string &field_name,const rapidjson::Value &schema):Field(field_name,schema){}
-    virtual void accept(const FieldVisitor &field_visitor,const rapidjson::Value &document) override;
+    FieldArray(const std::string &field_name,const std::string &field_path,const rapidjson::Value &schema):Field(field_name,field_path,schema){}
+    virtual void accept(FieldVisitor &field_visitor) override;
+    virtual void accept(FieldVisitor &field_visitor,const rapidjson::Value &document) override;
 };
 
 struct FieldObject:Field{
-    FieldObject(const std::string &field_name,const rapidjson::Value &schema):Field(field_name,schema){}
-    virtual void accept(const FieldVisitor &field_visitor,const rapidjson::Value &document) override;
+    FieldObject(const std::string &field_name,const std::string &field_path,const rapidjson::Value &schema):Field(field_name,field_path,schema){}
+    virtual void accept(FieldVisitor &field_visitor) override;
+    virtual void accept(FieldVisitor &field_visitor,const rapidjson::Value &document) override;
 };
 
 struct FieldVisitor{
     virtual ~FieldVisitor()=default;
-    virtual void visit_field_string(const FieldString *field_string,const rapidjson::Value &document) const=0;
-    virtual void visit_field_integer(const FieldInteger *field_integer,const rapidjson::Value &document) const=0;
-    virtual void visit_field_float(const FieldFloat *field_float,const rapidjson::Value &document) const=0;
-    virtual void visit_field_boolean(const FieldBoolean *field_boolean,const rapidjson::Value &document) const=0;
-    virtual void visit_field_array(const FieldArray *field_array,const rapidjson::Value &document) const=0;
-    virtual void visit_field_object(const FieldObject *field_object,const rapidjson::Value &document) const=0;
+    virtual void visit_field_string(const FieldString *field_string){}
+    virtual void visit_field_integer(const FieldInteger *field_integer){}
+    virtual void visit_field_float(const FieldFloat *field_float){}
+    virtual void visit_field_boolean(const FieldBoolean *field_boolean){}
+    virtual void visit_field_array(const FieldArray *field_array){}
+    virtual void visit_field_object(const FieldObject *field_object){}
+
+    virtual void visit_field_string(const FieldString *field_string,const rapidjson::Value &document){}
+    virtual void visit_field_integer(const FieldInteger *field_integer,const rapidjson::Value &document){}
+    virtual void visit_field_float(const FieldFloat *field_float,const rapidjson::Value &document){}
+    virtual void visit_field_boolean(const FieldBoolean *field_boolean,const rapidjson::Value &document){}
+    virtual void visit_field_array(const FieldArray *field_array,const rapidjson::Value &document){}
+    virtual void visit_field_object(const FieldObject *field_object,const rapidjson::Value &document){}
 };
 
 } //namespace Schema

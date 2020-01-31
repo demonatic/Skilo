@@ -5,6 +5,7 @@
 #include <optional>
 #include "Document.h"
 #include "schema/Schema.h"
+#include "index/IndexBuilder.h"
 #include "../storage/StorageService.h"
 
 namespace Skilo {
@@ -26,6 +27,7 @@ private:
     std::string _collection_name;
 
     Schema::CollectionSchema _schema;
+
     StorageService *_storage_service;
 };
 

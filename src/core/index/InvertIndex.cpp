@@ -22,6 +22,23 @@ void InvertIndex::add_record(const IndexRecord &record)
     }
 }
 
+CollectionIndexes::CollectionIndexes(const Schema::CollectionSchema &schema)
+{
+    schema.accept(*this); //create indexes from fields in the schema
+}
+
+void CollectionIndexes::visit_field_string(const Schema::FieldString *field_string)
+{
+    auto it=field_string->attributes.find("index");
+    if(it==field_string->attributes.end())
+        return;
+
+    const Schema::Field::ArrtibuteValue &index_option_value=it->second;
+    if(std::get<std::string>(index_option_value)=="true"){
+        _indexes.insert({field_string->path,InvertIndex()});
+    }
+}
+
 
 } //namespace Index
 } //namespace Skilo
