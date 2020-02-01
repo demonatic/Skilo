@@ -28,18 +28,20 @@ std::optional<uint32_t> StorageService::get_collection_next_seq_id(const std::st
     return std::make_optional<uint32_t>(next_seq_id);
 }
 
-
-bool StorageService::write_document(uint32_t collection_id,uint32_t doc_seq_id,const Document &document)
+bool StorageService::write_document(uint32_t collection_id,const Document &document)
 {
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     document.get_raw().Accept(writer);
 
     StorageEngine::Batch batch;
-    const std::string doc_key=KeyConverter::doc_id_key(collection_id,document.get_doc_id());
-    const std::string seq_key=KeyConverter::doc_seq_key(collection_id,doc_seq_id);
+    const std::string &doc_key=KeyConverter::doc_id_key(collection_id,document.get_doc_id());
+    const std::string &seq_key=KeyConverter::doc_seq_key(collection_id,document.get_seq_id().value());
+    const std::string &next_seq_key=KeyConverter::collection_next_seq_key(document.get_collection_name());
+
     batch.put(doc_key,seq_key);
     batch.put(seq_key,buffer.GetString());
+    batch.put(next_seq_key,std::to_string(document.get_seq_id().value()+1));
     return _storage_engine.batch_write(batch);
 }
 
@@ -56,6 +58,7 @@ bool StorageService::write_new_collection(uint32_t next_colletion_id, const Coll
     batch.put(KeyConverter::collection_next_seq_key(collection_name),std::to_string(0));
     return _storage_engine.batch_write(batch);
 }
+
 
 
 } //namespace storage

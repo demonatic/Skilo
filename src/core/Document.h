@@ -4,6 +4,7 @@
 #include "rapidjson/rapidjson.h"
 #include "rapidjson/document.h"
 #include <vector>
+#include <optional>
 
 namespace Skilo {
 
@@ -49,9 +50,13 @@ public:
     Document(const std::string &collection_name,const SegmentBuf &json_str);
 
     uint32_t get_doc_id() const;
+    std::string get_collection_name() const;
+    void set_seq_id(uint32_t seq_id);
+    std::optional<uint32_t> get_seq_id() const;
 
 private:
     uint32_t _doc_id;
+    std::optional<uint32_t> _seq_id;
     std::string _collection_name;
 };
 
@@ -64,7 +69,7 @@ private:
         "type":"object",
         "$fields": {
             "product name":{
-                "type":"string"
+                "type":"string",
                 "index":true
             },
             "price":{

@@ -6,7 +6,6 @@ namespace Storage{
 
 StorageEngine::StorageEngine(const std::string &db_path):_db_path(db_path)
 {
-    //TODO consider using bloom filter
     _options.IncreaseParallelism();
     _options.create_if_missing=true;
     _options.write_buffer_size=4*1310724;

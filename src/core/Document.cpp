@@ -6,14 +6,14 @@
 namespace Skilo {
 
 DocumentBase::DocumentBase(const std::string &json_str){
-    if(_document.Parse(json_str.c_str()).HasParseError()){
+    if(_document.Parse(json_str.c_str()).HasParseError()||!_document.IsObject()){
         throw std::runtime_error("Error when parse document from json");
     }
 }
 
 DocumentBase::DocumentBase(const SegmentBuf &json_str){
     detail::SegmentBufferStream stream(json_str);
-    if(_document.ParseStream(stream).HasParseError()){
+    if(_document.ParseStream(stream).HasParseError()||!_document.IsObject()){
         throw std::runtime_error("Error when parse document from json");
     }
 }
@@ -52,6 +52,22 @@ uint32_t Document::get_doc_id() const
     return doc_id_it->value.GetUint();
 }
 
+std::string Document::get_collection_name() const
+{
+    return _collection_name;
+}
+
+void Document::set_seq_id(uint32_t seq_id)
+{
+    _seq_id.emplace(seq_id);
+}
+
+std::optional<uint32_t> Document::get_seq_id() const
+{
+    assert(_seq_id.has_value());
+    return _seq_id;
+}
+
 CollectionMeta::CollectionMeta(const std::string &json_str):DocumentBase(json_str)
 {
     if(!_document.IsObject()){
@@ -86,12 +102,16 @@ const char* CollectionMeta::get_collection_name() const
 
 void CollectionMeta::add_create_time(uint64_t created_time)
 {
-    _document["created_at"]=created_time;
+    rapidjson::Value create_time(rapidjson::kNumberType);
+    create_time.SetUint64(created_time);
+    _document.AddMember("created_at",created_time,_document.GetAllocator());
 }
 
 void CollectionMeta::add_collection_id(uint32_t collection_id)
 {
-    _document["id"]=collection_id;
+    rapidjson::Value collec_id(rapidjson::kNumberType);
+    collec_id.SetUint(collection_id);
+    _document.AddMember("id",collec_id,_document.GetAllocator());
 }
 
 

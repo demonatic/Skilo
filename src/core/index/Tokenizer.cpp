@@ -5,24 +5,25 @@
 namespace Skilo {
 namespace Index {
 
-TokenizeStrategy::TokenizeStrategy()
+TokenizeStrategy::TokenizeStrategy(const std::string &dict_dir)
 {
 
 }
 
-JiebaTokenizer::JiebaTokenizer():_jieba(DICT_PATH,HMM_PATH,USER_DICT_PATH,IDF_PATH,STOP_WORD_PATH)
+JiebaTokenizer::JiebaTokenizer(const std::string &dict_dir):TokenizeStrategy(dict_dir),
+    _jieba(dict_dir+DICT_PATH,dict_dir+HMM_PATH,dict_dir+USER_DICT_PATH,dict_dir+IDF_PATH,dict_dir+STOP_WORD_PATH)
 {
-    this->load_stop_words(STOP_WORD_PATH);
+    this->load_stop_words(dict_dir+STOP_WORD_PATH);
 }
 
 std::unordered_map<std::string, std::vector<uint32_t>> JiebaTokenizer::tokenize(const std::string &sentence)
 {
-    std::vector<Word> words;
+    std::vector<cppjieba::Word> words;
     _jieba.CutForSearch(sentence,words,true);
     std::unordered_map<std::string, std::vector<uint32_t>> res;
-    for(Word &w:words){
+    for(cppjieba::Word &w:words){
         if(!_stop_words.count(w.word)){
-            res[std::move(w.word)].push_back(w.offset);
+            res[std::move(w.word)].push_back(w.unicode_offset);
         }
     }
     return res;

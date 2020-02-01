@@ -29,7 +29,7 @@ Status CollectionManager::create_collection(const std::string &collection_name,C
     return Status{RetCode::CREATED,"create collection ok"};
 }
 
-Status Skilo::CollectionManager::add_document(const std::string &collection_name,const Document &document)
+Status Skilo::CollectionManager::add_document(const std::string &collection_name,Document &document)
 {
     auto collection_id_it=_collection_name_id_map.find(collection_name);
     if(collection_id_it==_collection_name_id_map.end()){

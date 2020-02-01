@@ -15,7 +15,7 @@ public:
     /// @return error string if error exists
     Status create_collection(const std::string &collection_name,CollectionMeta &collection_meta);
 
-    Status add_document(const std::string &collection_name,const Document &document);
+    Status add_document(const std::string &collection_name,Document &document);
 
 private:
     uint32_t get_next_collection_id();

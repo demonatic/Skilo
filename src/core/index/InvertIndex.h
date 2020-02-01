@@ -12,7 +12,7 @@ namespace Index{
 
 struct IndexRecord{
     uint32_t seq_id;
-    std::vector<std::string_view> tokens;
+    std::unordered_map<std::string, std::vector<uint32_t>> word_offsets;
 };
 
 class InvertIndex
@@ -33,6 +33,9 @@ class CollectionIndexes:public Schema::FieldVisitor{
 public:
     CollectionIndexes(const Schema::CollectionSchema &schema);
     virtual void visit_field_string(const Schema::FieldString *field_string) override;
+
+    InvertIndex &get_index(const std::string &field_path);
+    bool contains(const std::string &field_path) const;
 private:
     std::unordered_map<std::string,InvertIndex> _indexes; //<field_path,index>
 };
