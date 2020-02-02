@@ -9,6 +9,7 @@ TEST(COLLECTION_MANAGER_TEST,ADD_DOC_TEST){
     CollectionManager collection_manager("/tmp/skilo_tst");
     std::string schema_str="{\
                             \"name\":\"recipe\",\
+                            \"tokenizer\":\"jieba\",\
                             \"schema\":{\
                                 \"type\":\"object\",\
                                 \"$fields\": {\

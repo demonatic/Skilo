@@ -14,7 +14,7 @@ Status CollectionManager::create_collection(const std::string &collection_name,C
     try {
         uint32_t collection_id=this->get_next_collection_id();
         collection_meta.add_collection_id(collection_id);
-        collection_meta.add_create_time(312312);//TODO
+        collection_meta.add_create_time(static_cast<uint64_t>(std::time(nullptr)));
         if(!_storage_service->write_new_collection(_next_collection_id,collection_meta)){
             return Status{RetCode::INTERNAL_SERVER_ERROR,"Could not write meta data to on disk storage"};
         }

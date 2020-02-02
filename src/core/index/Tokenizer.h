@@ -11,17 +11,27 @@ namespace Skilo {
 namespace Index {
 
 /// @class tokenize the text and apply linguistic processing(e.g remove stop words)
+/// @threadsafe The Tokenizer interfaces must be safe to call from different threads
 class TokenizeStrategy
 {
 public:
-    TokenizeStrategy(const std::string &dict_dir); //TODO pass config
+    TokenizeStrategy(const std::string &dict_dir={}); //TODO pass config
     virtual ~TokenizeStrategy()=default;
 
-    /// @return word->offsets
+    /// @return word->offsets(offsets could be empty)
     virtual std::unordered_map<std::string, std::vector<uint32_t>> tokenize(const std::string &sentence)=0;
 };
 
-/// @threadsafe The JiebaTokenizer is threadsafe
+class DefaultTokenizer:public TokenizeStrategy
+{
+public:
+    DefaultTokenizer();
+    virtual ~DefaultTokenizer() override=default;
+
+    /// @return word->offsets
+    virtual std::unordered_map<std::string, std::vector<uint32_t>> tokenize(const std::string &sentence) override;
+};
+
 class JiebaTokenizer:public TokenizeStrategy{
 public:
     JiebaTokenizer(const std::string &dict_dir);

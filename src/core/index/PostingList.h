@@ -12,7 +12,7 @@ class PostingList
 {
 public:
     PostingList();
-    void add_doc(uint32_t seq_id);
+    void add_doc(uint32_t seq_id,uint32_t frequency);
     std::vector<uint32_t> get_common_doc_id(const PostingList &other);
 
 private:

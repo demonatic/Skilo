@@ -25,6 +25,9 @@ public:
     /// @return error string
     std::optional<std::string> validate_document(const Document &document);
 
+    uint32_t document_num() const;
+    std::unique_ptr<Index::TokenizeStrategy> get_tokenize_strategy(const std::string &tokenizer_name) const;
+
 private:
     uint32_t _collection_id;
     uint32_t _next_seq_id;

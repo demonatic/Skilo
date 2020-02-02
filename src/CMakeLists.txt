@@ -19,7 +19,8 @@ file(GLOB SOURCES
     core/index/*.h
     core/index/*.hpp
     core/index/*.cpp
-    util/*.hpp
+    util/*.h
+    util/*.cpp
 )
 
 set(BUILD_DEPS "yes" CACHE STRING "")

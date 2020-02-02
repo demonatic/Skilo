@@ -1,5 +1,6 @@
 #include "Tokenizer.h"
 #include <fstream>
+#include <regex>
 #include <g3log/g3log.hpp>
 
 namespace Skilo {
@@ -41,6 +42,24 @@ size_t JiebaTokenizer::load_stop_words(const std::string &file_path)
         _stop_words.emplace(std::move(line));
     }
     return _stop_words.size();
+}
+
+DefaultTokenizer::DefaultTokenizer():TokenizeStrategy()
+{
+
+}
+
+std::unordered_map<std::string, std::vector<uint32_t> > DefaultTokenizer::tokenize(const std::string &sentence)
+{
+    std::regex reg("[^\\ \\.|,:;&]+");
+    std::sregex_token_iterator first{sentence.begin(),sentence.end(),reg},last;
+    std::vector<std::string> tokens{first,last};
+    std::unordered_map<std::string, std::vector<uint32_t>> res;
+    while(first!=last){
+        res.insert({first->str(),{}});
+        first++;
+    }
+    return res;
 }
 
 } //namespace Index

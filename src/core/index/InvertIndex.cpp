@@ -10,6 +10,7 @@ InvertIndex::InvertIndex()
 
 void InvertIndex::add_record(const IndexRecord &record)
 {
+    //TODO use offsets info if not empty
     for(const auto &[word,offsets]:record.word_offsets){
         string_view term=word;
         TermEntry *term_entry=_index.find(term.data(),term.length());
@@ -18,8 +19,8 @@ void InvertIndex::add_record(const IndexRecord &record)
             _index.insert(term.data(),term.length(),term_entry);
         }
         term_entry->doc_freq++;
-        cout<<"word="<<word<<" append_id="<<record.seq_id<<endl;
-        term_entry->posting_list.add_doc(record.seq_id);
+        cout<<"word="<<word<<" append_id="<<record.seq_id<<"freq="<<offsets.size()<<std::endl;
+        term_entry->posting_list.add_doc(record.seq_id,offsets.size());
     }
 }
 

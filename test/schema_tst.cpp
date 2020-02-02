@@ -67,47 +67,47 @@ TEST(SCHEMA_TEST,PARSE_TEST) {
 
     CollectionSchema schema(collection_meta);
     Field &root_field=*schema.get_root_field();
-    EXPECT_EQ(root_field.name,"$schema");
+    EXPECT_EQ(root_field.name,"");
     EXPECT_EQ(root_field.type,FieldType::OBJECT);
     EXPECT_EQ(root_field["product name"].type,FieldType::STRING);
     EXPECT_EQ(root_field["product name"].name,"product name");
-    EXPECT_EQ(root_field["product name"].path,"$schema.product name");
+    EXPECT_EQ(root_field["product name"].path,"product name");
 
     EXPECT_EQ(root_field["product id"].type,FieldType::INTEGER);
     EXPECT_EQ(root_field["product id"].name,"product id");
-    EXPECT_EQ(root_field["product id"].path,"$schema.product id");
+    EXPECT_EQ(root_field["product id"].path,"product id");
 
     EXPECT_EQ(root_field["price"].type,FieldType::FLOAT);
     EXPECT_EQ(root_field["price"].name,"price");
-    EXPECT_EQ(root_field["price"].path,"$schema.price");
+    EXPECT_EQ(root_field["price"].path,"price");
 
     EXPECT_EQ(root_field["composition"].type,FieldType::ARRAY);
     EXPECT_EQ(root_field["composition"].name,"composition");
-    EXPECT_EQ(root_field["composition"].path,"$schema.composition");
+    EXPECT_EQ(root_field["composition"].path,"composition");
     EXPECT_EQ(root_field["composition"]["$items"].type,FieldType::STRING);
     EXPECT_EQ(root_field["composition"]["$items"].name,"$items");
-    EXPECT_EQ(root_field["composition"]["$items"].path,"$schema.composition.$items");
+    EXPECT_EQ(root_field["composition"]["$items"].path,"composition.$items");
 
     EXPECT_EQ(root_field["dimensions"].type,FieldType::OBJECT);
     EXPECT_EQ(root_field["dimensions"].name,"dimensions");
-    EXPECT_EQ(root_field["dimensions"].path,"$schema.dimensions");
+    EXPECT_EQ(root_field["dimensions"].path,"dimensions");
     EXPECT_EQ(root_field["dimensions"]["length"].type,FieldType::FLOAT);
     EXPECT_EQ(root_field["dimensions"]["length"].name,"length");
-    EXPECT_EQ(root_field["dimensions"]["length"].path,"$schema.dimensions.length");
+    EXPECT_EQ(root_field["dimensions"]["length"].path,"dimensions.length");
     EXPECT_EQ(root_field["dimensions"]["width"].type,FieldType::FLOAT);
     EXPECT_EQ(root_field["dimensions"]["width"].name,"width");
-    EXPECT_EQ(root_field["dimensions"]["width"].path,"$schema.dimensions.width");
+    EXPECT_EQ(root_field["dimensions"]["width"].path,"dimensions.width");
     EXPECT_EQ(root_field["dimensions"]["height"].type,FieldType::FLOAT);
     EXPECT_EQ(root_field["dimensions"]["height"].name,"height");
-    EXPECT_EQ(root_field["dimensions"]["height"].path,"$schema.dimensions.height");
+    EXPECT_EQ(root_field["dimensions"]["height"].path,"dimensions.height");
 
     EXPECT_EQ(root_field["supplier"].type,FieldType::ARRAY);
     EXPECT_EQ(root_field["supplier"]["$items"].type,FieldType::OBJECT);
-    EXPECT_EQ(root_field["supplier"]["$items"].path,"$schema.supplier.$items");
+    EXPECT_EQ(root_field["supplier"]["$items"].path,"supplier.$items");
     EXPECT_EQ(root_field["supplier"]["$items"]["name"].type,FieldType::STRING);
-    EXPECT_EQ(root_field["supplier"]["$items"]["name"].path,"$schema.supplier.$items.name");
+    EXPECT_EQ(root_field["supplier"]["$items"]["name"].path,"supplier.$items.name");
     EXPECT_EQ(root_field["supplier"]["$items"]["e-mail"].type,FieldType::STRING);
-    EXPECT_EQ(root_field["supplier"]["$items"]["e-mail"].path,"$schema.supplier.$items.e-mail");
+    EXPECT_EQ(root_field["supplier"]["$items"]["e-mail"].path,"supplier.$items.e-mail");
 
     Field::ArrtibuteValue attr=root_field["product name"].arrtibute("index");
     EXPECT_EQ(std::get<bool>(attr),true);

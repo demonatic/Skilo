@@ -65,6 +65,7 @@ private:
 /****************************************************
 {
     "name": "company products",
+    "tokenizer":"jieba",
     "schema": {
         "type":"object",
         "$fields": {
@@ -95,6 +96,8 @@ public:
 
     void add_create_time(uint64_t created_time);
     void add_collection_id(uint32_t collection_id);
+
+    std::string get_tokenizer() const;
 };
 
 namespace detail{

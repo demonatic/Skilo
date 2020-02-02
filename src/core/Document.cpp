@@ -114,5 +114,11 @@ void CollectionMeta::add_collection_id(uint32_t collection_id)
     _document.AddMember("id",collec_id,_document.GetAllocator());
 }
 
+std::string CollectionMeta::get_tokenizer() const
+{
+    rapidjson::Value::ConstMemberIterator schema_it=_document.FindMember("tokenizer");
+    return (schema_it!=_document.MemberEnd()&&schema_it->value.IsString())?schema_it->value.GetString():"";
+}
+
 
 } //namespace Skilo

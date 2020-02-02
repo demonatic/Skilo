@@ -7,7 +7,7 @@ namespace Schema{
 
 CollectionSchema::CollectionSchema(const CollectionMeta &meta_data)
 {
-    this->_fields=Field::create_field("$schema","",meta_data.get_schema());
+    this->_fields=Field::create_field("","",meta_data.get_schema());
 }
 
 CollectionSchema::CollectionSchema(CollectionSchema &&collection_schema)

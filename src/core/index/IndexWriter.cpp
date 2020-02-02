@@ -22,6 +22,7 @@ void IndexWriter::visit_field_string(const Schema::FieldString *field_string, co
         return;
 
     cout<<"string="<<document.GetString()<<endl;
+    cout<<"path="<<field_string->path<<std::endl;
     std::unordered_map<std::string, std::vector<uint32_t>> word_offsets;
     word_offsets=_tokenizer->tokenize(document.GetString());
     IndexRecord record{_seq_id,std::move(word_offsets)};
