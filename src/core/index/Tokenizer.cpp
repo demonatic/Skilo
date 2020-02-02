@@ -52,11 +52,12 @@ DefaultTokenizer::DefaultTokenizer():TokenizeStrategy()
 std::unordered_map<std::string, std::vector<uint32_t> > DefaultTokenizer::tokenize(const std::string &sentence)
 {
     std::regex reg("[^\\ \\.|,:;&]+");
-    std::sregex_token_iterator first{sentence.begin(),sentence.end(),reg},last;
-    std::vector<std::string> tokens{first,last};
+    std::sregex_iterator first{sentence.begin(),sentence.end(),reg},last;
+
     std::unordered_map<std::string, std::vector<uint32_t>> res;
     while(first!=last){
-        res.insert({first->str(),{}});
+        uint32_t offset=static_cast<uint32_t>(first->position());
+        res[first->str()].push_back(offset);
         first++;
     }
     return res;
