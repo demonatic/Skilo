@@ -17,14 +17,14 @@ public:
     T* insert(const char *child_key,size_t child_key_len,T *val);
 
     /// @return nullptr if not find, otherwise return the pointer to the value
-    T *find(const char *child_key,size_t child_key_len);
+    T *find(const char *child_key,size_t child_key_len) const;
 
     void erase(const char *child_key,size_t child_key_len);
 
     size_t size() const;
 
 private:
-    ArtNode::Ptr *find_child(InnerNode *node,const unsigned char child_key);
+    ArtNode::Ptr *find_child(InnerNode *node,const unsigned char child_key) const;
     void add_child(InnerNode *node,ArtNode::Ptr &node_ptr,const unsigned char child_child_key,ArtNode *child);
     void remove_child(InnerNode *node,ArtNode::Ptr &node_ptr,ArtNode::Ptr *child_ptr,unsigned char key);
 
@@ -58,7 +58,7 @@ T *ARTree<T>::insert(const char *child_key, size_t child_key_len,T *val)
 /// Instead, when a lookup arrives at a leaf its child_key must be compared to the search
 /// child_key to ensure that no “wrong turn” was taken
 template<class T>
-T *ARTree<T>::find(const char *child_key,size_t child_key_len)
+T *ARTree<T>::find(const char *child_key,size_t child_key_len) const
 {
     ArtNode *node=_root;
     size_t depth=0;
@@ -356,7 +356,7 @@ void ARTree<T>::add_child(InnerNode *node, ArtNode::Ptr &node_ptr, const unsigne
 }
 
 template<class T>
-ArtNode::Ptr* ARTree<T>::find_child(InnerNode *node, const unsigned char child_key)
+ArtNode::Ptr* ARTree<T>::find_child(InnerNode *node, const unsigned char child_key) const
 {
     switch(node->type) {
         case InnerNode::Node4:{

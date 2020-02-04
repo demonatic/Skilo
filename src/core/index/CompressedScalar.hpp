@@ -63,7 +63,7 @@ public:
     }
 
     /// Uncompresses the entire sequence of ints in the array and return it
-    std::unique_ptr<uint32_t[]> uncompress(){
+    std::unique_ptr<uint32_t[]> uncompress() const{
         std::unique_ptr<uint32_t[]> uncompressed=std::make_unique<uint32_t[]>(_elm_count);
         for_uncompress(_data,uncompressed.get(),_elm_count);
         return uncompressed;
@@ -115,7 +115,7 @@ public:
     }
 
     /// @return num of elements
-    size_t length() const{
+    uint32_t length() const{
         return _elm_count;
     }
 
@@ -138,7 +138,7 @@ private:
 
 protected:
     uint8_t *_data;
-    size_t _elm_count=0; // num of uint32 stored in array
+    uint32_t _elm_count=0; // num of uint32 stored in array
     size_t _byte_length=0; // the actual num of bytes used(including overhead)
     size_t _byte_capacity; // the total num of bytes allocated
 

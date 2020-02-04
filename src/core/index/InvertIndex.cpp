@@ -11,17 +11,31 @@ InvertIndex::InvertIndex()
 void InvertIndex::add_record(const IndexRecord &record)
 {
     //TODO use offsets info if not empty
-    for(const auto &[word,offsets]:record.word_offsets){
-        string_view term=word;
-        TermEntry *term_entry=_index.find(term.data(),term.length());
-        if(!term_entry){
-            term_entry=new TermEntry();
-            _index.insert(term.data(),term.length(),term_entry);
+    for(const auto &[term,offsets]:record.term_offsets){
+        PostingList *posting_list=this->get_postinglist(term);
+        if(!posting_list){
+            posting_list=new PostingList();
+            _index.insert(term.data(),term.length(),posting_list);
         }
-        term_entry->doc_freq++;
-        cout<<"word="<<word<<" append_id="<<record.seq_id<<"freq="<<offsets.size()<<std::endl;
-        term_entry->posting_list.add_doc(record.seq_id,offsets.size());
+        cout<<"term="<<term<<" seq_id="<<record.seq_id<<" freq="<<offsets.size()<<std::endl;
+        posting_list->add_doc(record.seq_id,offsets);
     }
+}
+
+uint32_t InvertIndex::num_docs(const string &term) const
+{
+    PostingList *posting_list=this->get_postinglist(term);
+    return posting_list?posting_list->num_docs():0;
+}
+
+PostingList *InvertIndex::get_postinglist(const string &term) const
+{
+    return _index.find(term.data(),term.length());
+}
+
+size_t InvertIndex::dict_size() const
+{
+    return _index.size();
 }
 
 CollectionIndexes::CollectionIndexes(const Schema::CollectionSchema &schema)
@@ -41,14 +55,89 @@ void CollectionIndexes::visit_field_string(const Schema::FieldString *field_stri
     }
 }
 
-InvertIndex &CollectionIndexes::get_index(const string &field_path)
+const InvertIndex *CollectionIndexes::get_index(const string &field_path) const
 {
-    return _indexes[field_path];
+    auto field_it=this->_indexes.find(field_path);
+    return field_it!=_indexes.cend()?&field_it->second:nullptr;
+}
+
+InvertIndex *CollectionIndexes::get_index(const string &field_path)
+{
+    return const_cast<InvertIndex*>(static_cast<const CollectionIndexes*>(this)->get_index(field_path));
 }
 
 bool CollectionIndexes::contains(const string &field_path) const
 {
     return _indexes.find(field_path)!=_indexes.end();
+}
+
+std::vector<std::vector<std::pair<uint32_t, double>>> CollectionIndexes::search_fields(const std::unordered_map<string, std::vector<uint32_t> > &query_terms,
+                                                                                         const std::vector<string> &field_paths) const
+{
+    std::vector<std::vector<std::pair<uint32_t, double>>> res;
+    for(const std::string &path:field_paths){
+        if(!contains(path)){
+            throw std::runtime_error("field path \""+path+"\" is not found");
+        }
+        auto field_res=search_field(query_terms,path);
+        res.emplace_back(std::move(field_res));
+    }
+    return res;
+}
+
+std::vector<std::pair<uint32_t, double>> CollectionIndexes::search_field(const std::unordered_map<string, std::vector<uint32_t>> &query_terms,
+                                                                          const std::string &field_path) const
+{
+    /// \brief find the conjuction doc_ids of the query terms
+    /// @example:
+    /// query_term_A -> doc_id_1, doc_id_5, ...
+    /// query_term_B -> doc_id_2, doc_id_4, doc_id_5...
+    /// query_term_C -> doc_id_5, doc_id_7, doc_id_15, doc_id 29...
+    /// conjuction result: doc_id_5 ...
+    std::vector<std::pair<uint32_t, double>> scored_docs; // <seq_id,score>
+    const InvertIndex *index=this->get_index(field_path);
+    if(!index||query_terms.empty()){
+        return scored_docs;
+    }
+
+    std::vector<const PostingList*> term_entries;
+    for(const auto &[query_term,offsets]:query_terms){
+        auto *entry=index->get_postinglist(query_term);
+        if(!entry) return scored_docs;
+        term_entries.push_back(entry);
+    }
+    std::sort(term_entries.begin(),term_entries.end(),[](const auto &e1,const auto &e2){
+        return e1->num_docs()<e2->num_docs();
+    });
+
+    uint32_t leading_doc_num=term_entries[0]->num_docs();
+    std::unique_ptr<uint32_t[]> leading_docs=term_entries[0]->get_all_doc_ids(); //shortest length, reduces the number of comparison
+    for(uint32_t leading_cur=0;leading_cur<leading_doc_num;leading_cur++){
+        uint32_t lead_doc=leading_docs[leading_cur];
+        bool exists_in_all_entry=true;
+        for(size_t i=1;i<term_entries.size();i++){
+            //TODO 每次查找leading_doc 忽略掉前面不可能存在的部分
+            if(!term_entries[i]->contain_doc(lead_doc)){ //couldn't find lead_doc in this entey
+                exists_in_all_entry=false;
+                break;
+            }
+        }
+        if(exists_in_all_entry){
+            double score=0; //TODO
+            scored_docs.push_back({lead_doc,score});
+        }
+    }
+    return scored_docs;
+}
+
+uint32_t CollectionIndexes::num_documents(const string &field_path, const string &term) const
+{
+    auto index_it=_indexes.find(field_path);
+    if(index_it==_indexes.end()){
+        return 0;
+    }
+    const InvertIndex &index=index_it->second;
+    return index.num_docs(term);
 }
 
 

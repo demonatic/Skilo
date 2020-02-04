@@ -40,6 +40,16 @@ std::optional<std::string> Collection::validate_document(const Document &documen
     return _schema.validate(document);
 }
 
+string Collection::search(const QueryInfo &query_info) const
+{
+    const std::string &query_str=query_info.get_search_str();
+    std::unordered_map<std::string, std::vector<uint32_t>> query_terms=_tokenizer->tokenize(query_str);
+    const vector<std::string> &search_fields=query_info.get_query_fields();
+    std::vector<std::vector<std::pair<uint32_t, double>>> fields_match_docs=this->_indexes.search_fields(query_terms,search_fields);
+
+    // TODO
+}
+
 uint32_t Collection::document_num() const
 {
     return _next_seq_id;

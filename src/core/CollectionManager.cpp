@@ -8,7 +8,7 @@ CollectionManager::CollectionManager(const std::string &db_path):_storage_servic
 
 Status CollectionManager::create_collection(const std::string &collection_name,CollectionMeta &collection_meta)
 {
-    if(_collection_name_id_map.find(collection_name)!=_collection_name_id_map.end()||_storage_service->contain_collection(collection_name)){
+    if(get_collection(collection_name)!=nullptr||_storage_service->contain_collection(collection_name)){
         return Status{RetCode::CONFLICT,"The collection with name `"+collection_name+"` already exists"};
     }
     try {
@@ -31,18 +31,43 @@ Status CollectionManager::create_collection(const std::string &collection_name,C
 
 Status Skilo::CollectionManager::add_document(const std::string &collection_name,Document &document)
 {
+    Collection *collection=this->get_collection(collection_name);
+    if(!collection){
+         return Status{RetCode::BAD_REQUEST,"collection \'"+collection_name+"\" not exist"};
+    }
+    //TODO use try catch?
+    std::optional<std::string> err=collection->add_document(document);
+    return err.has_value()?Status{RetCode::BAD_REQUEST,err.value()}:Status{RetCode::CREATED,"add document success"};
+}
+
+Status CollectionManager::search(const QueryInfo &query_info,std::string &query_result) const
+{
+     const std::string &collection_name=query_info.get_collection_name();
+     Collection *collection=this->get_collection(collection_name);
+     if(!collection){
+          return Status{RetCode::BAD_REQUEST,"collection \'"+collection_name+"\" not exist"};
+     }
+     try {
+         query_result=collection->search(query_info);
+     }  catch (std::runtime_error) {
+
+     }
+     return Status{RetCode::OK,"search success"};
+}
+
+Collection *CollectionManager::get_collection(const string &collection_name) const
+{
     auto collection_id_it=_collection_name_id_map.find(collection_name);
     if(collection_id_it==_collection_name_id_map.end()){
-        return Status{RetCode::BAD_REQUEST,"collection \'"+collection_name+"\" not exist"};
+        return nullptr;
     }
     uint32_t collection_id=collection_id_it->second;
     auto collection_it=_collection_map.find(collection_id);
     if(collection_it==_collection_map.end()){
-        return Status{RetCode::BAD_REQUEST,"collection \'"+collection_name+"\" not exist"};
+        return nullptr;
     }
     Collection *collection=collection_it->second.get();
-    std::optional<std::string> err=collection->add_document(document);
-    return err.has_value()?Status{RetCode::BAD_REQUEST,err.value()}:Status{RetCode::CREATED,"add document success"};
+    return collection;
 }
 
 uint32_t CollectionManager::get_next_collection_id()

@@ -7,14 +7,14 @@ namespace Skilo {
 
 DocumentBase::DocumentBase(const std::string &json_str){
     if(_document.Parse(json_str.c_str()).HasParseError()||!_document.IsObject()){
-        throw std::runtime_error("Error when parse document from json");
+        throw std::runtime_error("Error when parse document from json, notice: root must be an json object");
     }
 }
 
 DocumentBase::DocumentBase(const SegmentBuf &json_str){
     detail::SegmentBufferStream stream(json_str);
     if(_document.ParseStream(stream).HasParseError()||!_document.IsObject()){
-        throw std::runtime_error("Error when parse document from json");
+        throw std::runtime_error("Error when parse document from json, notice: root must be an json object");
     }
 }
 
@@ -70,23 +70,19 @@ std::optional<uint32_t> Document::get_seq_id() const
 
 CollectionMeta::CollectionMeta(const std::string &json_str):DocumentBase(json_str)
 {
-    if(!_document.IsObject()){
-        throw std::runtime_error("collection meta data must be a json object");
-    }
+
 }
 
 CollectionMeta::CollectionMeta(const SegmentBuf &json_str):DocumentBase(json_str)
 {
-    if(!_document.IsObject()){
-        throw std::runtime_error("collection meta data must be a json object");
-    }
+
 }
 
 const rapidjson::Value &CollectionMeta::get_schema() const
 {
     rapidjson::Value::ConstMemberIterator schema_it=_document.FindMember("schema");
     if(schema_it==_document.MemberEnd()){
-         throw std::runtime_error("member \"schema\" not found in collection meta data");
+         throw std::runtime_error("missing \"schema\" in collection meta data");
     }
     return schema_it->value;
 }
@@ -95,7 +91,7 @@ const char* CollectionMeta::get_collection_name() const
 {
     rapidjson::Value::ConstMemberIterator name_it=_document.FindMember("name");
     if(name_it==_document.MemberEnd()||!name_it->value.IsString()){
-         throw std::runtime_error("member \"name\" not found in collection meta data or \"name\" is not string");
+         throw std::runtime_error("missing \"name\" in collection meta data or \"name\" is not string");
     }
     return name_it->value.GetString();
 }
@@ -118,6 +114,35 @@ std::string CollectionMeta::get_tokenizer() const
 {
     rapidjson::Value::ConstMemberIterator schema_it=_document.FindMember("tokenizer");
     return (schema_it!=_document.MemberEnd()&&schema_it->value.IsString())?schema_it->value.GetString():"";
+}
+
+QueryInfo::QueryInfo(const std::string &collection_name,const std::string &json_str):DocumentBase(json_str),_collection_name(collection_name)
+{
+    this->extract_variables();
+}
+
+QueryInfo::QueryInfo(const std::string &collection_name,const SegmentBuf &json_str):DocumentBase(json_str),_collection_name(collection_name)
+{
+    this->extract_variables();
+}
+
+void QueryInfo::extract_variables()
+{
+    rapidjson::Value::ConstMemberIterator query_it=_document.FindMember("query");
+    if(query_it==_document.MemberEnd()||!query_it->value.IsString()){
+        throw std::runtime_error("missing \"query\" in query json or \"query\" is not string");
+    }
+    _search_str=query_it->value.GetString();
+    rapidjson::Value::ConstMemberIterator query_by_it=_document.FindMember("query by");
+    if(query_by_it==_document.MemberEnd()||!query_by_it->value.IsArray()){
+        throw std::runtime_error("missing \"query by\" in query json or \"query by\" is not string array");
+    }
+    for(const auto &query_field:query_by_it->value.GetArray()){
+        if(!query_field.IsString()){
+            throw std::runtime_error("\"query by\" must be string array");
+        }
+        _query_fields.emplace_back(query_by_it->value.GetString());
+    }
 }
 
 

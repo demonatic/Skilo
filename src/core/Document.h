@@ -100,6 +100,25 @@ public:
     std::string get_tokenizer() const;
 };
 
+/// SearchInfo example:
+/****************************************************
+{
+    "query": "iphone",
+    "query_by": ["product.name","product.description"]
+}
+***************************************************/
+
+class QueryInfo:public DocumentBase{
+public:
+    QueryInfo(const std::string &collection_name,const std::string &json_str);
+    QueryInfo(const std::string &collection_name,const SegmentBuf &json_str);
+
+    void extract_variables();
+private:
+    std::string _collection_name;
+    std::string _search_str;
+};
+
 namespace detail{
 
 struct SegmentBufferStream{

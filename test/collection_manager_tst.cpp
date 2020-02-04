@@ -33,7 +33,7 @@ TEST(COLLECTION_MANAGER_TEST,ADD_DOC_TEST){
                                               \"type\": \"object\",\
                                               \"$fields\":{\
                                                    \"note\": {\"type\": \"string\"},\
-                                                   \"title\": {\"type\": \"string\"}\
+                                                   \"title\": {\"type\": \"string\", \"index\":true}\
                                               }\
                                           }\
                                       },\

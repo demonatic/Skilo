@@ -18,16 +18,16 @@ void IndexWriter::index_in_memory(const Schema::CollectionSchema &schema, const 
 
 void IndexWriter::visit_field_string(const Schema::FieldString *field_string, const rapidjson::Value &document)
 {
-    if(!_indexes.contains(field_string->path))
-        return;
+    InvertIndex *index=_indexes.get_index(field_string->path);
+    if(!index) return;
 
     cout<<"string="<<document.GetString()<<endl;
     cout<<"path="<<field_string->path<<std::endl;
     std::unordered_map<std::string, std::vector<uint32_t>> word_offsets;
     word_offsets=_tokenizer->tokenize(document.GetString());
+
     IndexRecord record{_seq_id,std::move(word_offsets)};
-    InvertIndex &index=_indexes.get_index(field_string->path);
-    index.add_record(record);
+    index->add_record(record);
 }
 
 void IndexWriter::visit_field_integer(const Schema::FieldInteger *field_integer, const rapidjson::Value &document)

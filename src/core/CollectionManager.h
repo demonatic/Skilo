@@ -13,9 +13,11 @@ public:
     CollectionManager(const std::string &db_path);
 
     /// @return error string if error exists
+    // TODO put collection_name in collection_meta
     Status create_collection(const std::string &collection_name,CollectionMeta &collection_meta);
 
     Status add_document(const std::string &collection_name,Document &document);
+    Status search(const QueryInfo &query_info) const;
 
 private:
     uint32_t get_next_collection_id();
