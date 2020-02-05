@@ -17,7 +17,9 @@ public:
     Status create_collection(const std::string &collection_name,CollectionMeta &collection_meta);
 
     Status add_document(const std::string &collection_name,Document &document);
-    Status search(const QueryInfo &query_info) const;
+    Status search(const QueryInfo &query_info,std::string &query_result) const;
+
+    Collection *get_collection(const std::string &collection_name) const;
 
 private:
     uint32_t get_next_collection_id();

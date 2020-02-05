@@ -71,22 +71,19 @@ bool CollectionIndexes::contains(const string &field_path) const
     return _indexes.find(field_path)!=_indexes.end();
 }
 
-std::vector<std::vector<std::pair<uint32_t, double>>> CollectionIndexes::search_fields(const std::unordered_map<string, std::vector<uint32_t> > &query_terms,
-                                                                                         const std::vector<string> &field_paths) const
+void CollectionIndexes::search_fields(const std::unordered_map<string, std::vector<uint32_t> > &query_terms,
+                                        const std::vector<string> &field_paths,Search::HitCollector &collector) const
 {
-    std::vector<std::vector<std::pair<uint32_t, double>>> res;
     for(const std::string &path:field_paths){
         if(!contains(path)){
             throw std::runtime_error("field path \""+path+"\" is not found");
         }
-        auto field_res=search_field(query_terms,path);
-        res.emplace_back(std::move(field_res));
+        search_field(query_terms,path,collector);
     }
-    return res;
 }
 
-std::vector<std::pair<uint32_t, double>> CollectionIndexes::search_field(const std::unordered_map<string, std::vector<uint32_t>> &query_terms,
-                                                                          const std::string &field_path) const
+void CollectionIndexes::search_field(const std::unordered_map<string, std::vector<uint32_t>> &query_terms,
+                                        const std::string &field_path,Search::HitCollector &collector) const
 {
     /// \brief find the conjuction doc_ids of the query terms
     /// @example:
@@ -94,16 +91,15 @@ std::vector<std::pair<uint32_t, double>> CollectionIndexes::search_field(const s
     /// query_term_B -> doc_id_2, doc_id_4, doc_id_5...
     /// query_term_C -> doc_id_5, doc_id_7, doc_id_15, doc_id 29...
     /// conjuction result: doc_id_5 ...
-    std::vector<std::pair<uint32_t, double>> scored_docs; // <seq_id,score>
     const InvertIndex *index=this->get_index(field_path);
     if(!index||query_terms.empty()){
-        return scored_docs;
+        return;
     }
 
     std::vector<const PostingList*> term_entries;
     for(const auto &[query_term,offsets]:query_terms){
         auto *entry=index->get_postinglist(query_term);
-        if(!entry) return scored_docs;
+        if(!entry) return;
         term_entries.push_back(entry);
     }
     std::sort(term_entries.begin(),term_entries.end(),[](const auto &e1,const auto &e2){
@@ -123,11 +119,14 @@ std::vector<std::pair<uint32_t, double>> CollectionIndexes::search_field(const s
             }
         }
         if(exists_in_all_entry){
-            double score=0; //TODO
-            scored_docs.push_back({lead_doc,score});
+            Search::HitContext context;
+            context.doc_seq_id=lead_doc;
+            context.field_path=field_path;
+            context._hit_postings=term_entries;
+            context.field_doc_num=index->dict_size();
+            collector.collect(context);
         }
     }
-    return scored_docs;
 }
 
 uint32_t CollectionIndexes::num_documents(const string &field_path, const string &term) const

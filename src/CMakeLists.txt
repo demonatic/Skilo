@@ -10,8 +10,6 @@ if(NOT EXISTS ${DEP_ROOT_DIR})
 endif()
 
 file(GLOB SOURCES
-    storage/*.h
-    storage/*.cpp
     core/*.h
     core/*.cpp
     core/schema/*.h
@@ -19,6 +17,10 @@ file(GLOB SOURCES
     core/index/*.h
     core/index/*.hpp
     core/index/*.cpp
+    core/search/*.h
+    core/search/*.cpp
+    storage/*.h
+    storage/*.cpp
     util/*.h
     util/*.cpp
 )

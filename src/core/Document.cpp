@@ -126,6 +126,21 @@ QueryInfo::QueryInfo(const std::string &collection_name,const SegmentBuf &json_s
     this->extract_variables();
 }
 
+const std::string &QueryInfo::get_collection_name() const
+{
+    return _collection_name;
+}
+
+const std::string &QueryInfo::get_search_str() const
+{
+    return _search_str;
+}
+
+const std::vector<std::string> &QueryInfo::get_query_fields() const
+{
+    return _query_fields;
+}
+
 void QueryInfo::extract_variables()
 {
     rapidjson::Value::ConstMemberIterator query_it=_document.FindMember("query");

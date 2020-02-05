@@ -19,7 +19,7 @@ public:
     virtual ~TokenizeStrategy()=default;
 
     /// @return word->offsets(offsets could be empty)
-    virtual std::unordered_map<std::string, std::vector<uint32_t>> tokenize(const std::string &sentence)=0;
+    virtual std::unordered_map<std::string, std::vector<uint32_t>> tokenize(const std::string &text)=0;
 };
 
 class DefaultTokenizer:public TokenizeStrategy
@@ -29,7 +29,7 @@ public:
     virtual ~DefaultTokenizer() override=default;
 
     /// @return word->offsets
-    virtual std::unordered_map<std::string, std::vector<uint32_t>> tokenize(const std::string &sentence) override;
+    virtual std::unordered_map<std::string, std::vector<uint32_t>> tokenize(const std::string &text) override;
 };
 
 class JiebaTokenizer:public TokenizeStrategy{
@@ -38,7 +38,7 @@ public:
     virtual ~JiebaTokenizer() override=default ;
 
     /// @return a set of "unicode word and unicode offsets"
-    virtual std::unordered_map<std::string, std::vector<uint32_t>> tokenize(const std::string &sentence) override;
+    virtual std::unordered_map<std::string, std::vector<uint32_t>> tokenize(const std::string &text) override;
 
     /// @brief load stop words from file
     /// @return the num of stop words loaded

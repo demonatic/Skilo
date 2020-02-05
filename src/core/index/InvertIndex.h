@@ -6,6 +6,7 @@
 #include "PostingList.h"
 #include "../Document.h"
 #include "../schema/Schema.h"
+#include "../search/HitCollector.h"
 
 namespace Skilo {
 namespace Index{
@@ -40,9 +41,9 @@ public:
 
     bool contains(const std::string &field_path) const;
 
-    std::vector<std::vector<std::pair<uint32_t,double>>> search_fields(const std::unordered_map<std::string, std::vector<uint32_t>> &query_terms,const std::vector<std::string> &field_paths) const;
-    /// @return a vector of <doc_seq_id,score>
-    std::vector<std::pair<uint32_t,double>> search_field(const std::unordered_map<std::string, std::vector<uint32_t>> &query_terms,const std::string &field_path) const;
+    void search_fields(const std::unordered_map<std::string, std::vector<uint32_t>> &query_terms,const std::vector<std::string> &field_paths,Search::HitCollector &collector) const;
+
+    void search_field(const std::unordered_map<std::string, std::vector<uint32_t>> &query_terms,const std::string &field_path,Search::HitCollector &collector) const;
 
     uint32_t num_documents(const std::string &field_path,const std::string &term) const;
 private:

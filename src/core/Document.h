@@ -104,7 +104,7 @@ public:
 /****************************************************
 {
     "query": "iphone",
-    "query_by": ["product.name","product.description"]
+    "query by": ["product.name","product.description"]
 }
 ***************************************************/
 
@@ -113,10 +113,16 @@ public:
     QueryInfo(const std::string &collection_name,const std::string &json_str);
     QueryInfo(const std::string &collection_name,const SegmentBuf &json_str);
 
+    const std::string &get_collection_name() const;
+    const std::string& get_search_str() const;
+    const std::vector<std::string>& get_query_fields() const;
+
+private:
     void extract_variables();
 private:
     std::string _collection_name;
     std::string _search_str;
+    std::vector<std::string> _query_fields;
 };
 
 namespace detail{
