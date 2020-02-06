@@ -16,6 +16,7 @@ std::vector<uint32_t> HitCollector::get_top_k()
         top_k_docs[i]=_priority_queue.top().doc_seq_id;
         _priority_queue.pop();
     }
+    _doc_scores.clear();
     return top_k_docs;
 }
 
@@ -25,6 +26,7 @@ void HitCollector::collect(const HitContext &context)
     if(_priority_queue.size()==_K&&score<_priority_queue.top().score){
         return;
     }
+    //when we have the same doc id already and the newer score is greater, we have to update the min-heap
     QueueItem new_entry{score,context.doc_seq_id};
     _priority_queue.push(new_entry);
 }

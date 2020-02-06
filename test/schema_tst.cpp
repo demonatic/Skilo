@@ -7,7 +7,8 @@ using namespace Skilo;
 using namespace Skilo::Schema;
 
 TEST(SCHEMA_TEST,PARSE_TEST) {
-    std::string schema_str="{\"schema\":{\
+    std::string schema_str="{\"name\":\"products\",\
+                             \"schema\":{\
                                 \"type\":\"object\",\
                                 \"$fields\": {\
                                    \"product name\":{\

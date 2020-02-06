@@ -40,19 +40,22 @@ Status Skilo::CollectionManager::add_document(const std::string &collection_name
     return err.has_value()?Status{RetCode::BAD_REQUEST,err.value()}:Status{RetCode::CREATED,"add document success"};
 }
 
-Status CollectionManager::search(const QueryInfo &query_info,std::string &query_result) const
+Status CollectionManager::search(const Query &query_info) const
 {
      const std::string &collection_name=query_info.get_collection_name();
      Collection *collection=this->get_collection(collection_name);
      if(!collection){
           return Status{RetCode::BAD_REQUEST,"collection \'"+collection_name+"\" not exist"};
      }
+     std::string query_result;
      try {
-         query_result=collection->search(query_info);
-     }  catch (std::runtime_error) {
-
+         SearchResult result=collection->search(query_info);
+         query_result=result.dump();
+     }  catch (std::runtime_error &err) {
+        //TODO
+         return Status{RetCode::BAD_REQUEST,err.what()};
      }
-     return Status{RetCode::OK,"search success"};
+     return Status{RetCode::OK,std::move(query_result)};
 }
 
 Collection *CollectionManager::get_collection(const string &collection_name) const

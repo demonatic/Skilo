@@ -40,7 +40,7 @@ std::optional<std::string> Collection::validate_document(const Document &documen
     return _schema.validate(document);
 }
 
-string Collection::search(const QueryInfo &query_info) const
+SearchResult Collection::search(const Query &query_info) const
 {
     const std::string &query_str=query_info.get_search_str();
     std::unordered_map<std::string, std::vector<uint32_t>> query_terms=_tokenizer->tokenize(query_str);
@@ -49,7 +49,13 @@ string Collection::search(const QueryInfo &query_info) const
     Search::HitCollector collector(50,std::make_unique<Search::TFIDF_Scorer>());
     this->_indexes.search_fields(query_terms,search_fields,collector);
     std::vector<uint32_t> res_docs=collector.get_top_k();
-    //TODO
+    uint32_t hit_count=static_cast<uint32_t>(res_docs.size());
+    SearchResult result(hit_count);
+    for(uint32_t seq_id:res_docs){
+        Document doc=_storage_service->get_document(_collection_id,_collection_name,seq_id);
+        result.add_hit(doc);
+    }
+    return result;
 }
 
 uint32_t Collection::document_num() const

@@ -17,7 +17,7 @@ public:
     Status create_collection(const std::string &collection_name,CollectionMeta &collection_meta);
 
     Status add_document(const std::string &collection_name,Document &document);
-    Status search(const QueryInfo &query_info,std::string &query_result) const;
+    Status search(const Query &query_info) const;
 
     Collection *get_collection(const std::string &collection_name) const;
 
@@ -47,7 +47,7 @@ enum class RetCode{
 
 struct Status{
     RetCode code;
-    std::string info;
+    std::string description;
 };
 
 } //namespace Skilo

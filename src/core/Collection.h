@@ -25,8 +25,8 @@ public:
     /// @return error string
     std::optional<std::string> validate_document(const Document &document);
 
-    /// @return list of documents in json
-    std::string search(const QueryInfo &query_info) const;
+    /// @return phrase search
+    SearchResult search(const Query &query_info) const;
 
     uint32_t document_num() const;
     std::unique_ptr<Index::TokenizeStrategy> get_tokenize_strategy(const std::string &tokenizer_name) const;

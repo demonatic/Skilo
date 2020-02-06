@@ -13,7 +13,7 @@ using SegmentBuf=std::vector<std::pair<uint8_t*,size_t>>;
 class DocumentBase
 {
 public:
-    DocumentBase()=default;
+    DocumentBase();
     /// @throw std::runtime_error when parse json failed
     DocumentBase(const std::string &json_str);
     /// @brief parse json from some segment of buffers,
@@ -50,7 +50,7 @@ public:
     Document(const std::string &collection_name,const SegmentBuf &json_str);
 
     uint32_t get_doc_id() const;
-    std::string get_collection_name() const;
+    const std::string& get_collection_name() const;
     void set_seq_id(uint32_t seq_id);
     std::optional<uint32_t> get_seq_id() const;
 
@@ -91,30 +91,37 @@ public:
 
     /// @throw runtime error if "schema" field is not found
     const rapidjson::Value &get_schema() const;
-    /// @throw runtime error if "name" field is not found
-    const char* get_collection_name() const;
+
+    const std::string& get_collection_name() const;
+    const std::string& get_tokenizer() const;
 
     void add_create_time(uint64_t created_time);
     void add_collection_id(uint32_t collection_id);
 
-    std::string get_tokenizer() const;
+private:
+    void init();
+
+private:
+    std::string _collection_name;
+    std::string _tokenizer_name;
 };
 
 /// SearchInfo example:
+/// @note "query by" format is xxx.xxx... if sechema is nested
 /****************************************************
 {
     "query": "iphone",
-    "query by": ["product.name","product.description"]
+    "query by": ["product name","price"]
 }
 ***************************************************/
 
-class QueryInfo:public DocumentBase{
+class Query:public DocumentBase{
 public:
-    QueryInfo(const std::string &collection_name,const std::string &json_str);
-    QueryInfo(const std::string &collection_name,const SegmentBuf &json_str);
+    Query(const std::string &collection_name,const std::string &json_str);
+    Query(const std::string &collection_name,const SegmentBuf &json_str);
 
     const std::string &get_collection_name() const;
-    const std::string& get_search_str() const;
+    const std::string &get_search_str() const;
     const std::vector<std::string>& get_query_fields() const;
 
 private:
@@ -123,6 +130,28 @@ private:
     std::string _collection_name;
     std::string _search_str;
     std::vector<std::string> _query_fields;
+};
+
+///SearchResult example:
+/******************************************************
+{
+  "found": 1,
+  "took ms": 1,
+  "hits": [
+    {
+        "id": "124",
+        "product name": "iphoneXS MAX PLUS PRO",
+        "price": 16432.5
+    }
+  ]
+}
+
+******************************************************/
+class SearchResult:public DocumentBase{
+public:
+    SearchResult(uint32_t num_found);
+    void add_hit(Document &doc);
+    void add_took_ms(float ms);
 };
 
 namespace detail{

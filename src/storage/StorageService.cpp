@@ -28,6 +28,14 @@ std::optional<uint32_t> StorageService::get_collection_next_seq_id(const std::st
     return std::make_optional<uint32_t>(next_seq_id);
 }
 
+Document StorageService::get_document(const uint32_t collection_id,const std::string &collection_name,const uint32_t seq_id) const
+{
+    const std::string &seq_key=KeyConverter::doc_seq_key(collection_id,seq_id);
+    std::string doc_json_str;
+    _storage_engine.get(seq_key,doc_json_str);
+    return Document(collection_name,doc_json_str);
+}
+
 bool StorageService::write_document(uint32_t collection_id,const Document &document)
 {
     rapidjson::StringBuffer buffer;
@@ -47,7 +55,7 @@ bool StorageService::write_document(uint32_t collection_id,const Document &docum
 
 bool StorageService::write_new_collection(uint32_t next_colletion_id, const CollectionMeta &collection_meta)
 {
-    const char *collection_name=collection_meta.get_collection_name();
+    const std::string &collection_name=collection_meta.get_collection_name();
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     collection_meta.get_raw().Accept(writer);
