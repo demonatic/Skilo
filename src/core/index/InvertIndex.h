@@ -23,7 +23,7 @@ public:
     void add_record(const IndexRecord &record);
 
     size_t dict_size() const;
-    uint32_t num_docs(const std::string &term) const;
+    uint32_t term_docs_num(const std::string &term) const;
 
     PostingList *get_postinglist(const std::string &term) const;
 
@@ -34,20 +34,25 @@ private:
 class CollectionIndexes:public Schema::FieldVisitor{
 public:
     CollectionIndexes(const Schema::CollectionSchema &schema);
-    virtual void visit_field_string(const Schema::FieldString *field_string) override;
 
     InvertIndex *get_index(const std::string &field_path);
     const InvertIndex *get_index(const std::string &field_path) const;
-
     bool contains(const std::string &field_path) const;
+    uint32_t field_term_doc_num(const std::string &field_path,const std::string &term) const;
+
+    void set_doc_num(const uint32_t doc_num);
+    uint32_t get_doc_num() const;
 
     void search_fields(const std::unordered_map<std::string, std::vector<uint32_t>> &query_terms,const std::vector<std::string> &field_paths,Search::HitCollector &collector) const;
-
     void search_field(const std::unordered_map<std::string, std::vector<uint32_t>> &query_terms,const std::string &field_path,Search::HitCollector &collector) const;
 
-    uint32_t num_documents(const std::string &field_path,const std::string &term) const;
+protected:
+    virtual void visit_field_string(const Schema::FieldString *field_string) override;
+
 private:
+    uint32_t _doc_count;
     std::unordered_map<std::string,InvertIndex> _indexes; //<field_path,index>
+
 };
 
 } //namespace Index

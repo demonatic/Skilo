@@ -14,6 +14,7 @@ Collection::Collection(const CollectionMeta &collection_meta,StorageService *sto
         throw std::runtime_error("error when get collection \""+_collection_name+"\" next seq id ");
     }
     _next_seq_id=next_seq_id.value();
+    _indexes.set_doc_num(_next_seq_id);
     _tokenizer=this->get_tokenize_strategy(collection_meta.get_tokenizer());
 }
 
@@ -32,6 +33,7 @@ std::optional<std::string> Collection::add_document(Document &document)
     _next_seq_id++;
     Index::IndexWriter index_writer(_indexes,_tokenizer.get());
     index_writer.index_in_memory(_schema,document);
+    _indexes.set_doc_num(_next_seq_id);
     return std::nullopt;
 }
 
@@ -42,16 +44,24 @@ std::optional<std::string> Collection::validate_document(const Document &documen
 
 SearchResult Collection::search(const Query &query_info) const
 {
+    //extract and split query terms and fields
     const std::string &query_str=query_info.get_search_str();
     std::unordered_map<std::string, std::vector<uint32_t>> query_terms=_tokenizer->tokenize(query_str);
     const vector<std::string> &search_fields=query_info.get_query_fields();
 
-    Search::HitCollector collector(50,std::make_unique<Search::TFIDF_Scorer>());
+    //init search criteria and do search
+    uint32_t top_k=50;
+    Search::HitCollector collector(top_k,std::make_unique<Search::TFIDF_Scorer>());
     this->_indexes.search_fields(query_terms,search_fields,collector);
+
+    //collect hit documents
     std::vector<pair<uint32_t,float>> res_docs=collector.get_top_k();
     uint32_t hit_count=static_cast<uint32_t>(res_docs.size());
+
+    //load hit documents
     SearchResult result(hit_count);
     for(auto [seq_id,score]:res_docs){
+        std::cout<<"@collection search result: seq_id="<<seq_id<<" score="<<score<<endl;
         Document doc=_storage_service->get_document(_collection_id,_collection_name,seq_id);
         result.add_hit(doc);
     }

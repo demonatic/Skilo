@@ -1,4 +1,5 @@
 #include "InvertIndex.h"
+#include <unordered_map>
 
 namespace Skilo {
 namespace Index{
@@ -22,7 +23,7 @@ void InvertIndex::add_record(const IndexRecord &record)
     }
 }
 
-uint32_t InvertIndex::num_docs(const string &term) const
+uint32_t InvertIndex::term_docs_num(const string &term) const
 {
     PostingList *posting_list=this->get_postinglist(term);
     return posting_list?posting_list->num_docs():0;
@@ -40,7 +41,7 @@ size_t InvertIndex::dict_size() const
 
 CollectionIndexes::CollectionIndexes(const Schema::CollectionSchema &schema)
 {
-    schema.accept(*this); //create indexes from fields in the schema
+    schema.accept(*this); //create indexes according to fields in the schema
 }
 
 void CollectionIndexes::visit_field_string(const Schema::FieldString *field_string)
@@ -100,47 +101,57 @@ void CollectionIndexes::search_field(const std::unordered_map<string, std::vecto
         return;
     }
 
-    std::vector<const PostingList*> term_entries;
+    std::vector<const PostingList*> candidate_postings;
+
     for(const auto &[query_term,offsets]:query_terms){
         auto *entry=index->get_postinglist(query_term);
         if(!entry) return;
-        term_entries.push_back(entry);
+        candidate_postings.push_back(entry);
     }
-    std::sort(term_entries.begin(),term_entries.end(),[](const auto &e1,const auto &e2){
+
+    //sort the posting list based on length in ascending order reduces the number of comparisons
+    std::sort(candidate_postings.begin(),candidate_postings.end(),[](const auto &e1,const auto &e2){
         return e1->num_docs()<e2->num_docs();
     });
 
-    uint32_t leading_doc_num=term_entries[0]->num_docs();
-    std::unique_ptr<uint32_t[]> leading_docs=term_entries[0]->get_all_doc_ids(); //shortest length, reduces the number of comparison
+    uint32_t leading_doc_num=candidate_postings[0]->num_docs();
+    std::unique_ptr<uint32_t[]> leading_docs=candidate_postings[0]->get_all_doc_ids();
     for(uint32_t leading_cur=0;leading_cur<leading_doc_num;leading_cur++){
         uint32_t lead_doc=leading_docs[leading_cur];
         bool exists_in_all_entry=true;
-        for(size_t i=1;i<term_entries.size();i++){
+        for(size_t i=1;i<candidate_postings.size();i++){
             //TODO 每次查找leading_doc 忽略掉前面不可能存在的部分
-            if(!term_entries[i]->contain_doc(lead_doc)){ //couldn't find lead_doc in this entey
+            if(!candidate_postings[i]->contain_doc(lead_doc)){ //couldn't find lead_doc in this entey
                 exists_in_all_entry=false;
                 break;
             }
         }
         if(exists_in_all_entry){
-            Search::HitContext context;
-            context.doc_seq_id=lead_doc;
-            context.field_path=field_path;
-            context._hit_postings=term_entries;
-            context.field_doc_num=index->dict_size();
+            Search::HitContext context{lead_doc,_doc_count,&field_path,&candidate_postings};
             collector.collect(context);
         }
     }
 }
 
-uint32_t CollectionIndexes::num_documents(const string &field_path, const string &term) const
+uint32_t CollectionIndexes::field_term_doc_num(const string &field_path, const string &term) const
 {
     auto index_it=_indexes.find(field_path);
     if(index_it==_indexes.end()){
         return 0;
     }
     const InvertIndex &index=index_it->second;
-    return index.num_docs(term);
+    return index.term_docs_num(term);
+}
+
+void CollectionIndexes::set_doc_num(const uint32_t doc_num)
+{
+    std::cout<<"set doc num="<<doc_num<<endl;
+    _doc_count=doc_num;
+}
+
+uint32_t CollectionIndexes::get_doc_num() const
+{
+    return this->_doc_count;
 }
 
 

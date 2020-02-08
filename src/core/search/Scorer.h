@@ -10,9 +10,9 @@ namespace Search {
 
 struct HitContext{
     uint32_t doc_seq_id;
-    std::string field_path;
-    uint32_t field_doc_num;
-    std::vector<const Index::PostingList*> _hit_postings;
+    uint32_t collection_doc_count;
+    const std::string *field_path;
+    const std::vector<const Index::PostingList*> *term_postings;
 };
 
 class Scorer
@@ -27,6 +27,8 @@ class TFIDF_Scorer:public Scorer{
 public:
     TFIDF_Scorer()=default;
     virtual float get_score(const HitContext &context) const;
+
+    float calcu_tf_idf(const Index::PostingList* posting,const HitContext &context) const;
 };
 
 } //namespace search

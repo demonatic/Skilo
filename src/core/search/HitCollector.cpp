@@ -106,9 +106,9 @@ void HitCollector::push_new_hit(HitCollector::Hit &hit)
     }
 }
 
-size_t HitCollector::num_docs_collected() const
+uint32_t HitCollector::num_docs_collected() const
 {
-    return _heap_index;
+    return static_cast<uint32_t>(_heap_index);
 }
 
 Scorer *HitCollector::get_scorer() const

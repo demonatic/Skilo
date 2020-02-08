@@ -9,6 +9,8 @@ namespace Skilo {
 namespace Search {
 
 /// @class HitCollecter collects search candidate from different fields and rank them based on scorer generated score
+///        It output top-K score's doc seq id
+/// @note when the same doc id already exists and the newer score from another field is greater, we have to update the doc's score
 class HitCollector{
 
 public:
@@ -18,11 +20,10 @@ public:
     /// the collector will be empty after the call
     std::vector<pair<uint32_t,float>> get_top_k();
 
-    /// @note when we have the same doc id already and the newer score is greater, we have to update the min-heap
     void collect(const HitContext &context);
 
     bool empty() const;
-    size_t num_docs_collected() const;
+    uint32_t num_docs_collected() const;
     Scorer *get_scorer() const;
 
 private:
@@ -33,7 +34,6 @@ private:
     };
 
     Hit &top();
-
     void heap_sift_down(size_t index);
     void swap_entry(Hit **hit1,Hit **hit2);
     uint32_t pop_least_score_doc();
@@ -45,7 +45,8 @@ private:
     std::unique_ptr<Scorer> _scorer;
 
     size_t _heap_index;
-    std::vector<Hit*> _min_score_heap; //points to _hits
+    ///<--points to _hits-->
+    std::vector<Hit*> _min_score_heap;
     std::unordered_map<uint32_t,Hit*> _doc_id_map;
 };
 

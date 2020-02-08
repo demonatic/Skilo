@@ -1,5 +1,5 @@
 #include "PostingList.h"
-
+#include <iostream>
 namespace Skilo {
 namespace Index{
 
@@ -23,6 +23,12 @@ void PostingList::add_doc(const uint32_t seq_id,const std::vector<uint32_t> &off
 uint32_t PostingList::get_doc_id(const uint32_t index) const
 {
     return _doc_ids[index];
+}
+
+uint32_t PostingList::get_doc_tf(const uint32_t doc_id) const
+{
+    uint32_t index=_doc_ids.index_of(doc_id);
+    return _doc_term_freqs.at(index);
 }
 
 bool PostingList::contain_doc(const uint32_t id) const
