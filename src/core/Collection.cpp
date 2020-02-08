@@ -48,10 +48,10 @@ SearchResult Collection::search(const Query &query_info) const
 
     Search::HitCollector collector(50,std::make_unique<Search::TFIDF_Scorer>());
     this->_indexes.search_fields(query_terms,search_fields,collector);
-    std::vector<uint32_t> res_docs=collector.get_top_k();
+    std::vector<pair<uint32_t,float>> res_docs=collector.get_top_k();
     uint32_t hit_count=static_cast<uint32_t>(res_docs.size());
     SearchResult result(hit_count);
-    for(uint32_t seq_id:res_docs){
+    for(auto [seq_id,score]:res_docs){
         Document doc=_storage_service->get_document(_collection_id,_collection_name,seq_id);
         result.add_hit(doc);
     }

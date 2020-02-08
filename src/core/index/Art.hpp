@@ -372,6 +372,7 @@ ArtNode::Ptr* ARTree<T>::find_child(InnerNode *node, const unsigned char child_k
             return as_node256(node)->find_child(child_key);
         }
     }
+    return nullptr;
 }
 
 
