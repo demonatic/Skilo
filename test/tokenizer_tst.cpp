@@ -9,7 +9,7 @@ using namespace Skilo::Index;
 TEST(TOKENIZER_TEST,JIEBA_TEST) {
 
     JiebaTokenizer tokenizer("/home/demonatic/Projects/Engineering Practice/Skilo/3rd/dict/");
-    string s1="我是手扶拖拉机专业的";
+    string s1="我是手扶拖拉机专业的,21世纪是拖拉机的世纪";
     std::unordered_map<std::string, std::vector<uint32_t>> r1=tokenizer.tokenize(s1);
     cout<<"<---sentence="<<s1<<"--->"<<endl;
     for(const auto &[word,offsets]:r1){

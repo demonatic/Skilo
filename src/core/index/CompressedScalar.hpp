@@ -21,7 +21,7 @@ class CompressedScalar
 public:
     static constexpr size_t ElementSize=sizeof(uint32_t);
     static constexpr size_t MEDATA_OVERHEAD=5;
-    static constexpr size_t GrowthFactor=1.3;
+    static constexpr double GrowthFactor=1.3;
 
 public:
     CompressedScalar(const uint32_t n=2){
@@ -103,15 +103,6 @@ public:
         else{
             return for_linear_search(_data,_elm_count,value);
         }
-    }
-
-    std::unique_ptr<uint32_t[]> intersect(const CompressedScalar<ScalarType::Sorted> &scalar2)
-    {
-        static_assert(type==ScalarType::Sorted,"Scalar intersection of Unsorted is not implemented");
-        if(!this->length()||!scalar2.length()){
-            return nullptr;
-        }
-        //todo
     }
 
     /// @return num of elements

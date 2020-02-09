@@ -1,6 +1,6 @@
 #include "Scorer.h"
 #include <cmath>
-#include <iostream>
+
 namespace Skilo {
 namespace Search {
 
@@ -21,8 +21,7 @@ float TFIDF_Scorer::get_score(const HitContext &context) const
 float TFIDF_Scorer::calcu_tf_idf(const Index::PostingList* posting,const HitContext &context) const
 {
     double tf=1+log(posting->get_doc_tf(context.doc_seq_id));
-    std::cout<<"context.collection_doc_count="<<context.collection_doc_count<<" /="<<posting->num_docs()<<std::endl;
-    double idf=log(2/posting->num_docs());
+    double idf=log(context.collection_doc_count/posting->num_docs());
     return static_cast<float>(tf*idf);
 }
 

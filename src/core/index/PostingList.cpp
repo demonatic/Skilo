@@ -36,14 +36,14 @@ uint32_t PostingList::get_doc_tf(const uint32_t doc_id) const
     return _doc_term_freqs.at(index);
 }
 
-std::vector<uint32_t> PostingList::get_offsets(const uint32_t doc_id) const
+std::vector<uint32_t> PostingList::get_doc_term_offsets(const uint32_t doc_id) const
 {
     uint32_t pos=_doc_ids.index_of(doc_id);
     uint32_t offset_start=_offset_index[pos];
-    uint32_t offset_end=(pos!=_offset_index.length()-1)?_offset_index[pos+1]:_offsets.length()-1;
+    uint32_t offset_end=(pos!=_offset_index.length()-1)?_offset_index[pos+1]:_offsets.length();
     vector<uint32_t> offsets;
-    for(uint32_t i=offset_start;i<=offset_end;i++){
-        offsets.push_back(i);
+    for(uint32_t i=offset_start;i<offset_end;i++){
+        offsets.push_back(_offsets[i]);
     }
     return offsets;
 }

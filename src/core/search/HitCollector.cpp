@@ -13,7 +13,7 @@ HitCollector::HitCollector(const size_t K,std::unique_ptr<Scorer> scorer):
 
 std::vector<pair<uint32_t,float>> HitCollector::get_top_k()
 {
-    uint32_t docs_collected=this->num_docs_collected();
+    int64_t docs_collected=this->num_docs_collected();
     std::vector<pair<uint32_t,float>> top_k_docs(docs_collected);
     for(int64_t i=docs_collected-1;i>=0;i--){
         top_k_docs[i]={this->top().doc_seq_id,this->top().score};

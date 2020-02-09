@@ -70,9 +70,10 @@ TEST(COLLECTION_MANAGER_TEST,ADD_DOC_TEST){
          cout<<add_res.description<<endl;
          EXPECT_TRUE(add_res.code==RetCode::CREATED);
      }
+
      std::string search_str="{\
-                            \"query\": \"鱼香肉丝\",\
-                            \"query by\": [\"recipe_name\",\"context\"]\
+                            \"query\": \"镇得住场面\",\
+                            \"query by\": [\"context\"]\
                             }";
     Query query("recipe",search_str);
     Status query_res=collection_manager.search(query);
