@@ -1,6 +1,5 @@
 #include "Schema.h"
 #include <exception>
-#include <iostream>
 
 namespace Skilo{
 namespace Schema{
@@ -16,14 +15,9 @@ CollectionSchema::CollectionSchema(CollectionSchema &&collection_schema)
     _validator=collection_schema._validator;
 }
 
-std::optional<std::string> CollectionSchema::validate(const Document &document)
-{
-    try {
-        _fields->accept(_validator,document.get_raw());
-    }  catch (const std::runtime_error &err) {
-        return std::make_optional<std::string>(err.what());
-    }
-    return std::nullopt;
+void CollectionSchema::validate(const Document &document)
+{  
+    _fields->accept(_validator,document.get_raw());
 }
 
 void CollectionSchema::accept(FieldVisitor &field_visitor) const
@@ -44,42 +38,42 @@ Field *CollectionSchema::get_root_field() const
 void SchemaValidator::visit_field_string(const FieldString *field_string, const rapidjson::Value &document)
 {
     if(!document.IsString()){
-        throw std::runtime_error("field \""+field_string->name+"\" should be a string");
+        throw Util::InvalidFormatException("field \""+field_string->name+"\" should be a string");
     }
 }
 
 void SchemaValidator::visit_field_integer(const FieldInteger *field_integer, const rapidjson::Value &document)
 {
     if(!document.IsInt()){
-        throw std::runtime_error("field \""+field_integer->name+"\" should be an integer");
+        throw Util::InvalidFormatException("field \""+field_integer->name+"\" should be an integer");
     }
 }
 
 void SchemaValidator::visit_field_float(const FieldFloat *field_float, const rapidjson::Value &document)
 {
     if(!document.IsFloat()){
-        throw std::runtime_error("field \""+field_float->name+"\" should be a float");
+        throw Util::InvalidFormatException("field \""+field_float->name+"\" should be a float");
     }
 }
 
 void SchemaValidator::visit_field_boolean(const FieldBoolean *field_boolean, const rapidjson::Value &document)
 {
     if(!document.IsBool()){
-         throw std::runtime_error("field \""+field_boolean->name+"\" should be a boolean");
+         throw Util::InvalidFormatException("field \""+field_boolean->name+"\" should be a boolean");
     }
 }
 
 void SchemaValidator::visit_field_array(const FieldArray *field_array, const rapidjson::Value &document)
 {
     if(!document.IsArray()){
-         throw std::runtime_error("field \""+field_array->name+"\" should be an array");
+         throw Util::InvalidFormatException("field \""+field_array->name+"\" should be an array");
     }
 }
 
 void SchemaValidator::visit_field_object(const FieldObject *field_object, const rapidjson::Value &document)
 {
     if(!document.IsObject()){
-         throw std::runtime_error("field \""+field_object->name+"\" should be an object");
+         throw Util::InvalidFormatException("field \""+field_object->name+"\" should be an object");
     }
 }
 

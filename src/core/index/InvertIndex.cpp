@@ -11,7 +11,6 @@ InvertIndex::InvertIndex()
 
 void InvertIndex::add_record(const IndexRecord &record)
 {
-    //TODO use offsets info if not empty
     for(const auto &[term,offsets]:record.term_offsets){
         PostingList *posting_list=this->get_postinglist(term);
         if(!posting_list){
@@ -76,13 +75,12 @@ void CollectionIndexes::search_fields(const std::unordered_map<string, std::vect
                                         const std::vector<string> &field_paths,Search::HitCollector &collector) const
 {
     for(const std::string &path:field_paths){
-        std::cout<<"search field:"<<path<<std::endl;
         if(!this->contains(path)){
             std::string exist_fields;
             for(const auto &[exist_field_name,index]:_indexes){
                 exist_fields.append("\""+exist_field_name+"\" ");
             }
-            throw std::runtime_error("field path \""+path+"\" is not found, exist fields: "+exist_fields);
+            throw Util::InvalidFormatException("field path \""+path+"\" is not found, exist fields: "+exist_fields);
         }
         search_field(query_terms,path,collector);
     }

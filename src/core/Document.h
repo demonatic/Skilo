@@ -3,6 +3,7 @@
 
 #include "rapidjson/rapidjson.h"
 #include "rapidjson/document.h"
+#include "../util/Util.h"
 #include <vector>
 #include <optional>
 
@@ -14,7 +15,7 @@ class DocumentBase
 {
 public:
     DocumentBase();
-    /// @throw std::runtime_error when parse json failed
+    /// @throw InvalidFormatException when parse json failed
     DocumentBase(const std::string &json_str);
     /// @brief parse json from some segment of buffers,
     /// where uint8_t* points to start of this segment and size_t indicates the length of this segment

@@ -17,22 +17,25 @@ bool StorageService::contain_collection(const std::string &collection_name)
     return _storage_engine.contains(collection_meta_key);
 }
 
-std::optional<uint32_t> StorageService::get_collection_next_seq_id(const std::string &collection_name) const
+uint32_t StorageService::get_collection_next_seq_id(const std::string &collection_name) const
 {
     std::string next_seq_key;
     StorageEngine::Status next_seq_status=_storage_engine.get(KeyConverter::collection_next_seq_key(collection_name),next_seq_key);
     if(next_seq_status==StorageEngine::ERROR){
-        return std::nullopt;
+        throw Util::InternalServerException("Can not get collection next sequence id of collection \""+collection_name+"\"");
     }
     uint32_t next_seq_id=std::stoul(next_seq_key);
-    return std::make_optional<uint32_t>(next_seq_id);
+    return next_seq_id;
 }
 
 Document StorageService::get_document(const uint32_t collection_id,const std::string &collection_name,const uint32_t seq_id) const
 {
     const std::string &seq_key=KeyConverter::doc_seq_key(collection_id,seq_id);
     std::string doc_json_str;
-    _storage_engine.get(seq_key,doc_json_str);
+    StorageEngine::Status status=_storage_engine.get(seq_key,doc_json_str);
+    if(status!=StorageEngine::FOUND){
+        throw Util::InternalServerException("Can not fetch document of sequence id \""+std::to_string(seq_id)+"\"");
+    }
     return Document(collection_name,doc_json_str);
 }
 

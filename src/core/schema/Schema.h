@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 #include "Field.h"
+#include "../../util/Util.h"
 
 namespace Skilo {
 namespace Schema{
@@ -70,8 +71,8 @@ public:
     CollectionSchema(CollectionSchema &&collection_schema);
 
     /// @brief check whether the document adhere to the corresponding schema
-    /// @return error string if any error occurs
-    std::optional<std::string> validate(const Document &document);
+    /// @throw InvalidFormatException
+    void validate(const Document &document);
 
     void accept(FieldVisitor &field_visitor) const;
     void accept(FieldVisitor &field_visitor,const rapidjson::Value &document) const;

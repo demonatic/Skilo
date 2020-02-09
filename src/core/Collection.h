@@ -18,14 +18,15 @@ public:
     Collection(const CollectionMeta &collection_meta,StorageService *storage_service);
 
     /// @brief validate the document and then index the required field
-    /// @return error string
-    std::optional<std::string> add_document(Document &document);
+    /// @throw InvalidFormatException, InternalServerException
+    void add_document(Document &document);
 
     /// @brief check whether document adhere to the schema
-    /// @return error string
-    std::optional<std::string> validate_document(const Document &document);
+    /// @throw InvalidFormatException
+    void validate_document(const Document &document);
 
     /// @return phrase search
+    /// @throw InternalServerException
     SearchResult search(const Query &query_info) const;
 
     uint32_t document_num() const;

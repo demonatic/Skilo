@@ -115,10 +115,5 @@ TEST(SCHEMA_TEST,PARSE_TEST) {
 
     Document document("products",json_str);
 
-    std::optional<std::string> err_str=schema.validate(document);
-    if(err_str){
-        cout<<err_str.value()<<endl;
-        EXPECT_EQ(err_str,std::nullopt);
-    }
-
+    schema.validate(document);
 }

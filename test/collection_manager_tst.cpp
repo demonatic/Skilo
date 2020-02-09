@@ -73,7 +73,7 @@ TEST(COLLECTION_MANAGER_TEST,ADD_DOC_TEST){
 
      std::string search_str="{\
                             \"query\": \"镇得住场面\",\
-                            \"query by\": [\"context\"]\
+                            \"query by\": [\"recipe_name\",\"context\"]\
                             }";
     Query query("recipe",search_str);
     Status query_res=collection_manager.search(query);
