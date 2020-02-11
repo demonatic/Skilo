@@ -17,9 +17,14 @@ class Collection
 public:
     Collection(const CollectionMeta &collection_meta,StorageService *storage_service);
 
+    /// @brief read collection's documents from storage and index them
+    void build_index();
+
     /// @brief validate the document and then index the required field
     /// @throw InvalidFormatException, InternalServerException
-    void add_document(Document &document);
+    void add_new_document(Document &document);
+
+    bool contain_document(const uint32_t doc_id) const;
 
     /// @brief check whether document adhere to the schema
     /// @throw InvalidFormatException

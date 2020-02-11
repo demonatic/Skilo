@@ -21,6 +21,7 @@ StorageEngine::StorageEngine(const std::string &db_path):_db_path(db_path)
 StorageEngine::~StorageEngine()
 {
     if(_db){
+        flush();
         close();
     }
 }
@@ -41,20 +42,41 @@ bool StorageEngine::insert(const std::string &key, const std::string &value)
     return status.ok();
 }
 
-bool StorageEngine::batch_write(const StorageEngine::Batch &batch)
+bool StorageEngine::batch_write(StorageEngine::Batch &batch)
 {
-    rocksdb::WriteBatch db_batch;
-    for(const auto &[key,val]:batch.data){
-        db_batch.Put(rocksdb::Slice(key),rocksdb::Slice(val));
-    }
-    rocksdb::Status status=_db->Write(rocksdb::WriteOptions(),&db_batch);
+    rocksdb::Status status=_db->Write(rocksdb::WriteOptions(),&batch);
     return status.ok();
 }
+
+void StorageEngine::load_with_prefix(const std::string &prefix, std::vector<std::string> &values) const
+{
+    rocksdb::Iterator *it=_db->NewIterator(rocksdb::ReadOptions());
+    for(it->Seek(prefix);it->Valid()&&it->key().starts_with(prefix);it->Next()){
+        values.push_back(it->value().ToString());
+    }
+    delete it;
+}
+
+void StorageEngine::scan_for_each(const std::string &prefix, std::function<void(const std::string_view value)> callback) const
+{
+    rocksdb::Iterator *it=_db->NewIterator(rocksdb::ReadOptions());
+    for(it->Seek(prefix);it->Valid()&&it->key().starts_with(prefix);it->Next()){
+        callback(it->value().ToString());
+    }
+    delete it;
+}
+
 
 bool StorageEngine::remove(const std::string &key)
 {
     rocksdb::Status status=_db->Delete(rocksdb::WriteOptions(),key);
     return status.ok();
+}
+
+void StorageEngine::flush()
+{
+    rocksdb::FlushOptions options;
+    _db->Flush(options);
 }
 
 StorageEngine::Status StorageEngine::get(const std::string &key, std::string &value) const
@@ -70,7 +92,7 @@ StorageEngine::Status StorageEngine::get(const std::string &key, std::string &va
     return Status::ERROR;
 }
 
-bool StorageEngine::contains(const std::string &key)
+bool StorageEngine::contains(const std::string &key) const
 {
     std::string value;
     return this->get(key,value)==StorageEngine::FOUND;

@@ -1,16 +1,16 @@
 #include "Document.h"
 #include "../../3rd/include/rapidjson/stringbuffer.h"
 #include "../../3rd/include/rapidjson/writer.h"
-
+#include <iostream>
 namespace Skilo {
 
 DocumentBase::DocumentBase():_document(rapidjson::kObjectType)
 {
-
+    _document.AddMember("",0,_document.GetAllocator()); //TODO workaround for different allocator
 }
 
-DocumentBase::DocumentBase(const std::string &json_str){
-    if(_document.Parse(json_str.c_str()).HasParseError()||!_document.IsObject()){
+DocumentBase::DocumentBase(const std::string_view json_str){
+    if(_document.Parse(json_str.data(),json_str.length()).HasParseError()||!_document.IsObject()){
         throw Util::InvalidFormatException("Error when parse document from json, notice: root must be an json object");
     }
 }
@@ -30,21 +30,38 @@ std::string DocumentBase::dump() const
     return std::string(buffer.GetString(),buffer.GetSize());
 }
 
+rapidjson::Document &DocumentBase::get_raw()
+{
+    return _document;
+}
+
 const rapidjson::Document &DocumentBase::get_raw() const
 {
     return _document;
 }
 
-Document::Document(const std::string &collection_name,const std::string &json_str):
-    DocumentBase(json_str),_collection_name(collection_name)
+Document::Document(rapidjson::Value doc):DocumentBase()
 {
-
+    _document.Swap(doc);
+    this->extract_variables();
 }
 
-Document::Document(const std::string &collection_name,const SegmentBuf &json_str):
-    DocumentBase(json_str),_collection_name(collection_name)
+Document::Document(const std::string_view json_str):DocumentBase(json_str)
 {
+    this->extract_variables();
+}
 
+Document::Document(const SegmentBuf &json_str):DocumentBase(json_str)
+{
+    this->extract_variables();
+}
+
+void Document::extract_variables()
+{
+    rapidjson::Value::ConstMemberIterator seq_id_it=_document.FindMember("seq id");
+    if(seq_id_it!=_document.MemberEnd()&&seq_id_it->value.IsUint()){
+         _seq_id.emplace(seq_id_it->value.GetUint());
+    }
 }
 
 uint32_t Document::get_doc_id() const
@@ -56,30 +73,33 @@ uint32_t Document::get_doc_id() const
     return doc_id_it->value.GetUint();
 }
 
-const std::string& Document::get_collection_name() const
-{
-    return _collection_name;
-}
-
-void Document::set_seq_id(uint32_t seq_id)
+void Document::add_seq_id(uint32_t seq_id)
 {
     _seq_id.emplace(seq_id);
+    rapidjson::Value value_id(rapidjson::kNumberType);
+    value_id.SetUint(seq_id);
+    _document.AddMember("seq id",value_id,_document.GetAllocator());
 }
 
 std::optional<uint32_t> Document::get_seq_id() const
 {
-    assert(_seq_id.has_value());
     return _seq_id;
 }
 
-CollectionMeta::CollectionMeta(const std::string &json_str):DocumentBase(json_str)
+CollectionMeta::CollectionMeta(const std::string_view json_str):DocumentBase(json_str)
 {
-    this->init();
+    this->extract_variables();
 }
 
 CollectionMeta::CollectionMeta(const SegmentBuf &json_str):DocumentBase(json_str)
 {
-    this->init();
+    this->extract_variables();
+}
+
+uint32_t CollectionMeta::get_collection_id() const
+{
+    assert(_collection_id.has_value());
+    return _collection_id.value();
 }
 
 const rapidjson::Value &CollectionMeta::get_schema() const
@@ -91,8 +111,12 @@ const rapidjson::Value &CollectionMeta::get_schema() const
     return schema_it->value;
 }
 
-void CollectionMeta::init()
+void CollectionMeta::extract_variables()
 {
+    rapidjson::Value::ConstMemberIterator collection_id_it=_document.FindMember("id");
+    if(collection_id_it!=_document.MemberEnd()&&collection_id_it->value.IsUint()){
+         _collection_id.emplace(collection_id_it->value.GetUint());
+    }
     rapidjson::Value::ConstMemberIterator name_it=_document.FindMember("name");
     if(name_it==_document.MemberEnd()||!name_it->value.IsString()){
          throw Util::InvalidFormatException("missing \"name\" in collection meta data or \"name\" is not string");
@@ -119,6 +143,7 @@ void CollectionMeta::add_collection_id(uint32_t collection_id)
     rapidjson::Value collec_id(rapidjson::kNumberType);
     collec_id.SetUint(collection_id);
     _document.AddMember("id",collec_id,_document.GetAllocator());
+    _collection_id.emplace(collection_id);
 }
 
 const std::string& CollectionMeta::get_tokenizer() const
@@ -126,7 +151,7 @@ const std::string& CollectionMeta::get_tokenizer() const
     return _tokenizer_name;
 }
 
-Query::Query(const std::string &collection_name,const std::string &json_str):DocumentBase(json_str),_collection_name(collection_name)
+Query::Query(const std::string &collection_name,const std::string_view json_str):DocumentBase(json_str),_collection_name(collection_name)
 {
     this->extract_variables();
 }
@@ -190,6 +215,39 @@ void SearchResult::add_took_ms(float ms)
     rapidjson::Value took_ms(rapidjson::kNumberType);
     took_ms.SetFloat(ms);
     _document.AddMember("took ms",took_ms,_document.GetAllocator());
+}
+
+DocumentBatch::DocumentBatch(const std::string &collection_name, const std::string_view json_str):
+    DocumentBase(json_str),_collection_name(collection_name)
+{
+    this->extract_variables();
+}
+
+DocumentBatch::DocumentBatch(const std::string &collection_name, const SegmentBuf &json_str):
+    DocumentBase(json_str),_collection_name(collection_name)
+{
+    this->extract_variables();
+}
+
+std::vector<Document> &DocumentBatch::get_docs()
+{
+    return _docs;
+}
+
+void DocumentBatch::extract_variables()
+{
+    rapidjson::Value::MemberIterator docs_it=_document.FindMember("docs");
+    if(docs_it==_document.MemberEnd()||!docs_it->value.IsArray()){
+        throw Util::InvalidFormatException("missing \"docs\" in document batch json or \"docs\" is not string array");
+    }
+
+    for(rapidjson::Value &doc_obj:docs_it->value.GetArray()){
+        if(!doc_obj.IsObject()){
+            throw Util::InvalidFormatException("\"each doc\" must be an object");
+        }
+        Document document(std::move(doc_obj));
+        _docs.emplace_back(std::move(document));
+    }
 }
 
 

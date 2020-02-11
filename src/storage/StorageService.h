@@ -11,16 +11,32 @@ class StorageService
 {
 public:
     StorageService(const std::string &db_path);
-    bool contain_collection(const std::string &collection_name);
-    uint32_t get_collection_next_seq_id(const std::string &collection_name) const;
 
-    Document get_document(const uint32_t collection_id,const std::string &collection_name,const uint32_t seq_id) const;
+    bool contain_collection(const std::string &collection_name) const;
+    bool contain_document(const uint32_t collection_id,uint32_t doc_id) const;
 
+    /// @throw InternalServerException
+    uint32_t get_next_collection_id() const;
+
+    /// @throw InternalServerException
+    uint32_t get_collection_next_seq_id(uint32_t collection_id) const;
+
+    /// @brief read storage, fecth the document in the given collection and parse it
+    /// @throw InternalServerException,InvalidFormatException
+    Document get_document(const uint32_t collection_id,const uint32_t seq_id) const;
+
+    /// @brief scan the storage, fecth and parse all of the collection's meta data
+    /// @throw InternalServerException,InvalidFormatException
+    std::vector<CollectionMeta> get_all_collection_meta() const;
+
+    StorageEngine &get_storage_engine();
+
+    void scan_for_each_doc(const uint32_t &collection_id,std::function<void(const std::string_view value)> callback) const;
 public:
     /// @brief write <doc_id,seq_id>,<seq_id,doc>,<collection_next_seq_id_key,collection_next_seq_id_value> to storage
     bool write_document(uint32_t collection_id,const Document &document);
 
-    bool write_new_collection(uint32_t next_colletion_id,const CollectionMeta &collection_meta);
+    bool write_new_collection(uint32_t colletion_id,const CollectionMeta &collection_meta);
 
 private:
     StorageEngine _storage_engine;

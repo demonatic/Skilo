@@ -12,9 +12,8 @@ class CollectionManager
 public:
     CollectionManager(const std::string &db_path);
 
-    /// @return error string if error exists
-    // TODO put collection_name in collection_meta
-    Status create_collection(const std::string &collection_name,CollectionMeta &collection_meta);
+    void init_collections();
+    Status create_collection(CollectionMeta &collection_meta);
 
     Status add_document(const std::string &collection_name,Document &document);
     Status search(const Query &query_info) const;

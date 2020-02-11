@@ -17,7 +17,6 @@ void InvertIndex::add_record(const IndexRecord &record)
             posting_list=new PostingList();
             _index.insert(term.data(),term.length(),posting_list);
         }
-        cout<<"term="<<term<<" seq_id="<<record.seq_id<<" freq="<<offsets.size()<<std::endl;
         posting_list->add_doc(record.seq_id,offsets);
     }
 }

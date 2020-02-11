@@ -113,7 +113,7 @@ TEST(SCHEMA_TEST,PARSE_TEST) {
     Field::ArrtibuteValue attr=root_field["product name"].arrtibute("index");
     EXPECT_EQ(std::get<bool>(attr),true);
 
-    Document document("products",json_str);
+    Document document(json_str);
 
     schema.validate(document);
 }

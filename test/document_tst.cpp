@@ -20,8 +20,8 @@ TEST(DOCUMENT_TEST,PARSE_TEST){
     seg_buf.push_back({(uint8_t*)seg3.c_str(),seg3.size()});
     seg_buf.push_back({(uint8_t*)seg4.c_str(),seg4.size()});
     seg_buf.push_back({(uint8_t*)seg5.c_str(),seg5.size()});
-    Document document("collection_name",json_str);
-    Document document2("collection_name",seg_buf);
+    Document document(json_str);
+    Document document2(seg_buf);
     EXPECT_EQ(document.get_raw(),document2.get_raw());
     EXPECT_EQ(document2.get_raw()["sites"].Size(),3);
     EXPECT_EQ(string(document2.get_raw()["sites"][0]["name"].GetString()),"Runoob");

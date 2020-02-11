@@ -2,6 +2,7 @@
 #define STORAGE_H
 
 #include <memory>
+#include <functional>
 #include <string_view>
 #include <rocksdb/db.h>
 #include <rocksdb/write_batch.h>
@@ -23,12 +24,7 @@ public:
         NOT_FOUND,
         ERROR
     };
-    struct Batch{
-        void put(std::string_view key,std::string_view val){
-            data.emplace_back(key,val);
-        }
-        std::vector<std::pair<std::string_view,std::string_view>> data;
-    };
+    using Batch=rocksdb::WriteBatch;
 
 public:
     StorageEngine(const std::string &db_path);
@@ -43,17 +39,25 @@ public:
     Status get(const std::string &key,std::string &value) const;
 
     /// @brief return true if the "key" exists
-    bool contains(const std::string &key);
+    bool contains(const std::string &key) const;
 
     /// @brief Set the database entry for "key" to "value".
     ///        If "key" already exists, it will be overwritten.
     bool insert(const std::string &key,const std::string &value);
 
     /// @brief all data in this batch will be atomically written into db
-    bool batch_write(const Batch &batch);
+    bool batch_write(Batch &batch);
+
+    /// @brief scan the database and add any value whose key starts with 'prefix' to 'values'
+    void load_with_prefix(const std::string &prefix,std::vector<std::string> &values) const;
+
+    /// @brief scan the database and call 'callback' for any value whose key starts with 'prefix'
+    void scan_for_each(const std::string &prefix,std::function<void(const std::string_view value)> callback) const;
 
     /// @return true if key is not exist or been removed successfully
     bool remove(const std::string &key);
+
+    void flush();
 
 private:
     rocksdb::DB *_db;

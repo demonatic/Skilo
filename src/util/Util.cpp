@@ -3,45 +3,35 @@
 
 namespace Util {
 
-NotFoundException::NotFoundException(const std::string &err)
-{
-    this->_msg="Not found error occured: "+err;
-}
 
-const char *NotFoundException::what() const noexcept
+const char *SkiloException::what() const noexcept
 {
     return _msg.c_str();
+}
+
+NotFoundException::NotFoundException(const std::string &err)
+{
+    this->_msg="Resource Not Found: "+err;
 }
 
 InvalidFormatException::InvalidFormatException(const std::string &err)
 {
-    this->_msg="Invalid Format encountered: "+err;
-}
-
-const char *InvalidFormatException::what() const noexcept
-{
-    return _msg.c_str();
+    this->_msg="Invalid Format Encountered: "+err;
 }
 
 UnAuthorizedException::UnAuthorizedException(const std::string &err)
 {
-    this->_msg="Operation not authorized: "+err;
-}
-
-const char *UnAuthorizedException::what() const noexcept
-{
-    return _msg.c_str();
+    this->_msg="Operation Not Authorized: "+err;
 }
 
 InternalServerException::InternalServerException(const std::string &err)
 {
-    this->_msg="Internal server error: "+err;
+    this->_msg="Internal Server Error: "+err;
 }
 
-const char *InternalServerException::what() const noexcept
+ConflictException::ConflictException(const std::string &err)
 {
-    return _msg.c_str();
+    this->_msg="Conflict Resource: "+err;
 }
-
 
 }//namespace Util

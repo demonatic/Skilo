@@ -5,36 +5,37 @@
 
 namespace Util {
 
-    class InvalidFormatException:public std::exception{
+    class SkiloException:public std::exception{
+    public:
+        SkiloException()=default;
+        virtual const char *what() const noexcept override;
+    protected:
+        std::string _msg;
+    };
+
+    class InvalidFormatException:public SkiloException{
     public:
         InvalidFormatException(const std::string &err);
-        virtual const char *what() const noexcept override;
-    private:
-        std::string _msg;
     };
 
-    class NotFoundException:public std::exception{
+    class NotFoundException:public SkiloException{
     public:
         NotFoundException(const std::string &err);
-        virtual const char *what() const noexcept override;
-    private:
-        std::string _msg;
     };
 
-    class InternalServerException:public std::exception{
+    class ConflictException:public SkiloException{
+    public:
+        ConflictException(const std::string &err);
+    };
+
+    class InternalServerException:public SkiloException{
     public:
         InternalServerException(const std::string &err);
-        virtual const char *what() const noexcept override;
-    private:
-        std::string _msg;
     };
 
-    class UnAuthorizedException:public std::exception{
+    class UnAuthorizedException:public SkiloException{
     public:
         UnAuthorizedException(const std::string &err);
-        virtual const char *what() const noexcept override;
-    private:
-        std::string _msg;
     };
 
 }//namespace Util

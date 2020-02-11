@@ -23,6 +23,7 @@ file(GLOB SOURCES
     storage/*.cpp
     util/*.h
     util/*.cpp
+    util/*.hpp
 )
 
 set(BUILD_DEPS "yes" CACHE STRING "")

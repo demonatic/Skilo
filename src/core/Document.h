@@ -1,4 +1,4 @@
-#ifndef DOCUMENT_H
+﻿#ifndef DOCUMENT_H
 #define DOCUMENT_H
 
 #include "rapidjson/rapidjson.h"
@@ -16,19 +16,21 @@ class DocumentBase
 public:
     DocumentBase();
     /// @throw InvalidFormatException when parse json failed
-    DocumentBase(const std::string &json_str);
+    DocumentBase(const std::string_view json_str);
     /// @brief parse json from some segment of buffers,
     /// where uint8_t* points to start of this segment and size_t indicates the length of this segment
     DocumentBase(const SegmentBuf &json_str);
 
     std::string dump() const;
 
+    rapidjson::Document &get_raw();
     const rapidjson::Document& get_raw() const;
+
 protected:
     rapidjson::Document _document;
 };
 
-/// Collection Document example:
+/// Collection Document format example:
 /// "id" field is required in collection document but could omit in the schema
 /****************************************************
 {
@@ -45,20 +47,49 @@ protected:
 
 class Document:public DocumentBase{
 public:
-    Document(const std::string &collection_name,const std::string &json_str);
+    Document(rapidjson::Value doc);
+    Document(const std::string_view json_str);
     /// @brief parse json from some segment of buffers,
     /// where uint8_t* points to start of this segment and size_t indicates the length of this segment
-    Document(const std::string &collection_name,const SegmentBuf &json_str);
+    Document(const SegmentBuf &json_str);
 
     uint32_t get_doc_id() const;
     const std::string& get_collection_name() const;
-    void set_seq_id(uint32_t seq_id);
+    void add_seq_id(uint32_t seq_id);
     std::optional<uint32_t> get_seq_id() const;
+
+private:
+    void extract_variables();
 
 private:
     uint32_t _doc_id;
     std::optional<uint32_t> _seq_id;
+};
+
+/// DocumentBatch format example:
+/********************************
+{
+    "docs":[
+        <doc1>,
+        <doc2>,
+        <doc3>
+    ]
+}
+********************************/
+class DocumentBatch:public DocumentBase{
+public:
+    DocumentBatch(const std::string &collection_name,const std::string_view json_str);
+    /// @brief parse json from some segment of buffers,
+    /// where uint8_t* points to start of this segment and size_t indicates the length of this segment
+    DocumentBatch(const std::string &collection_name,const SegmentBuf &json_str);
+
+    std::vector<Document>& get_docs();
+private:
+    void extract_variables();
+
+private:
     std::string _collection_name;
+    std::vector<Document> _docs;
 };
 
 /// ColletionMeta data example:
@@ -87,22 +118,25 @@ private:
 
 class CollectionMeta:public DocumentBase{
 public:
-    CollectionMeta(const std::string &json_str);
+    CollectionMeta(const std::string_view json_str);
     CollectionMeta(const SegmentBuf &json_str);
+
+    uint32_t get_collection_id() const;
+    const std::string& get_collection_name() const;
 
     /// @throw runtime error if "schema" field is not found
     const rapidjson::Value &get_schema() const;
 
-    const std::string& get_collection_name() const;
     const std::string& get_tokenizer() const;
 
     void add_create_time(uint64_t created_time);
     void add_collection_id(uint32_t collection_id);
 
 private:
-    void init();
+    void extract_variables();
 
 private:
+    std::optional<uint32_t> _collection_id;
     std::string _collection_name;
     std::string _tokenizer_name;
 };
@@ -118,7 +152,7 @@ private:
 
 class Query:public DocumentBase{
 public:
-    Query(const std::string &collection_name,const std::string &json_str);
+    Query(const std::string &collection_name,const std::string_view json_str);
     Query(const std::string &collection_name,const SegmentBuf &json_str);
 
     const std::string &get_collection_name() const;
