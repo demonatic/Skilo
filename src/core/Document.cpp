@@ -6,7 +6,7 @@ namespace Skilo {
 
 DocumentBase::DocumentBase():_document(rapidjson::kObjectType)
 {
-    _document.AddMember("",0,_document.GetAllocator()); //TODO workaround for different allocator
+
 }
 
 DocumentBase::DocumentBase(const std::string_view json_str){
@@ -40,8 +40,9 @@ const rapidjson::Document &DocumentBase::get_raw() const
     return _document;
 }
 
-Document::Document(rapidjson::Value doc):DocumentBase()
+Document::Document(rapidjson::Value doc, decltype(_document.GetAllocator()) &allocator)
 {
+    _document=rapidjson::Document(rapidjson::kObjectType,&allocator);
     _document.Swap(doc);
     this->extract_variables();
 }
@@ -245,7 +246,7 @@ void DocumentBatch::extract_variables()
         if(!doc_obj.IsObject()){
             throw Util::InvalidFormatException("\"each doc\" must be an object");
         }
-        Document document(std::move(doc_obj));
+        Document document(std::move(doc_obj),this->_document.GetAllocator());
         _docs.emplace_back(std::move(document));
     }
 }

@@ -6,8 +6,8 @@ using namespace std;
 using namespace Skilo;
 
 TEST(COLLECTION_MANAGER_TEST,ADD_DOC_TEST){
-    bool init=false;
-    CollectionManager collection_manager("/tmp/skilo3");
+    bool init=true;
+    CollectionManager collection_manager("/tmp/skilo6");
     std::string schema_str="{\
                             \"name\":\"recipe\",\
                             \"tokenizer\":\"jieba\",\

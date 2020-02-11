@@ -47,7 +47,7 @@ protected:
 
 class Document:public DocumentBase{
 public:
-    Document(rapidjson::Value doc);
+    Document(rapidjson::Value doc, decltype(_document.GetAllocator()) &allocator);
     Document(const std::string_view json_str);
     /// @brief parse json from some segment of buffers,
     /// where uint8_t* points to start of this segment and size_t indicates the length of this segment
