@@ -19,6 +19,8 @@ file(GLOB SOURCES
     core/index/*.cpp
     core/search/*.h
     core/search/*.cpp
+    core/network/*.h
+    core/network/*.cpp
     storage/*.h
     storage/*.cpp
     util/*.h
@@ -27,8 +29,8 @@ file(GLOB SOURCES
 )
 
 set(BUILD_DEPS "yes" CACHE STRING "")
-set(ALL_SRCS ${ALL_SRCS} ${SOURCES} CACHE INTERNAL "description")
-set(CORE_LIBS ${G3LOGGER_LIBRARIES} g3logger pthread rocksdb roaring for)
+set(ALL_SRCS ${ALL_SRCS} ${SOURCES} CACHE INTERNAL "")
+set(CORE_LIBS ${G3LOGGER_LIBRARIES} g3logger pthread rocksdb roaring for Rinx)
 
 #include(../cmake/RocksDB.cmake)
 #include(../cmake/g3logger.cmake)

@@ -6,7 +6,7 @@ include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(libart)
 
 set(ALL_SRCS ${ALL_SRCS} libart/art.c art_tst.cpp scalar_tst.cpp schema_tst.cpp CACHE INTERNAL "description")
-set(CORE_LIBS ${G3LOGGER_LIBRARIES} g3logger pthread rocksdb roaring for)
+set(CORE_LIBS ${G3LOGGER_LIBRARIES} g3logger pthread rocksdb roaring for Rinx)
 
 #message("SRCS: " ${ALL_SRCS})
 
