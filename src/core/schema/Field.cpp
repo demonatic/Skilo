@@ -13,14 +13,14 @@ Field::Field(const std::string &name,const std::string &path,const rapidjson::Va
 
     if(type==FieldType::ARRAY){
         if(!schema.HasMember(item_keyword)){
-            throw Util::InvalidFormatException("array type must have \""+std::string(item_keyword)+"\" keyword");
+            throw InvalidFormatException("array type must have \""+std::string(item_keyword)+"\" keyword");
         }
         std::unique_ptr<Field> sub_field=create_field(item_keyword,this->path,schema[item_keyword]);
         this->sub_fields[sub_field->name]=std::move(sub_field);
     }
     if(type==FieldType::OBJECT){
         if(!schema.HasMember(field_keyword)){
-            throw Util::InvalidFormatException("object type must have \""+std::string(field_keyword)+"\" keyword");
+            throw InvalidFormatException("object type must have \""+std::string(field_keyword)+"\" keyword");
         }
         parse_sub_fields(schema[field_keyword],this->path);
     }
@@ -81,7 +81,7 @@ FieldType Field::get_field_type(const rapidjson::Value &schema)
     if(schema.HasMember("type")){
         const rapidjson::Value &type_val=schema["type"];
         if(!type_val.IsString()){
-            throw Util::InvalidFormatException("type must be a string");
+            throw InvalidFormatException("type must be a string");
         }
         const std::string &type_str=type_val.GetString();
         if(type_str=="integer"){
@@ -103,11 +103,11 @@ FieldType Field::get_field_type(const rapidjson::Value &schema)
             return FieldType::OBJECT;
         }
         else{
-            throw Util::InvalidFormatException("unknown type keyword, type must be \"integer\"/\"float\"/\"string\"/\"array\"/\"boolean\"");
+            throw InvalidFormatException("unknown type keyword, type must be \"integer\"/\"float\"/\"string\"/\"array\"/\"boolean\"");
         }
     }
     else{
-         throw Util::InvalidFormatException("neither \"$schema\" nor \"type\" keyword is defined");
+         throw InvalidFormatException("neither \"$schema\" nor \"type\" keyword is defined");
     }
 }
 
@@ -151,7 +151,7 @@ void FieldObject::accept(FieldVisitor &field_visitor, const rapidjson::Value &do
     for(const auto &[field_name,field]:sub_fields){
         rapidjson::Value::ConstMemberIterator it=document.FindMember(field_name.c_str());
         if(it==document.MemberEnd()){
-            throw Util::InvalidFormatException("field \""+field_name+"\" not found when visit sub_field "
+            throw InvalidFormatException("field \""+field_name+"\" not found when visit sub_field "
                                      +field_name+" from path:\""+this->path+"\"");
         }
         field->accept(field_visitor,it->value);

@@ -36,7 +36,7 @@ void Collection::add_new_document(Document &document)
     if(!_storage_service->write_document(_collection_id,document)){
         std::string err="fail to write document with doc_id="+std::to_string(document.get_doc_id());
         LOG(WARNING)<<err;
-        throw Util::InternalServerException(err);
+        throw InternalServerException(err);
     }
     _next_seq_id++;
     Index::IndexWriter index_writer(_indexes,_tokenizer.get());

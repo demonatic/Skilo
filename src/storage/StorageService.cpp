@@ -31,7 +31,7 @@ uint32_t StorageService::get_next_collection_id() const
     if(status==StorageEngine::ERROR){
         std::string err="Error when getting collection manager's next collection id from disk";
         LOG(FATAL)<<err;
-        throw Util::InternalServerException(err);
+        throw InternalServerException(err);
     }
     uint32_t next_collection_id=std::stoul(next_collection_val);
     return next_collection_id;
@@ -44,7 +44,7 @@ uint32_t StorageService::get_collection_next_seq_id(uint32_t collection_id) cons
     if(next_seq_status!=StorageEngine::FOUND){
         std::string err="Can not get collection next sequence id of collection id=\""+std::to_string(collection_id)+"\"";
         LOG(WARNING)<<err;
-        throw Util::InternalServerException(err);
+        throw InternalServerException(err);
     }
     uint32_t next_seq_id=std::stoul(next_seq_val);
     return next_seq_id;
@@ -58,7 +58,7 @@ Document StorageService::get_document(const uint32_t collection_id,const uint32_
     if(status!=StorageEngine::FOUND){
         std::string err="Can not fetch document of sequence id \""+std::to_string(seq_id)+"\"";
         LOG(WARNING)<<err;
-        throw Util::InternalServerException(err);
+        throw InternalServerException(err);
     }
     return Document(doc_json_str);
 }

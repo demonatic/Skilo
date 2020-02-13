@@ -23,9 +23,11 @@ file(GLOB SOURCES
     core/network/*.cpp
     storage/*.h
     storage/*.cpp
-    util/*.h
-    util/*.cpp
-    util/*.hpp
+    utility/*.h
+    utility/*.cpp
+    utility/*.hpp
+    *.h
+    *.cpp
 )
 
 set(BUILD_DEPS "yes" CACHE STRING "")

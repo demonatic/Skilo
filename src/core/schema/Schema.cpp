@@ -38,42 +38,42 @@ Field *CollectionSchema::get_root_field() const
 void SchemaValidator::visit_field_string(const FieldString *field_string, const rapidjson::Value &document)
 {
     if(!document.IsString()){
-        throw Util::InvalidFormatException("field \""+field_string->name+"\" should be a string");
+        throw InvalidFormatException("field \""+field_string->name+"\" should be a string");
     }
 }
 
 void SchemaValidator::visit_field_integer(const FieldInteger *field_integer, const rapidjson::Value &document)
 {
     if(!document.IsInt()){
-        throw Util::InvalidFormatException("field \""+field_integer->name+"\" should be an integer");
+        throw InvalidFormatException("field \""+field_integer->name+"\" should be an integer");
     }
 }
 
 void SchemaValidator::visit_field_float(const FieldFloat *field_float, const rapidjson::Value &document)
 {
     if(!document.IsFloat()){
-        throw Util::InvalidFormatException("field \""+field_float->name+"\" should be a float");
+        throw InvalidFormatException("field \""+field_float->name+"\" should be a float");
     }
 }
 
 void SchemaValidator::visit_field_boolean(const FieldBoolean *field_boolean, const rapidjson::Value &document)
 {
     if(!document.IsBool()){
-         throw Util::InvalidFormatException("field \""+field_boolean->name+"\" should be a boolean");
+         throw InvalidFormatException("field \""+field_boolean->name+"\" should be a boolean");
     }
 }
 
 void SchemaValidator::visit_field_array(const FieldArray *field_array, const rapidjson::Value &document)
 {
     if(!document.IsArray()){
-         throw Util::InvalidFormatException("field \""+field_array->name+"\" should be an array");
+         throw InvalidFormatException("field \""+field_array->name+"\" should be an array");
     }
 }
 
 void SchemaValidator::visit_field_object(const FieldObject *field_object, const rapidjson::Value &document)
 {
     if(!document.IsObject()){
-         throw Util::InvalidFormatException("field \""+field_object->name+"\" should be an object");
+         throw InvalidFormatException("field \""+field_object->name+"\" should be an object");
     }
 }
 

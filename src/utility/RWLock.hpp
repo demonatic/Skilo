@@ -3,11 +3,7 @@
 
 
 namespace Skilo {
-namespace Util {
 
-
-
-} //namespace Util
 } //namespace Skilo
 
 #endif // RWLOCK_HPP

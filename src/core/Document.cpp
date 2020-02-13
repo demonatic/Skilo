@@ -1,7 +1,7 @@
 #include "Document.h"
-#include "../../3rd/include/rapidjson/stringbuffer.h"
-#include "../../3rd/include/rapidjson/writer.h"
-#include <iostream>
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
+
 namespace Skilo {
 
 DocumentBase::DocumentBase():_document(rapidjson::kObjectType)
@@ -11,14 +11,14 @@ DocumentBase::DocumentBase():_document(rapidjson::kObjectType)
 
 DocumentBase::DocumentBase(const std::string_view json_str){
     if(_document.Parse(json_str.data(),json_str.length()).HasParseError()||!_document.IsObject()){
-        throw Util::InvalidFormatException("Error when parse document from json, notice: root must be an json object");
+        throw InvalidFormatException("Error when parse document from json, notice: root must be an json object");
     }
 }
 
 DocumentBase::DocumentBase(const SegmentBuf &json_str){
     detail::SegmentBufferStream stream(json_str);
     if(_document.ParseStream(stream).HasParseError()||!_document.IsObject()){
-        throw Util::InvalidFormatException("Error when parse document from json, notice: root must be an json object");
+        throw InvalidFormatException("Error when parse document from json, notice: root must be an json object");
     }
 }
 
@@ -69,7 +69,7 @@ uint32_t Document::get_doc_id() const
 {
     rapidjson::Value::ConstMemberIterator doc_id_it=_document.FindMember("id");
     if(doc_id_it==_document.MemberEnd()||!doc_id_it->value.IsUint()){
-         throw Util::InvalidFormatException("member \"id\" not found in document or \"id\" is not an unsigned integer");
+         throw InvalidFormatException("member \"id\" not found in document or \"id\" is not an unsigned integer");
     }
     return doc_id_it->value.GetUint();
 }
@@ -107,7 +107,7 @@ const rapidjson::Value &CollectionMeta::get_schema() const
 {
     rapidjson::Value::ConstMemberIterator schema_it=_document.FindMember("schema");
     if(schema_it==_document.MemberEnd()){
-         throw Util::InvalidFormatException("missing \"schema\" in collection meta data");
+         throw InvalidFormatException("missing \"schema\" in collection meta data");
     }
     return schema_it->value;
 }
@@ -120,7 +120,7 @@ void CollectionMeta::extract_variables()
     }
     rapidjson::Value::ConstMemberIterator name_it=_document.FindMember("name");
     if(name_it==_document.MemberEnd()||!name_it->value.IsString()){
-         throw Util::InvalidFormatException("missing \"name\" in collection meta data or \"name\" is not string");
+         throw InvalidFormatException("missing \"name\" in collection meta data or \"name\" is not string");
     }
     this->_collection_name=name_it->value.GetString();
     rapidjson::Value::ConstMemberIterator schema_it=_document.FindMember("tokenizer");
@@ -181,16 +181,16 @@ void Query::extract_variables()
 {
     rapidjson::Value::ConstMemberIterator query_it=_document.FindMember("query");
     if(query_it==_document.MemberEnd()||!query_it->value.IsString()){
-        throw Util::InvalidFormatException("missing \"query\" in query json or \"query\" is not string");
+        throw InvalidFormatException("missing \"query\" in query json or \"query\" is not string");
     }
     _search_str=query_it->value.GetString();
     rapidjson::Value::ConstMemberIterator query_by_it=_document.FindMember("query by");
     if(query_by_it==_document.MemberEnd()||!query_by_it->value.IsArray()){
-        throw Util::InvalidFormatException("missing \"query by\" in query json or \"query by\" is not string array");
+        throw InvalidFormatException("missing \"query by\" in query json or \"query by\" is not string array");
     }
     for(const auto &query_field:query_by_it->value.GetArray()){
         if(!query_field.IsString()){
-            throw Util::InvalidFormatException("\"query by\" must be string array");
+            throw InvalidFormatException("\"query by\" must be string array");
         }
         _query_fields.emplace_back(query_field.GetString());
     }
@@ -239,12 +239,12 @@ void DocumentBatch::extract_variables()
 {
     rapidjson::Value::MemberIterator docs_it=_document.FindMember("docs");
     if(docs_it==_document.MemberEnd()||!docs_it->value.IsArray()){
-        throw Util::InvalidFormatException("missing \"docs\" in document batch json or \"docs\" is not string array");
+        throw InvalidFormatException("missing \"docs\" in document batch json or \"docs\" is not string array");
     }
 
     for(rapidjson::Value &doc_obj:docs_it->value.GetArray()){
         if(!doc_obj.IsObject()){
-            throw Util::InvalidFormatException("\"each doc\" must be an object");
+            throw InvalidFormatException("\"each doc\" must be an object");
         }
         Document document(std::move(doc_obj),this->_document.GetAllocator());
         _docs.emplace_back(std::move(document));

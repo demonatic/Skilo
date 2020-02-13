@@ -3,7 +3,7 @@
 
 #include "rapidjson/rapidjson.h"
 #include "rapidjson/document.h"
-#include "../util/Util.h"
+#include "../utility/Exception.h"
 #include <vector>
 #include <optional>
 

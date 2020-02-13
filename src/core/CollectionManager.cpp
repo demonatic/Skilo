@@ -46,20 +46,20 @@ Status CollectionManager::create_collection(CollectionMeta &collection_meta)
         collection_meta.add_collection_id(collection_id);
         collection_meta.add_create_time(static_cast<uint64_t>(std::time(nullptr)));
         if(!_storage_service->write_new_collection(collection_id,collection_meta)){
-            throw Util::InternalServerException("Could not write meta data to on disk storage");
+            throw InternalServerException("Could not write meta data to on disk storage");
         }
         std::unique_ptr<Collection> new_colletion=std::make_unique<Collection>(collection_meta,_storage_service.get());
         _collection_name_id_map[collection_name]=collection_id;
         _collection_map[collection_id]=std::move(new_colletion);
         LOG(INFO)<<"Collection \""<<collection_name<<"\" id="<<collection_id<<" has created";
 
-    } catch (const Util::InvalidFormatException &err){
+    } catch (const InvalidFormatException &err){
         return Status{RetCode::BAD_REQUEST,err.what()};
 
-    } catch(const Util::InternalServerException &err){
+    } catch(const InternalServerException &err){
         return Status{RetCode::INTERNAL_SERVER_ERROR,err.what()};
     }
-    catch(const Util::ConflictException &err){
+    catch(const ConflictException &err){
         return Status{RetCode::CONFLICT,err.what()};
     }
     catch(const std::exception &err){
@@ -73,23 +73,23 @@ Status Skilo::CollectionManager::add_document(const std::string &collection_name
     try {
         Collection *collection=this->get_collection(collection_name);
         if(!collection){
-            throw Util::NotFoundException("collection \""+collection_name+"\" not exist");
+            throw NotFoundException("collection \""+collection_name+"\" not exist");
         }
         if(collection->contain_document(document.get_doc_id())){
-            throw Util::ConflictException("The collection with name `"+collection_name+"` already exists");
+            throw ConflictException("The collection with name `"+collection_name+"` already exists");
         }
         collection->add_new_document(document);
 
-    } catch (const Util::InvalidFormatException &err){
+    } catch (const InvalidFormatException &err){
         return Status{RetCode::BAD_REQUEST,err.what()};
 
-    } catch(const Util::InternalServerException &err){
+    } catch(const InternalServerException &err){
         return Status{RetCode::INTERNAL_SERVER_ERROR,err.what()};
     }
-    catch(const Util::NotFoundException &err){
+    catch(const NotFoundException &err){
         return Status{RetCode::NOT_FOUND,err.what()};
     }
-    catch(const Util::ConflictException &err){
+    catch(const ConflictException &err){
         return Status{RetCode::CONFLICT,err.what()};
     }
     catch(const std::exception &err){
@@ -105,15 +105,15 @@ Status CollectionManager::search(const Query &query_info) const
          const std::string &collection_name=query_info.get_collection_name();
          Collection *collection=this->get_collection(collection_name);
          if(!collection){
-             throw Util::NotFoundException("collection \'"+collection_name+"\" not exist");
+             throw NotFoundException("collection \'"+collection_name+"\" not exist");
          }
          SearchResult result=collection->search(query_info);
          query_result=result.dump();
      }
-     catch(const Util::NotFoundException &err){
+     catch(const NotFoundException &err){
          return Status{RetCode::NOT_FOUND,err.what()};
      }
-     catch(const Util::InternalServerException &err){
+     catch(const InternalServerException &err){
          return Status{RetCode::INTERNAL_SERVER_ERROR,err.what()};
      }
      catch(const std::exception &err){

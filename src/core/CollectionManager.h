@@ -41,11 +41,12 @@ enum class RetCode{
     NOT_FOUND=404,
     METHOD_NOT_ALLOWED=405,
     CONFLICT=409,
-    INTERNAL_SERVER_ERROR=500
+    INTERNAL_SERVER_ERROR=500,
+    UNDEFINED=0
 };
 
 struct Status{
-    RetCode code;
+    RetCode code=RetCode::UNDEFINED;
     std::string description;
 };
 

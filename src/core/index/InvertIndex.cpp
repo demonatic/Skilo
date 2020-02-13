@@ -79,7 +79,7 @@ void CollectionIndexes::search_fields(const std::unordered_map<string, std::vect
             for(const auto &[exist_field_name,index]:_indexes){
                 exist_fields.append("\""+exist_field_name+"\" ");
             }
-            throw Util::InvalidFormatException("field path \""+path+"\" is not found, exist fields: "+exist_fields);
+            throw InvalidFormatException("field path \""+path+"\" is not found, exist fields: "+exist_fields);
         }
         search_field(query_terms,path,collector);
     }

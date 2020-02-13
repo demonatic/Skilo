@@ -1,8 +1,6 @@
-#include "Util.h"
+#include "Exception.h"
 
-
-namespace Util {
-
+namespace Skilo {
 
 const char *SkiloException::what() const noexcept
 {
@@ -34,4 +32,4 @@ ConflictException::ConflictException(const std::string &err)
     this->_msg="Conflict Resource: "+err;
 }
 
-}//namespace Util
+} //namespace Skilo
