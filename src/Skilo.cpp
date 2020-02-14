@@ -12,39 +12,59 @@ using Rinx::HttpStatusCode;
 SkiloServer::SkiloServer(const std::string &db_path):_collection_manager(db_path)
 {
     nanolog::initialize(nanolog::GuaranteedLogger(),"/tmp/","rinx_log",20);
+
+}
+
+bool SkiloServer::listen()
+{
     Rinx::RxProtocolHttp1Factory http1;
     this->init_http_route(http1);
-    _server.listen("127.0.0.1",80,http1);
+    return _server.listen("127.0.0.1",8080,http1);
 }
 
-void SkiloServer::skilo_create_collection(const SegmentBuf &json,Status &res,QueryContext &)
+void SkiloServer::skilo_create_collection(const SegmentBuf &json,Status &status,QueryContext &)
 {
     CollectionMeta collection_meta(json);
-    res=_collection_manager.create_collection(collection_meta);
+    status=_collection_manager.create_collection(collection_meta);
 }
 
-void SkiloServer::skilo_add_document(const SegmentBuf &json,Status &res,QueryContext &context)
+void SkiloServer::skilo_add_document(const SegmentBuf &json,Status &status,QueryContext &context)
 {
-    Document new_doc(json);
+    DocumentBase base(json);
     std::string collection_name=this->extract_collection_name(context.req);
-    res=_collection_manager.add_document(collection_name,new_doc);
+    if(base.contain_key("docs")){
+        DocumentBatch doc_batch(base);
+        status=_collection_manager.add_document_batch(collection_name,doc_batch);
+    }
+    else{
+        Document new_doc(base);
+        status=_collection_manager.add_document(collection_name,new_doc);
+    }
 }
 
-void SkiloServer::skilo_query_collection(const SegmentBuf &json,Status &res,QueryContext &context)
+void SkiloServer::skilo_query_collection(const SegmentBuf &json,Status &status,QueryContext &context)
 {
     std::string collection_name=this->extract_collection_name(context.req);
     Query query(collection_name,json);
-    res=_collection_manager.search(query);
+    status=_collection_manager.search(query);
 }
 
 std::string SkiloServer::extract_collection_name(const HttpRequest *req) const
 {
     std::string_view uri=req->uri();
+    uri.remove_prefix(1);
+    size_t name_start=1+uri.find_first_of('/');
+    size_t name_end=uri.find_last_of('/');
+    assert(name_start!=uri.npos);
+    assert(name_end!=uri.npos);
+    return std::string(uri.substr(name_start,name_end-name_start));
 }
 
 void SkiloServer::init_http_route(Rinx::RxProtocolHttp1Factory &http1)
 {
-    http1.GET("/",BIND_SKILO_CALLBACK(SkiloServer::skilo_create_collection);
+    http1.POST("^\\/collections$",BIND_SKILO_CALLBACK(SkiloServer::skilo_create_collection);
+    http1.POST("^\\/collections\\/[a-zA-Z_\\$][a-zA-Z\\d_]*\\/documents$",BIND_SKILO_CALLBACK(SkiloServer::skilo_add_document);
+    http1.GET("^\\/collections\\/[a-zA-Z_\\$][a-zA-Z\\d_]*\\/documents$",BIND_SKILO_CALLBACK(SkiloServer::skilo_query_collection);
 }
 
 void SkiloServer::handle_request(HttpRequest &req, HttpResponse &resp, const SkiloReqHandler handler)
@@ -59,7 +79,8 @@ void SkiloServer::handle_request(HttpRequest &req, HttpResponse &resp, const Ski
         status.code=RetCode::BAD_REQUEST;
         status.description=invalid_json_err.what();
     }
-    resp.status_code(HttpStatusCode(status.code));
+    std::string body_length=std::to_string(status.description.length());
+    resp.status_code(HttpStatusCode(status.code)).headers("Content-Length",std::move(body_length));
     resp.body()<<status.description;
 }
 

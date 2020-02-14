@@ -22,6 +22,12 @@ DocumentBase::DocumentBase(const SegmentBuf &json_str){
     }
 }
 
+bool DocumentBase::contain_key(const std::string &key) const
+{
+    rapidjson::Value::ConstMemberIterator docs_it=_document.FindMember(key.c_str());
+    return docs_it!=_document.MemberEnd();
+}
+
 std::string DocumentBase::dump() const
 {
     rapidjson::StringBuffer buffer;
@@ -38,6 +44,12 @@ rapidjson::Document &DocumentBase::get_raw()
 const rapidjson::Document &DocumentBase::get_raw() const
 {
     return _document;
+}
+
+Document::Document(DocumentBase &base)
+{
+    base.get_raw().Swap(this->_document);
+    this->extract_variables();
 }
 
 Document::Document(rapidjson::Value doc, decltype(_document.GetAllocator()) &allocator)
@@ -216,6 +228,12 @@ void SearchResult::add_took_ms(float ms)
     rapidjson::Value took_ms(rapidjson::kNumberType);
     took_ms.SetFloat(ms);
     _document.AddMember("took ms",took_ms,_document.GetAllocator());
+}
+
+DocumentBatch::DocumentBatch(DocumentBase &base)
+{
+    base.get_raw().Swap(this->_document);
+    this->extract_variables();
 }
 
 DocumentBatch::DocumentBatch(const std::string &collection_name, const std::string_view json_str):

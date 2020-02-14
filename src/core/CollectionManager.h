@@ -16,6 +16,8 @@ public:
     Status create_collection(CollectionMeta &collection_meta);
 
     Status add_document(const std::string &collection_name,Document &document);
+    Status add_document_batch(const std::string &collection_name,DocumentBatch &doc_batch);
+
     Status search(const Query &query_info) const;
 
     Collection *get_collection(const std::string &collection_name) const;

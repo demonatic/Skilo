@@ -21,6 +21,8 @@ public:
     /// where uint8_t* points to start of this segment and size_t indicates the length of this segment
     DocumentBase(const SegmentBuf &json_str);
 
+    bool contain_key(const std::string &key) const;
+
     std::string dump() const;
 
     rapidjson::Document &get_raw();
@@ -47,7 +49,9 @@ protected:
 
 class Document:public DocumentBase{
 public:
+    Document(DocumentBase &base);
     Document(rapidjson::Value doc, decltype(_document.GetAllocator()) &allocator);
+
     Document(const std::string_view json_str);
     /// @brief parse json from some segment of buffers,
     /// where uint8_t* points to start of this segment and size_t indicates the length of this segment
@@ -78,6 +82,7 @@ private:
 ********************************/
 class DocumentBatch:public DocumentBase{
 public:
+    DocumentBatch(DocumentBase &base);
     DocumentBatch(const std::string &collection_name,const std::string_view json_str);
     /// @brief parse json from some segment of buffers,
     /// where uint8_t* points to start of this segment and size_t indicates the length of this segment

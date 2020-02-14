@@ -26,8 +26,8 @@ file(GLOB SOURCES
     utility/*.h
     utility/*.cpp
     utility/*.hpp
-    *.h
-    *.cpp
+    Skilo.h
+    Skilo.cpp
 )
 
 set(BUILD_DEPS "yes" CACHE STRING "")

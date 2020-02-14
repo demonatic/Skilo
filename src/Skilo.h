@@ -17,19 +17,25 @@ class SkiloServer
         HttpRequest *req;
         HttpResponse *resp;
     };
-    using SkiloReqHandler=std::function<void(const SegmentBuf &json,Status &res,QueryContext &context)>;
+    using SkiloReqHandler=std::function<void(const SegmentBuf &json,Status &status,QueryContext &context)>;
 
 public:
     SkiloServer(const std::string &db_path);
+    bool listen();
 
-    void skilo_create_collection(const SegmentBuf &json,Status &res,QueryContext &context);
+private:
+    ///Route: POST /collections
+    void skilo_create_collection(const SegmentBuf &json,Status &status,QueryContext &context);
 
-    void skilo_add_document(const SegmentBuf &json,Status &res,QueryContext &context);
+    ///Route: POST /collections/<collection_name>/documents
+    void skilo_add_document(const SegmentBuf &json,Status &status,QueryContext &context);
 
-    void skilo_query_collection(const SegmentBuf &json,Status &res,QueryContext &context);
+    ///Route: GET /collections/<collection_name>/documents
+    void skilo_query_collection(const SegmentBuf &json,Status &status,QueryContext &context);
 
 private:
     std::string extract_collection_name(const HttpRequest *req) const;
+
     void init_http_route(Rinx::RxProtocolHttp1Factory &http1);
 
     void handle_request(HttpRequest &req,HttpResponse &resp,const SkiloReqHandler handler);

@@ -98,6 +98,38 @@ Status Skilo::CollectionManager::add_document(const std::string &collection_name
     return Status{RetCode::CREATED,"add document success"};
 }
 
+Status CollectionManager::add_document_batch(const string &collection_name, DocumentBatch &doc_batch)
+{
+    try {
+        Collection *collection=this->get_collection(collection_name);
+        if(!collection){
+            throw NotFoundException("collection \""+collection_name+"\" not exist");
+        }
+        for(Document &doc:doc_batch.get_docs()){
+            if(collection->contain_document(doc.get_doc_id())){
+                throw ConflictException("The collection with name `"+collection_name+"` already exists");
+            }
+            collection->add_new_document(doc);
+        }
+
+    } catch (const InvalidFormatException &err){
+        return Status{RetCode::BAD_REQUEST,err.what()};
+
+    } catch(const InternalServerException &err){
+        return Status{RetCode::INTERNAL_SERVER_ERROR,err.what()};
+    }
+    catch(const NotFoundException &err){
+        return Status{RetCode::NOT_FOUND,err.what()};
+    }
+    catch(const ConflictException &err){
+        return Status{RetCode::CONFLICT,err.what()};
+    }
+    catch(const std::exception &err){
+        return Status{RetCode::INTERNAL_SERVER_ERROR,err.what()};
+    }
+    return Status{RetCode::CREATED,"add document success"};
+}
+
 Status CollectionManager::search(const Query &query_info) const
 {
      std::string query_result;
