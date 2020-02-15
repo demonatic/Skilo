@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
-#include "../../src/core/CollectionManager.h"
+#include "core/CollectionManager.h"
 
 using namespace testing;
 using namespace std;
 using namespace Skilo;
 
-TEST(COLLECTION_MANAGER_TEST,ADD_DOC_TEST){
+TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
     bool init=false;
     CollectionManager collection_manager("/tmp/skilo6");
     std::string schema_str="{\
@@ -103,7 +103,6 @@ TEST(COLLECTION_MANAGER_TEST,ADD_DOC_TEST){
                               }";
 
      //collection1
-
      CollectionMeta collection_meta(schema_str);
      string collection_name=collection_meta.get_collection_name();
      if(init){
@@ -111,7 +110,6 @@ TEST(COLLECTION_MANAGER_TEST,ADD_DOC_TEST){
          cout<<create_res.description<<endl;
          EXPECT_TRUE(create_res.code==RetCode::CREATED);
      }
-
 
      //collection2
      CollectionMeta collection_meta2(schema_str2);
