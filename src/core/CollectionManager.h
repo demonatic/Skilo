@@ -10,7 +10,7 @@ struct Status;
 class CollectionManager
 {
 public:
-    CollectionManager(const std::string &db_path);
+    CollectionManager(const SkiloConfig &config);
 
     void init_collections();
     Status create_collection(CollectionMeta &collection_meta);
@@ -26,6 +26,8 @@ private:
     uint32_t get_next_collection_id();
 
 private:
+    const SkiloConfig &_config;
+
     std::unordered_map<std::string,uint32_t> _collection_name_id_map;
     std::unordered_map<uint32_t,std::unique_ptr<Collection>> _collection_map;
 

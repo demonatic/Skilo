@@ -6,7 +6,8 @@
 #include "Document.h"
 #include "schema/Schema.h"
 #include "index/IndexWriter.h"
-#include "../storage/StorageService.h"
+#include "storage/StorageService.h"
+#include "SkiloConfig.h"
 
 namespace Skilo {
 
@@ -15,7 +16,7 @@ using Storage::StorageService;
 class Collection
 {
 public:
-    Collection(const CollectionMeta &collection_meta,StorageService *storage_service);
+    Collection(const CollectionMeta &collection_meta,StorageService *storage_service,const SkiloConfig &config);
 
     /// @brief read collection's documents from storage and index them
     void build_index();
@@ -48,6 +49,8 @@ private:
     std::unique_ptr<Index::TokenizeStrategy> _tokenizer;
 
     StorageService *_storage_service;
+
+    const SkiloConfig &_config;
 };
 
 

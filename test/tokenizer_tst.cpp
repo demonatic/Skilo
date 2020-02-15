@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "../../src/core/index/Tokenizer.h"
+#include "core/index/Tokenizer.h"
 
 using namespace testing;
 using namespace std;
@@ -8,7 +8,7 @@ using namespace Skilo::Index;
 
 TEST(TOKENIZER_TEST,JIEBA_TEST) {
 
-    JiebaTokenizer tokenizer("/home/demonatic/Projects/Engineering Practice/Skilo/3rd/dict/");
+    JiebaTokenizer tokenizer("../3rd/dict/");
     string s1="我是手扶拖拉机专业的,21世纪是拖拉机的世纪";
     std::unordered_map<std::string, std::vector<uint32_t>> r1=tokenizer.tokenize(s1);
     cout<<"<---sentence="<<s1<<"--->"<<endl;

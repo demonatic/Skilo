@@ -5,8 +5,8 @@ namespace Skilo {
 
 using namespace Schema;
 
-Collection::Collection(const CollectionMeta &collection_meta,StorageService *storage_service):
-    _schema(collection_meta),_indexes(_schema),_storage_service(storage_service)
+Collection::Collection(const CollectionMeta &collection_meta,StorageService *storage_service,const SkiloConfig &config):
+    _schema(collection_meta),_indexes(_schema),_storage_service(storage_service),_config(config)
 {
     _collection_id=collection_meta.get_collection_id();
     _collection_name=collection_meta.get_collection_name();
@@ -90,7 +90,7 @@ std::unique_ptr<Index::TokenizeStrategy> Collection::get_tokenize_strategy(const
     using strategy_factory=std::function<std::unique_ptr<Index::TokenizeStrategy>()>;
     static const std::unordered_map<std::string,strategy_factory> factories{
         {"default",[](){return std::make_unique<Index::DefaultTokenizer>();}},
-        {"jieba",[](){return std::make_unique<Index::JiebaTokenizer>("/home/demonatic/Projects/Engineering Practice/Skilo/3rd/dict/");}}
+        {"jieba",[](){return std::make_unique<Index::JiebaTokenizer>(SkiloConfig::get_conf<std::string>("extensions.dict_dir"));}}
     };
     auto it=factories.find(tokenizer_name);
     return it!=factories.end()?it->second():get_tokenize_strategy("default");

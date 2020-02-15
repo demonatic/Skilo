@@ -9,17 +9,16 @@ using Rinx::HttpStatusCode;
                                                 static_cast<SkiloReqHandler>(std::bind(&__handler__,this,\
                                                    std::placeholders::_1,std::placeholders::_2,std::placeholders::_3))))
 
-SkiloServer::SkiloServer(const std::string &db_path):_collection_manager(db_path)
+SkiloServer::SkiloServer(const SkiloConfig &config):_config(config),_collection_manager(config)
 {
-    nanolog::initialize(nanolog::GuaranteedLogger(),"/tmp/","rinx_log",20);
-
+    nanolog::initialize(nanolog::GuaranteedLogger(),config.get_log_dir(),"log",20);
 }
 
 bool SkiloServer::listen()
 {
     Rinx::RxProtocolHttp1Factory http1;
     this->init_http_route(http1);
-    return _server.listen("127.0.0.1",8080,http1);
+    return _server.listen(_config.get_listen_address(),_config.get_listen_port(),http1);
 }
 
 void SkiloServer::skilo_create_collection(const SegmentBuf &json,Status &status,QueryContext &)

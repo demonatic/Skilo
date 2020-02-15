@@ -20,7 +20,7 @@ class SkiloServer
     using SkiloReqHandler=std::function<void(const SegmentBuf &json,Status &status,QueryContext &context)>;
 
 public:
-    SkiloServer(const std::string &db_path);
+    SkiloServer(const SkiloConfig &config);
     bool listen();
 
 private:
@@ -41,7 +41,10 @@ private:
     void handle_request(HttpRequest &req,HttpResponse &resp,const SkiloReqHandler handler);
 
 private:
+    const SkiloConfig &_config;
+
     Rinx::RxServer _server;
+
     CollectionManager _collection_manager;
 };
 

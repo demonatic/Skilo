@@ -4,7 +4,8 @@
 
 namespace Skilo {
 
-CollectionManager::CollectionManager(const std::string &db_path):_storage_service(std::make_unique<StorageService>(db_path))
+CollectionManager::CollectionManager(const SkiloConfig &config)
+    :_config(config),_storage_service(std::make_unique<StorageService>(config.get_db_dir()))
 {
    this->init_collections();
 }
@@ -19,7 +20,7 @@ void CollectionManager::init_collections()
     for(CollectionMeta &meta:collection_meta){
         init_futures.emplace_back(std::async([this,&meta](){
             LOG(INFO)<<"Loading collection \""<<meta.get_collection_name()<<"\"";
-            return std::make_unique<Collection>(meta,_storage_service.get());
+            return std::make_unique<Collection>(meta,_storage_service.get(),_config);
         }));
     }
 
@@ -51,7 +52,7 @@ Status CollectionManager::create_collection(CollectionMeta &collection_meta)
             throw InternalServerException("Could not write meta data to on disk storage");
         }
 
-        std::unique_ptr<Collection> new_colletion=std::make_unique<Collection>(collection_meta,_storage_service.get());
+        std::unique_ptr<Collection> new_colletion=std::make_unique<Collection>(collection_meta,_storage_service.get(),_config);
         _collection_name_id_map[collection_name]=collection_id;
         _collection_map[collection_id]=std::move(new_colletion);
         LOG(INFO)<<"Collection \""<<collection_name<<"\" id="<<collection_id<<" has created";

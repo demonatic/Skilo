@@ -7,7 +7,8 @@ using namespace Skilo;
 
 TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
     bool init=false;
-    CollectionManager collection_manager("/tmp/skilo6");
+    static SkiloConfig conf;
+    CollectionManager collection_manager(conf);
     std::string schema_str="{\
                             \"name\":\"recipe\",\
                             \"tokenizer\":\"jieba\",\

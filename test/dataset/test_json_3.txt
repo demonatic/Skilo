@@ -1,0 +1,28 @@
+{"info": 
+[{
+  "City": "Kopral",
+  "State": "I",
+  "Country": "Indonesia"
+}, {
+  "City": "Wootton",
+  "State": "England",
+  "Country": "United Kingdom"
+}, {
+  "City": "Ust’-Kachka",
+  "State": "R1",
+  "Country": "Russia"
+}, {
+  "City": "Viedma",
+  "State": "A",
+  "Country": "Argentina"
+}, {
+  "City": "Novopavlovsk",
+  "State": "R2",
+  "Country": "Russia"
+}, {
+  "City": "Melaka",
+  "State": "M",
+  "Country": "Malaysia"
+}]
+}
+

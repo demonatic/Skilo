@@ -45,11 +45,11 @@ public:
     size_t load_stop_words(const std::string &file_path);
 
 private:
-    const char* const DICT_PATH = "jieba.dict.utf8";
-    const char* const HMM_PATH = "hmm_model.utf8";
-    const char* const USER_DICT_PATH = "user.dict.utf8";
-    const char* const IDF_PATH = "idf.utf8";
-    const char* const STOP_WORD_PATH = "stop_words.utf8";
+    const char* const DICT_PATH = "/jieba.dict.utf8";
+    const char* const HMM_PATH = "/hmm_model.utf8";
+    const char* const USER_DICT_PATH = "/user.dict.utf8";
+    const char* const IDF_PATH = "/idf.utf8";
+    const char* const STOP_WORD_PATH = "/stop_words.utf8";
 
     cppjieba::Jieba _jieba;
     std::unordered_set<std::string> _stop_words;

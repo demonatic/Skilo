@@ -19,7 +19,8 @@ using namespace std;
 using namespace Skilo;
 
 TEST(SKILO_SERVER_TEST,CRUD_TEST){
-    SkiloServer server("/tmp/skilo_server4");
+    SkiloConfig config;
+    SkiloServer server(config);
     EXPECT_TRUE(server.listen());
 }
 

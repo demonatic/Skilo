@@ -28,6 +28,8 @@ file(GLOB SOURCES
     utility/*.hpp
     Skilo.h
     Skilo.cpp
+    SkiloConfig.h
+    SkiloConfig.cpp
 )
 
 set(BUILD_DEPS "yes" CACHE STRING "")
@@ -40,4 +42,4 @@ include(../cmake/CRoaring.cmake)
 include(../cmake/libfor.cmake)
 
 add_executable(Skilo main.cpp ${SOURCES})
-target_link_libraries(Skilo ${CORE_LIBS})
+target_link_libraries(Skilo ${CORE_LIBS} boost_regex)

@@ -29,27 +29,14 @@ enum FG_Color {YELLOW = 33, RED = 31, GREEN=32, WHITE = 97};
 
 int main()
 {
-//    auto log_worker = LogWorker::createLogWorker();
+    auto log_worker = LogWorker::createLogWorker();
 
-//    // logger is initialized
-//    g3::initializeLogging(log_worker.get());
+    // logger is initialized
+    g3::initializeLogging(log_worker.get());
 
-//    auto sinkHandle = log_worker->addSink(std::make_unique<ColorCoutSink>(),
-//                                     &ColorCoutSink::ReceiveLogMessage);
-//    LOG(DEBUG) << "g3 log test";
-
-    Roaring r1;
-//    for (uint32_t i = 1; i < 10; i++) {
-//      r1.add(i);
-//    }
-    r1.add(5);
-    r1.add(1);
-    r1.add(8);
-    r1.add(9);
-    r1.add(3);
-    for(Roaring::const_iterator i = r1.begin() ; i != r1.end() ; i++) {
-       cout<<*i<<endl;
-    }
+    auto sinkHandle = log_worker->addSink(std::make_unique<ColorCoutSink>(),
+                                     &ColorCoutSink::ReceiveLogMessage);
+    LOG(DEBUG) << "g3 log test";
 
 
     return 0;
