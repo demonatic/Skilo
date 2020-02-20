@@ -37,7 +37,6 @@ const std::string &SkiloConfig::get_listen_address() const
 
 const std::string &SkiloConfig::get_tokenizer_dict_dir() const
 {
-    std::cout<<"***="<<_tokenizer_dict_dir<<std::endl;
     return _tokenizer_dict_dir;
 }
 

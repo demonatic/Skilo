@@ -2,7 +2,7 @@
 #define STORAGESERVICE_H
 
 #include "StorageEngine.h"
-#include "../core/Document.h"
+#include "core/Document.h"
 
 namespace Skilo {
 namespace Storage{

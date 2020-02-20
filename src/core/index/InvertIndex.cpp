@@ -11,6 +11,7 @@ InvertIndex::InvertIndex()
 
 void InvertIndex::add_record(const IndexRecord &record)
 {
+    WriterLockGuard lock_guard(this->_index_lock);
     for(const auto &[term,offsets]:record.term_offsets){
         PostingList *posting_list=this->get_postinglist(term);
         if(!posting_list){
@@ -23,6 +24,7 @@ void InvertIndex::add_record(const IndexRecord &record)
 
 uint32_t InvertIndex::term_docs_num(const string &term) const
 {
+    ReaderLockGuard lock_guard(this->_index_lock);
     PostingList *posting_list=this->get_postinglist(term);
     return posting_list?posting_list->num_docs():0;
 }
@@ -32,61 +34,8 @@ PostingList *InvertIndex::get_postinglist(const string &term) const
     return _index.find(term.data(),term.length());
 }
 
-size_t InvertIndex::dict_size() const
-{
-    return _index.size();
-}
-
-CollectionIndexes::CollectionIndexes(const Schema::CollectionSchema &schema)
-{
-    schema.accept(*this); //create indexes according to fields in the schema
-}
-
-void CollectionIndexes::visit_field_string(const Schema::FieldString *field_string)
-{
-    auto it=field_string->attributes.find("index");
-    if(it==field_string->attributes.end())
-        return;
-
-    const Schema::Field::ArrtibuteValue &index_option_value=it->second;
-    if(std::get<bool>(index_option_value)){
-        _indexes.insert({field_string->path,InvertIndex()});
-    }
-}
-
-const InvertIndex *CollectionIndexes::get_index(const string &field_path) const
-{
-    auto field_it=this->_indexes.find(field_path);
-    return field_it!=_indexes.cend()?&field_it->second:nullptr;
-}
-
-InvertIndex *CollectionIndexes::get_index(const string &field_path)
-{
-    return const_cast<InvertIndex*>(static_cast<const CollectionIndexes*>(this)->get_index(field_path));
-}
-
-bool CollectionIndexes::contains(const string &field_path) const
-{
-    return _indexes.find(field_path)!=_indexes.end();
-}
-
-void CollectionIndexes::search_fields(const std::unordered_map<string, std::vector<uint32_t> > &query_terms,
-                                        const std::vector<string> &field_paths,Search::HitCollector &collector) const
-{
-    for(const std::string &path:field_paths){
-        if(!this->contains(path)){
-            std::string exist_fields;
-            for(const auto &[exist_field_name,index]:_indexes){
-                exist_fields.append("\""+exist_field_name+"\" ");
-            }
-            throw InvalidFormatException("field path \""+path+"\" is not found, exist fields: "+exist_fields);
-        }
-        search_field(query_terms,path,collector);
-    }
-}
-
-void CollectionIndexes::search_field(const std::unordered_map<string, std::vector<uint32_t>> &query_terms,
-                                        const std::string &field_path,Search::HitCollector &collector) const
+void InvertIndex::search_field(const std::unordered_map<string, std::vector<uint32_t>> &query_terms, const string &field_path,
+                               Search::HitCollector &collector, uint32_t total_doc_count) const
 {
     /// \brief find the conjuction doc_ids of the query terms
     /// @example:
@@ -94,22 +43,19 @@ void CollectionIndexes::search_field(const std::unordered_map<string, std::vecto
     /// query_term_B -> doc_id_2, doc_id_4, doc_id_5...
     /// query_term_C -> doc_id_5, doc_id_7, doc_id_15, doc_id 29...
     /// conjuction result: doc_id_5 ...
-    const InvertIndex *index=this->get_index(field_path);
-    if(!index||query_terms.empty()){
-        return;
-    }
 
-    std::vector<const PostingList*> candidate_postings; //for AND logic, none duplicate
+    std::vector<const PostingList*> candidate_postings; //for term AND logic, none duplicate
     std::vector<std::pair<uint32_t,const PostingList*>> query_offset_entry; //<query term offset, term postings>, for phrase match
 
+    ReaderLockGuard lock_guard(this->_index_lock);
     for(const auto &[query_term,offsets]:query_terms){
-        auto *entry=index->get_postinglist(query_term);
+        auto *entry=this->get_postinglist(query_term);
         if(!entry) return;
         candidate_postings.push_back(entry);
         for(const uint32_t &off:offsets){
             query_offset_entry.push_back({off,entry});
         }
-    }    
+    }
 
     size_t query_term_count=query_offset_entry.size();
 
@@ -196,12 +142,72 @@ void CollectionIndexes::search_field(const std::unordered_map<string, std::vecto
             // collect this hit
             if(phrase_match_count>0){
                 //TODO pass phrase count to hit context
-                Search::HitContext context{lead_doc,_doc_count,&field_path,&candidate_postings};
+                Search::HitContext context{lead_doc,total_doc_count,&field_path,&candidate_postings};
                 collector.collect(context);
             }
         }
 PHRASE_NOT_FOUND:
         void(0);
+    }
+}
+
+size_t InvertIndex::dict_size() const
+{
+    ReaderLockGuard lock_guard(this->_index_lock);
+    return _index.size();
+}
+
+CollectionIndexes::CollectionIndexes(const Schema::CollectionSchema &schema)
+{
+    schema.accept(*this); //create indexes according to fields in the schema
+}
+
+void CollectionIndexes::visit_field_string(const Schema::FieldString *field_string)
+{
+    auto it=field_string->attributes.find("index");
+    if(it==field_string->attributes.end())
+        return;
+
+    const Schema::Field::ArrtibuteValue &index_option_value=it->second;
+    if(std::get<bool>(index_option_value)){
+        _indexes.emplace(field_string->path,InvertIndex());
+    }
+}
+
+const InvertIndex *CollectionIndexes::get_index(const string &field_path) const
+{
+    auto field_it=this->_indexes.find(field_path);
+    return field_it!=_indexes.cend()?&field_it->second:nullptr;
+}
+
+InvertIndex *CollectionIndexes::get_index(const string &field_path)
+{
+    return const_cast<InvertIndex*>(static_cast<const CollectionIndexes*>(this)->get_index(field_path));
+}
+
+bool CollectionIndexes::contains(const string &field_path) const
+{
+    return _indexes.find(field_path)!=_indexes.end();
+}
+
+void CollectionIndexes::search_fields(const std::unordered_map<string, std::vector<uint32_t>> &query_terms,
+                                        const std::vector<string> &field_paths,Search::HitCollector &collector) const
+{
+    if(query_terms.empty())
+        return;
+
+    for(const std::string &path:field_paths){
+        if(!this->contains(path)){
+            std::string exist_fields;
+            for(const auto &[exist_field_name,index]:_indexes){
+                exist_fields.append("\""+exist_field_name+"\" ");
+            }
+            throw InvalidFormatException("field path \""+path+"\" is not found, exist fields: "+exist_fields);
+        }
+        const InvertIndex *index=this->get_index(path);
+        if(index){
+            index->search_field(query_terms,path,collector,_doc_count);
+        }
     }
 }
 

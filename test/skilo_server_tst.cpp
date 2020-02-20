@@ -105,7 +105,7 @@ void send_request_to_server(){
     }
 
     if(init_collection){
-            std::ifstream file("/home/demonatic/Projects/Engineering Practice/Skilo/test/document.json",ios::in|ios::ate);
+            std::ifstream file("dataset/document.json",ios::in|ios::ate);
             size_t size=file.tellg();
             file.seekg(0,ios::beg);
             string req_body(size,'\0');

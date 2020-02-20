@@ -13,12 +13,11 @@ CollectionManager::CollectionManager(const SkiloConfig &config)
 void CollectionManager::init_collections()
 {
     this->_next_collection_id=_storage_service->get_next_collection_id();
-    std::cout<<"@CollectionManager::init_collection  collection id="<<_next_collection_id<<std::endl;
     std::vector<CollectionMeta> collection_meta=_storage_service->get_all_collection_meta();
 
     std::vector<std::future<std::unique_ptr<Collection>>> init_futures;
     for(CollectionMeta &meta:collection_meta){
-        init_futures.emplace_back(std::async([this,&meta](){
+        init_futures.emplace_back(std::async([this,&meta](){ //TODO
             LOG(INFO)<<"Loading collection \""<<meta.get_collection_name()<<"\"";
             return std::make_unique<Collection>(meta,_storage_service.get(),_config);
         }));

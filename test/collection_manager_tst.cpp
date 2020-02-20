@@ -6,7 +6,7 @@ using namespace std;
 using namespace Skilo;
 
 TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
-    bool init=false;
+    bool init=true;
     static SkiloConfig conf;
     CollectionManager collection_manager(conf);
     std::string schema_str="{\
@@ -122,7 +122,7 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
      }
 
      if(init){
-         std::ifstream file("/home/demonatic/Projects/Engineering Practice/Skilo/test/document.json",ios::in|ios::ate);
+         std::ifstream file("dataset/document.json",ios::in|ios::ate);
          size_t size=file.tellg();
          file.seekg(0,ios::beg);
          string str(size,'\0');

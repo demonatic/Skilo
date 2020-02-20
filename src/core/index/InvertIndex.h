@@ -4,9 +4,10 @@
 #include <unordered_map>
 #include "Art.hpp"
 #include "PostingList.h"
-#include "../Document.h"
-#include "../schema/Schema.h"
-#include "../search/HitCollector.h"
+#include "core/Document.h"
+#include "core/schema/Schema.h"
+#include "core/search/HitCollector.h"
+#include "utility/RWLock.hpp"
 
 namespace Skilo {
 namespace Index{
@@ -23,11 +24,17 @@ public:
     void add_record(const IndexRecord &record);
 
     size_t dict_size() const;
+
     uint32_t term_docs_num(const std::string &term) const;
 
+    void search_field(const std::unordered_map<string, std::vector<uint32_t>> &query_terms,
+        const std::string &field_path,Search::HitCollector &collector,uint32_t total_doc_count) const;
+
+private:
     PostingList *get_postinglist(const std::string &term) const;
 
 private:
+    mutable RWLock _index_lock;
     Art::ARTree<PostingList> _index;
 };
 
@@ -43,8 +50,8 @@ public:
     void set_doc_num(const uint32_t doc_num);
     uint32_t get_doc_num() const;
 
-    void search_fields(const std::unordered_map<std::string, std::vector<uint32_t>> &query_terms,const std::vector<std::string> &field_paths,Search::HitCollector &collector) const;
-    void search_field(const std::unordered_map<std::string, std::vector<uint32_t>> &query_terms,const std::string &field_path,Search::HitCollector &collector) const;
+    void search_fields(const std::unordered_map<std::string, std::vector<uint32_t>> &query_terms,
+                       const std::vector<std::string> &field_paths,Search::HitCollector &collector) const;
 
 protected:
     virtual void visit_field_string(const Schema::FieldString *field_string) override;
