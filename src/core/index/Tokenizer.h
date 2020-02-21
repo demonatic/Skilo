@@ -15,7 +15,7 @@ namespace Index {
 class TokenizeStrategy
 {
 public:
-    TokenizeStrategy(const std::string &dict_dir={}); //TODO pass config
+    TokenizeStrategy(const std::string &dict_dir={});
     virtual ~TokenizeStrategy()=default;
 
     /// @return word->offsets(offsets could be empty)

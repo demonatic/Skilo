@@ -93,7 +93,7 @@ struct InnerNode:public ArtNode
 
     NodeType type;
     uint32_t prefix_len; //0-n, may larger than PREFIX_VEC_LEN
-    static constexpr uint32_t PREFIX_VEC_LEN=7;
+    static constexpr uint32_t PREFIX_VEC_LEN=10;
     unsigned char prefix[PREFIX_VEC_LEN];
 };
 
@@ -253,7 +253,7 @@ public:
 
     ArtNode48 *shrink();
 
-    uint16_t num_children; //0-256
+    uint16_t num_children; //49-256
     ArtNode *children[256];
 };
 

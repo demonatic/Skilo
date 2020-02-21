@@ -14,12 +14,12 @@ public:
     /// @param child_key can be any byte sequence doesn't have '\0' except it's end
     /// @param val's resource will be hold by ARTree
     /// @reuturn nullptr if insert success, otherwise return the already existing value
-    T* insert(const char *child_key,size_t child_key_len,T *val);
+    T* insert(const char *key,size_t key_len,T *val);
 
     /// @return nullptr if not find, otherwise return the pointer to the value
-    T *find(const char *child_key,size_t child_key_len) const;
+    T *find(const char *key,size_t key_len) const;
 
-    void erase(const char *child_key,size_t child_key_len);
+    void erase(const char *key,size_t key_len);
 
     size_t size() const;
 
@@ -44,9 +44,9 @@ ARTree<T>::~ARTree(){
 }
 
 template<class T>
-T *ARTree<T>::insert(const char *child_key, size_t child_key_len,T *val)
+T *ARTree<T>::insert(const char *key, size_t key_len,T *val)
 {
-    T *existed_val=insert_impl(_root,_root,reinterpret_cast<const unsigned char*>(child_key),child_key_len,0,val);
+    T *existed_val=insert_impl(_root,_root,reinterpret_cast<const unsigned char*>(key),key_len,0,val);
     if(!existed_val)
         _size++;
 
@@ -58,18 +58,18 @@ T *ARTree<T>::insert(const char *child_key, size_t child_key_len,T *val)
 /// Instead, when a lookup arrives at a leaf its child_key must be compared to the search
 /// child_key to ensure that no “wrong turn” was taken
 template<class T>
-T *ARTree<T>::find(const char *child_key,size_t child_key_len) const
+T *ARTree<T>::find(const char *key,size_t key_len) const
 {
     ArtNode *node=_root;
     size_t depth=0;
     while(node){
         if(is_leaf(node)){
             ArtLeaf<T> *leaf=ArtLeaf<T>::as_leaf_node(node);
-            return leaf->key_match(reinterpret_cast<const unsigned char*>(child_key),child_key_len)?leaf->data:nullptr;
+            return leaf->key_match(reinterpret_cast<const unsigned char*>(key),key_len)?leaf->data:nullptr;
         }
         InnerNode *inner_node=as_inner_node(node);
         depth+=inner_node->prefix_len;
-        ArtNode::Ptr *child=this->find_child(inner_node,child_key[depth]);
+        ArtNode::Ptr *child=this->find_child(inner_node,key[depth]);
 
         node=child?*child:nullptr;
         depth++;
@@ -78,9 +78,9 @@ T *ARTree<T>::find(const char *child_key,size_t child_key_len) const
 }
 
 template<class T>
-void ARTree<T>::erase(const char *child_key, size_t child_key_len)
+void ARTree<T>::erase(const char *key, size_t key_len)
 {
-    bool ok=this->erase_impl(_root,_root,reinterpret_cast<const unsigned char*>(child_key),child_key_len,0);
+    bool ok=this->erase_impl(_root,_root,reinterpret_cast<const unsigned char*>(key),key_len,0);
     if(ok) _size--;
 }
 

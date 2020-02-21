@@ -52,6 +52,7 @@ enum class RetCode{
 struct Status{
     RetCode code=RetCode::UNDEFINED;
     std::string description;
+
 };
 
 } //namespace Skilo
