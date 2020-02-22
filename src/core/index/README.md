@@ -31,7 +31,6 @@
 ```
 
 ​	对于传统的Trie树有许多更好的实现方式，如DoubleArrayTrie(DAT)树，但Skilo采用了Adative Radix Tree(ART)树，来自论文[The Adaptive Radix Tree: ARTful Indexing for Main-Memory Databases](https://db.in.tum.de/~leis/papers/ART.pdf "Title") ，它最大的特性是节点大小可根据实际孩子个数动态可变，同时使用路径压缩(Path Compression)和惰性展开(Lazy Expansion)机制来减小树高。
-
 ![image-20200221223648059](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/ART.png)
 
 ​	ART树有四种不同大小的Inner节点，分别对应至多有4, 16, 48, 256种孩子的情况。**逻辑上**它的节点等价于：
@@ -49,7 +48,7 @@ union ArtNode {
 
 ```c++
 struct ArtNode4:InnerNode{
-	ArtNode::Ptr* find_child(const unsigned char key){
+    ArtNode::Ptr* find_child(const unsigned char key){
         ArtNode::Ptr *child=nullptr;
         for(int i=0;i<num_children;i++){
             if(keys[i]==key){
@@ -58,7 +57,7 @@ struct ArtNode4:InnerNode{
         }
         return child;
     }
-	uint8_t num_children;
+    uint8_t num_children;
     unsigned char keys[4];
     ArtNode *children[4];
 }
@@ -69,7 +68,7 @@ struct ArtNode4:InnerNode{
 ```c++
 struct ArtNode16:InnerNode{
  ArtNode::Ptr* find_child(const unsigned char key){
-        int match_result= 	_mm_movemask_epi8(_mm_cmpeq_epi8(_mm_set1_epi8(key),_mm_loadu_si128((__m128i *)keys)));
+        int match_result=_mm_movemask_epi8(_mm_cmpeq_epi8(_mm_set1_epi8(key),_mm_loadu_si128((__m128i *)keys)));
          // build a mask to select only the first _num_children values from the comparison
         int mask=(1<<num_children)-1;
         int bit_field=match_result&mask;
@@ -77,7 +76,7 @@ struct ArtNode16:InnerNode{
         int index=__builtin_ctz(bit_field);
         return bit_field!=0?&children[index]:nullptr;
     }
-	uint8_t num_children;
+    uint8_t num_children;
     unsigned char keys[16];
     ArtNode *children[16];
 }
@@ -89,11 +88,11 @@ struct ArtNode16:InnerNode{
 
 ```c++
 struct ArtNode48:InnerNode{
-	ArtNode::Ptr* find_child(const unsigned char key){
+    ArtNode::Ptr* find_child(const unsigned char key){
         unsigned char index=child_indexs[key];
         return index?&children[index-1]:nullptr;
     }
-	uint8_t num_children;
+    uint8_t num_children;
     unsigned char child_indexs[256]; //index=k represents at children[k-1]
     ArtNode *children[48];
 }
@@ -105,7 +104,7 @@ struct ArtNode48:InnerNode{
 
 ```c++
 struct ArtNode256:InnerNode{
-	ArtNode::Ptr* find_child(const unsigned char key){
+    ArtNode::Ptr* find_child(const unsigned char key){
         ArtNode *child=children[key];
         return child!=nullptr?&children[key]:nullptr;
     }
@@ -145,7 +144,7 @@ struct InnerNode:public ArtNode
 ```c
 template<class T>
 struct ArtLeaf:public ArtNode{
-  	static constexpr uint32_t key_local_capacity=16;
+    static constexpr uint32_t key_local_capacity=16;
     union{
         unsigned char *key; //a full key, should contain '\0'
         unsigned char key_local[key_local_capacity];
@@ -196,7 +195,7 @@ T *ARTree<T>::find(const char *key,size_t key_len) const
 | 查询耗时(s) | 2.9  |        5.0         |   23.4   |
 | 删除耗时(s) | 5.1  |        5.4         |   30.2   |
 
-可以看到ART树查询性能比hash表还快一些，并且远超过红黑树，与上述ART树论文中的描述基本一致。
+可以看到ART树查询性能比hash表还快一些，并且远超过红黑树，与上述ART树论文中的描述基本一致。比较适合作为搜索引擎字典的实现。
 
 * 正向索引
 

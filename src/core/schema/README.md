@@ -41,7 +41,7 @@
 
 ​	Skilo会根据该Schema构造出如下一棵Field树：
 
-​	![]([https://github.com/demonatic/Image-Hosting/blob/master/Skilo/Skilo%20Schema.png](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/Skilo Schema.png))
+![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/Skilo%20Schema.png)
 
 ​	每个Field主要字段有field名称,和类型、具有层级关系的路径，属性表和子field表：
 
