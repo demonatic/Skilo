@@ -16,4 +16,4 @@ Skilo 大体分为如下几个关键部分：
   ​	我编写了一个服务端的HTTP库[Rinx](https://github.com/demonatic/Rinx "Title") 来让Skilo能够比较方便地对外提供HTTP服务。Skilo使用RESTful风格的API, 使用Json格式与客户端交换数据。
 
 Skilo 整体架构图如下所示：
-<img src="https://github.com/demonatic/Image-Hosting/blob/master/Skilo/Skilo%20Architecture.png" style="zoom:50%;" />
+<img src="https://github.com/demonatic/Image-Hosting/blob/master/Skilo/Skilo%20Architecture.png" style="zoom:25%;" />
