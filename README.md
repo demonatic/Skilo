@@ -7,9 +7,9 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
 ### Documents
 
 ***
-| 0x01     | 0x02     | 0x03       | 0x04 |
-| -------- | -------- | ---------- | ---- |
-| 项目概览 | 索引实现 | Schema实现 |      |
+| 0x01     | 0x02     | 0x03       | 0x04     |
+| -------- | -------- | ---------- | -------- |
+| [项目概览](./src/README.md) | [索引实现](./src/core/index/README.md) |  [Schema实现](./src/core/schema/README.md)| [查询实现](./src/core/search/README.md) |
 
 
 ### Feature
@@ -70,7 +70,7 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
             }
         }
     }
-}
+  }
   ```
 
 * Add a document to collection
@@ -78,7 +78,6 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
   ```http
   POST /collections/<collection_name>/documents
   ```
-
   ```json
   {
       "id":1001,
