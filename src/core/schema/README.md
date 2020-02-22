@@ -189,10 +189,10 @@ public:
     virtual void visit_field_string(const Schema::FieldString *field_string,const rapidjson::Value &document) override{
         InvertIndex *index=_indexes.get_index(field_string->path);//根据field_path找到索引
         if(!index) return;
-		//分词
+        //分词
         std::unordered_map<std::string, std::vector<uint32_t>> word_offsets;
         word_offsets=_tokenizer->tokenize(document.GetString());
-		//将处理后的内容插入该字段对应的倒排索引中
+        //将处理后的内容插入该字段对应的倒排索引中
         IndexRecord record{_seq_id,std::move(word_offsets)};
         index->add_record(record);
     }

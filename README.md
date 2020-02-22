@@ -136,5 +136,7 @@ Unit Test  and Integration Testing are based on [GoogleTest](https://github.com/
 #### Reference
 
 [Beating hash tables with trees? The ART-ful radix trie](https://www.the-paper-trail.org/post/art-paper-notes/ "Title")
+
 [The Adaptive Radix Tree: ARTful Indexing for Main-Memory Databases](https://db.in.tum.de/~leis/papers/ART.pdf "Title") 
+
 [Frame of Reference and Roaring Bitmaps](https://www.elastic.co/cn/blog/frame-of-reference-and-roaring-bitmaps "Title") 
