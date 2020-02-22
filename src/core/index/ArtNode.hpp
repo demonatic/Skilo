@@ -15,16 +15,27 @@ struct ArtNode{ using Ptr=ArtNode*; };
 template<class T>
 struct ArtLeaf:public ArtNode{
     ~ArtLeaf(){
-        free(key);
+        if(!is_key_local()){
+            free(key);
+        }
         delete data;
+    }
+
+    bool is_key_local(){
+        return this->key_len<key_local_capacity;
     }
 
     static ArtLeaf* make_leaf(const unsigned char *key,size_t key_len,T *value){
         ArtLeaf *leaf=new ArtLeaf;
-        leaf->key=static_cast<unsigned char *>(malloc(key_len+1));
-        std::memcpy(leaf->key,key,key_len+1); //1 for '\0'
         leaf->key_len=key_len;
         leaf->data=value;
+        if(leaf->is_key_local()){
+             std::memcpy(leaf->key_local,key,key_len+1); //1 for '\0'
+        }
+        else{
+            leaf->key=static_cast<unsigned char *>(malloc(key_len+1));
+            std::memcpy(leaf->key,key,key_len+1); //1 for '\0'
+        }
         return leaf;
     }
 
@@ -36,10 +47,14 @@ struct ArtLeaf:public ArtNode{
         if(key_len!=this->key_len){
             return false;
         }
-        return std::memcmp(key,this->key,key_len)==0;
+        return std::memcmp(key,is_key_local()?key_local:this->key,key_len)==0;
     }
 
-    unsigned char *key; //a full key, should contain '\0'
+    static constexpr uint32_t key_local_capacity=16;
+    union{
+        unsigned char *key; //a full key, should contain '\0'
+        unsigned char key_local[key_local_capacity];
+    };
     uint32_t key_len;
     T *data;
 };
@@ -112,23 +127,30 @@ struct ArtNode4:public InnerNode{
         for(int i=0;i<num_children;i++){
             if(keys[i]==key){
                 child=&children[i];
-                break;
             }
         }
         return child;
     }
 
     void add_child(const unsigned char key,ArtNode *child_node){
-        keys[num_children]=key;
-        children[num_children]=child_node;
+         //find correct insert position to keep it sorted
+        size_t insert_pos=0;
+        while(insert_pos<num_children&&key>=keys[insert_pos]) insert_pos++;
+
+        size_t move_size=num_children-insert_pos;
+        std::memmove(keys+insert_pos+1,keys+insert_pos,move_size);
+        std::memmove(children+insert_pos+1,children+insert_pos,move_size*sizeof(ArtNode*));
+
+        keys[insert_pos]=key;
+        children[insert_pos]=child_node;
         num_children++;
     }
     
     void remove_child(ArtNode::Ptr *child_addr){
-        int pos=child_addr-children;
-        int last_index=num_children-1;
-        keys[pos]=keys[last_index];
-        children[pos]=children[last_index];
+        size_t pos=child_addr-children;
+        size_t move_len=num_children-pos-1;
+        std::memmove(keys+pos,keys+pos+1,move_len);
+        std::memmove(children+pos,children+pos+1,move_len*sizeof(ArtNode*));
         num_children--;
     }
 
@@ -158,16 +180,27 @@ public:
     }
 
     void add_child(const unsigned char key,ArtNode *child_node){
-        keys[num_children]=key;
-        children[num_children]=child_node;
+        size_t insert_pos;
+        for(int i=num_children-1;;i--){
+            if(key<keys[i]&&i>=0){
+                keys[i+1]=keys[i];
+                children[i+1]=children[i];
+            }
+            else{
+                insert_pos=i+1;
+                break;
+            }
+        }
+        keys[insert_pos]=key;
+        children[insert_pos]=child_node;
         num_children++;
     }
     
     void remove_child(ArtNode::Ptr *child_addr){
-        int pos=child_addr-children;
-        int last_index=num_children-1;
-        keys[pos]=keys[last_index];
-        children[pos]=children[last_index];
+        size_t erase_pos=child_addr-children;
+        size_t move_size=num_children-erase_pos-1;
+        std::memmove(keys+erase_pos,keys+erase_pos+1,move_size);
+        std::memmove(children+erase_pos,children+erase_pos+1,move_size*sizeof(ArtNode*));
         num_children--;
     }
 

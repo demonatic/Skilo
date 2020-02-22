@@ -11,11 +11,12 @@ public:
     ARTree():_root(nullptr),_size(0){}
     ~ARTree();
 
-    /// @param child_key can be any byte sequence doesn't have '\0' except it's end
-    /// @param val's resource will be hold by ARTree
-    /// @reuturn nullptr if insert success, otherwise return the already existing value
+    /// @param key can be non-null-terminate string
+    /// @note val's resource will be hold by ARTree
+    /// @return nullptr if insert success, otherwise return the already existing value
     T* insert(const char *key,size_t key_len,T *val);
 
+    /// @param key: can be non-null-terminate string
     /// @return nullptr if not find, otherwise return the pointer to the value
     T *find(const char *key,size_t key_len) const;
 
@@ -68,7 +69,10 @@ T *ARTree<T>::find(const char *key,size_t key_len) const
             return leaf->key_match(reinterpret_cast<const unsigned char*>(key),key_len)?leaf->data:nullptr;
         }
         InnerNode *inner_node=as_inner_node(node);
-        depth+=inner_node->prefix_len;
+        if(inner_node->prefix_len){
+            depth+=inner_node->prefix_len;
+        }
+
         ArtNode::Ptr *child=this->find_child(inner_node,key[depth]);
 
         node=child?*child:nullptr;
@@ -108,12 +112,13 @@ T *ARTree<T>::insert_impl(ArtNode *node,ArtNode::Ptr &node_ptr, const unsigned c
         ArtNode4 *new_node=new ArtNode4();
 
         size_t match_cur; //the longest common prefix length of child_key in the leaf node and 'child_key'
-        for(match_cur=depth;match_cur-depth<InnerNode::PREFIX_VEC_LEN&&key[match_cur]==leaf->key[match_cur];match_cur++){
+        const unsigned char *leaf_key=leaf->is_key_local()?leaf->key_local:leaf->key;
+        for(match_cur=depth;match_cur-depth<InnerNode::PREFIX_VEC_LEN&&key[match_cur]==leaf_key[match_cur];match_cur++){
             new_node->prefix[match_cur-depth]=key[match_cur];
         }
         // the prefix_len field may longer than the actual prefix array
         new_node->prefix_len=match_cur-depth;
-        new_node->add_child(leaf->key[match_cur],store_as_leaf(node));
+        new_node->add_child(leaf_key[match_cur],store_as_leaf(node));
 
         ArtLeaf<T> *insert_leaf=ArtLeaf<T>::make_leaf(key,key_len,val);
         new_node->add_child(key[match_cur],store_as_leaf(insert_leaf));
@@ -142,7 +147,7 @@ T *ARTree<T>::insert_impl(ArtNode *node,ArtNode::Ptr &node_ptr, const unsigned c
 
         const unsigned char *copy_src=prefix_child_key+match_len+1;
         size_t copy_len=std::min(inner_node->prefix_len,InnerNode::PREFIX_VEC_LEN);
-        if(inner_node->prefix_len<=InnerNode::PREFIX_VEC_LEN){      
+        if(inner_node->prefix_len<=InnerNode::PREFIX_VEC_LEN){
             memmove(inner_node->prefix,copy_src,copy_len);
         }
         else{
@@ -198,7 +203,6 @@ bool ARTree<T>::erase_impl(ArtNode *node, ArtNode::Ptr &node_ptr, const unsigned
         this->remove_child(inner_node,node_ptr,child,child_key[depth]);
         delete leaf;
         return true;
-
     }
     return erase_impl(*child,*child,child_key,child_key_len,depth+1);
 }

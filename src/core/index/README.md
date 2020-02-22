@@ -140,7 +140,22 @@ struct InnerNode:public ArtNode
 
 ​	对于插入来说，如果实际prefix_len超出了prefix实际存储长度PREFIX_VEC_LEN，并且路径展开产生新分支处的位置同样也超过了PREFIX_VEC_LEN，那么此时需要寻找下层的某个叶节点根据其中存储的完整的key来获取实际的prefix内容，然而这种情况通常很少发生。
 
-​	对于查询来说，Skilo采取乐观搜索策略，只不断根据InnerNode的prefix_len域获得引起节点分叉的key对应字节，用其来快速导向下层的candidate节点，当一直往下到达叶节点时再一次性比较叶节点存储的key和查询的key是否一致来防止误匹配发生。由此，查询的代码可以很简洁高效:
+​	叶节点存储了完整的key，使用类似std::string SSO的思路，通过union结构对于不超过15字节的key放入局部的栈空间，超过则为key分配堆内存。通常utf-8编码的中文大小为3字节，分词后基本很少有超过5个字的词元，因此通常都会使用栈空间。
+
+```c
+template<class T>
+struct ArtLeaf:public ArtNode{
+  	static constexpr uint32_t key_local_capacity=16;
+    union{
+        unsigned char *key; //a full key, should contain '\0'
+        unsigned char key_local[key_local_capacity];
+    };
+    uint32_t key_len;
+    T *data;
+}
+```
+
+​	对于查询来说，Skilo采取乐观搜索策略，只不断根据InnerNode的prefix_len域获得引起节点分叉的key对应字节，用其来快速导向下层的candidate节点，当一直往下到达叶节点时再一次性比较叶节点存储的key和查询的key是否一致来防止误匹配发生。由此，查询的代码可以很简洁:
 
 ```c++
 template<class T>
@@ -151,7 +166,7 @@ T *ARTree<T>::find(const char *key,size_t key_len) const
     while(node){
         if(is_leaf(node)){
             ArtLeaf<T> *leaf=ArtLeaf<T>::as_leaf_node(node);
-            //一次比较待查询key和叶节点key是否相等
+            //一次性比较待查询key和叶节点key是否相等
             return leaf->key_match(key,key_len)?leaf->data:nullptr;
         }
         InnerNode *inner_node=as_inner_node(node);
@@ -165,7 +180,121 @@ T *ARTree<T>::find(const char *key,size_t key_len) const
 }
 ```
 
-​	
+​	ART树在保持key有序的同时还可以支持前缀查询，这在搜索引擎字典中有很多用处，例如搜索提示就需要根据用户已经输入的内容找后续可能的匹配。
 
-Skilo中正向索引通常维护文档id到文档具体内容的映射，在Skilo中这一部分主要由KV存储引擎帮助我们完成。RocksDB ...
+|          | Adaptive Radix Tree | Red Black Tree | Hash Table |
+| -------- | ------------------- | :------------- | ---------- |
+| 点查询   | √                   | √              | √          |
+| key有序  | √                   | √              | ×          |
+| 前缀查询 | √                   | ×              | ×          |
+
+​	我们使用mt随机数引擎生成一千万个长度为15字节均匀分布的key，对我们的ART树实现和std::map以及std::unordered_map进行插入，随机查询，删除测试，其中unordered_map并未预设bucket数量，结果如下：
+
+|             | ART  | std::unordered_map | std::map |
+| :---------: | :--: | :----------------: | :------: |
+| 插入耗时(s) | 4.9  |        11.1        |   20.3   |
+| 查询耗时(s) | 2.9  |        5.0         |   23.4   |
+| 删除耗时(s) | 5.1  |        5.4         |   30.2   |
+
+可以看到ART树查询性能比hash表还快一些，并且远超过红黑树，与上述ART树论文中的描述基本一致。
+
+* 正向索引
+
+​	Skilo中正向索引通常维护文档id到文档具体内容的映射，在Skilo中这一部分主要由KV存储引擎帮助我们完成。在倒排索引中查询到目标文档id后再根据正向索引查询得到文档的具体内容。
+
+* #### 倒排列表实现
+  ​	Skilo在倒排列表中存储了每个出现该term的文档ID，出现频率TF以及每个term的出现位置。由于PostList的大小与插入文档数成正比，当文档数目很大时PostingList会占用大量内存空间，因此需要对其进行压缩。我们将DocID、TF和offset信息分开存放，原因主要有两点：一是方便进行压缩，二是因为不同的查询，可能需要读取Posting中的不同的信息组合，分开压缩存放可以减少数据冗余读取。
+
+  ​	对于选取压缩算法有三个重要的评价指标：压缩率、压缩速度、解压速度，其中解压速度是最重要的。Skilo参考Lucene采用了"Frame of Reference"编码进行压缩。
+
+  ​	![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/for.png)
+  
+  ​	查询时为了更方便地求文档交集，我们需要让PostingList中的文档id号是递增的，因此我们要将用户传入的不一定递增的文档号映射到Skilo集合内部使用的严格递增的seq_id上，这样每次新插入文档只需将其seq_id号append到PostingList尾部即可。"Frame of Reference"编码存储seq_id列表时先对它们两两求差，将大的数转化为小的delta值，然后将这些数分块，由此每一块中的元素将可以用更小的比特位数而无需完整的32位来存储。我们使用了 [libfor](https://github.com/cruppstahl/libfor "Title") 库来进行编码，并封装了一个CompressedScalar类,模板参数可以指定Sorted或者Unsorted；在内部开辟了动态增长的栈空间_data，_data头部用于存储FOR编码所需的meta data，此外需要记录出现过的最大最小值，用于计算压缩后所需空间大小。
+  
+  ```c++
+  enum class ScalarType{
+      Sorted,
+      UnSorted,
+  };
+  
+  /// @class an uint32 array use "Frame Of Reference" compression
+  template<ScalarType type>
+  class CompressedScalar
+  {
+  public:
+      static constexpr size_t ElementSize=sizeof(uint32_t);
+      static constexpr size_t MEDATA_OVERHEAD=5;
+      static constexpr double GrowthFactor=1.3;
+      
+  protected:
+      uint8_t *_data;
+      uint32_t _elm_count=0; // num of uint32 stored in array
+      size_t _byte_length=0; // the actual num of bytes used(including overhead)
+      size_t _byte_capacity; // the total num of bytes allocated
+  
+  private:
+      //for calculating the number of bits required after compression
+      uint32_t _min_val=std::numeric_limits<uint32_t>::max();
+      uint32_t _max_val=std::numeric_limits<uint32_t>::min();
+  };
+  
+  ```
+  
+  ​	当append新元素重新编码所需空间超过了_capacity时，需要动态扩容，增长因子设为了1.3以减小内存占用。利用C++17 "if constexpr"特性可以很方便地复用部分代码：
+  
+  ```c++
+   void append(const uint32_t value){
+          uint32_t size_required=this->get_append_size_required(value,_elm_count+1);
+          if(size_required>_byte_capacity){
+              size_t new_size=size_required*GrowthFactor;
+              uint8_t *new_addr=static_cast<uint8_t*>(std::realloc(_data,new_size));
+              if(!new_addr){
+                  throw std::bad_alloc();
+              }
+              _data=new_addr;
+              _byte_capacity=new_size;
+          }
+  
+          uint32_t new_length;
+          if constexpr(type==ScalarType::Sorted){
+              new_length=for_append_sorted(_data,_elm_count,value);
+          }
+          else{
+              new_length=for_append_unsorted(_data,_elm_count,value);
+          }
+          if(!new_length){ //re-encond trigerred and failed due to malloc failure
+              throw std::bad_alloc();
+          }
+          _byte_length=new_length;
+          _elm_count++;
+          _min_val=std::min(value,_min_val);
+          _max_val=std::max(value,_max_val);
+   }
+  ```
+  
+  ​	PostingList类中存储了doc_id，doc_term_frequency, 以及offsets信息,其中doc_id为有序的，doc_term_frequency和offsets信息都是无需的，由于一个文档包含多个term offsets并非一一对应，所以需要设置offset_index来指明每个doc的offsets块到哪结束。
+  
+  ```c++
+  class PostingList{
+  private:
+      CompressedScalar<ScalarType::Sorted> _doc_ids;
+      CompressedScalar<ScalarType::UnSorted> _doc_term_freqs;
+  
+      CompressedScalar<ScalarType::Sorted> _offset_index;
+      CompressedScalar<ScalarType::UnSorted> _offsets;
+  };
+  ```
+  
+  ​	由此整个InvertIndex实际上即为如下结构，构成了term到一系列含有该term的文档信息映射。
+  
+  ```c++
+  class InvertIndex{
+  private:
+      mutable RWLock _index_lock;
+      Art::ARTree<PostingList> _index;
+  };
+  
+  ```
+  
+  ​	目前使用读写锁来控制整个InvertIndex并发访问，后续可能会尝试将ART树实现成Lock-free结构，对PostingList内部使用读写锁。	
 

@@ -6,7 +6,6 @@
 #include <memory>
 #include <chrono>
 #include <stdlib.h>
-#include "libart/art.h"
 
 using namespace testing;
 using namespace std;
@@ -57,20 +56,27 @@ private:
 
 
 TEST(ART_TEST,PERFORMANCE_TEST) {
+    uint32_t n = 10000000; //10000000
+    std::vector<std::pair<string,string>> dataset(n);
+    {
+        std::unordered_map<string, string> set(n);
 
-    std::unordered_map<string, string> dataset;
-    uint32_t n = 1000; //10000000
-    size_t len=16;
-    cout<<"generating "<<to_string(n)<<" keys if length "<<len<<" for test"<<endl;
-    while (n--) {
-        string str(len,'\0');
-        for(size_t i=0;i<str.size();i++){
-            unsigned char val=Random::getInstance().GetMTEngineInteger()%256;
-            if(!val) val++;
-            str[i]=val;
+        size_t len=15;
+        cout<<"generating "<<to_string(n)<<" keys  length="<<len<<" for test"<<endl;
+        while (n--) {
+            string str(len,'\0');
+            for(size_t i=0;i<str.size();i++){
+                unsigned char val=Random::getInstance().GetMTEngineInteger()%256;
+                if(!val) val++;
+                str[i]=val;
+            }
+            set[str]=str+str;
         }
-        dataset[str]=str+str;
+        for(const auto &[k,v]:set){
+            dataset.emplace_back(k,v);
+        }
     }
+
     cout<<"generating keys done"<<endl;
 
     {
@@ -79,7 +85,7 @@ TEST(ART_TEST,PERFORMANCE_TEST) {
         {
             auto start = system_clock::now();
             for(const auto &[key,val]:dataset){
-                art.insert(key.c_str(),key.size(),new std::string(val));
+                art.insert(key.data(),key.size(),new std::string(val));
             }
             auto end   = system_clock::now();
             auto duration = duration_cast<microseconds>(end - start);
@@ -91,7 +97,8 @@ TEST(ART_TEST,PERFORMANCE_TEST) {
         {
             auto start = system_clock::now();
             for(const auto &[key,val]:dataset){
-                void *res=art.find(key.c_str(),key.size());
+                string *res=art.find(key.data(),key.size());
+                assert(*res==val);
             }
             auto end   = system_clock::now();
             auto duration = duration_cast<microseconds>(end - start);
@@ -103,7 +110,7 @@ TEST(ART_TEST,PERFORMANCE_TEST) {
         {
             auto start = system_clock::now();
             for(const auto &[key,val]:dataset){
-                art.erase(key.c_str(),key.size());
+                art.erase(key.data(),key.size());
             }
             auto end   = system_clock::now();
             auto duration = duration_cast<microseconds>(end - start);
@@ -114,17 +121,15 @@ TEST(ART_TEST,PERFORMANCE_TEST) {
     }
 
     {
-        art_tree lib_art;
-        int init_res=art_tree_init(&lib_art);
-        EXPECT_EQ(init_res,0);
+        std::unordered_map<string,string> unordered_map;
         {
             auto start = system_clock::now();
             for(const auto &[key,val]:dataset){
-                art_insert(&lib_art,(unsigned char*)key.c_str(),key.size()+1,new std::string(val));
+                unordered_map.emplace(key,val);
             }
             auto end   = system_clock::now();
             auto duration = duration_cast<microseconds>(end - start);
-            cout <<  "Lib Art insert cost "
+            cout <<  "std::unordered_map insert cost "
                  << double(duration.count()) * microseconds::period::num / microseconds::period::den
                  << " seconds" << endl;
         }
@@ -132,11 +137,13 @@ TEST(ART_TEST,PERFORMANCE_TEST) {
         {
             auto start = system_clock::now();
             for(const auto &[key,val]:dataset){
-                void *res=art_search(&lib_art,(unsigned char*)(key.c_str()),key.size()+1);
+                auto it=unordered_map.find(key);
+                assert(it->second==val);
             }
             auto end   = system_clock::now();
             auto duration = duration_cast<microseconds>(end - start);
-            cout <<  "Lib Art query cost "
+
+            cout <<  "std::unordered_map query cost "
                  << double(duration.count()) * microseconds::period::num / microseconds::period::den
                  << " seconds" << endl;
         }
@@ -144,15 +151,15 @@ TEST(ART_TEST,PERFORMANCE_TEST) {
         {
             auto start = system_clock::now();
             for(const auto &[key,val]:dataset){
-                void *res=art_delete(&lib_art,(unsigned char*)(key.c_str()),key.size()+1);
+                unordered_map.erase(key);
             }
             auto end   = system_clock::now();
             auto duration = duration_cast<microseconds>(end - start);
-            cout <<  "Lib Art deletion cost "
+
+            cout <<  "std::unordered_map deletion cost "
                  << double(duration.count()) * microseconds::period::num / microseconds::period::den
                  << " seconds" << endl;
         }
-        art_tree_destroy(&lib_art);
     }
 
     {
@@ -185,7 +192,7 @@ TEST(ART_TEST,PERFORMANCE_TEST) {
         {
             auto start = system_clock::now();
             for(const auto &[key,val]:dataset){
-                auto it=map.erase(key);
+                map.erase(key);
             }
             auto end   = system_clock::now();
             auto duration = duration_cast<microseconds>(end - start);
@@ -195,53 +202,12 @@ TEST(ART_TEST,PERFORMANCE_TEST) {
                  << " seconds" << endl;
         }
     }
-
-    {
-        std::unordered_map<string,string> unordered_map;
-        {
-            auto start = system_clock::now();
-            for(const auto &[key,val]:dataset){
-                unordered_map.insert({key,val});
-            }
-            auto end   = system_clock::now();
-            auto duration = duration_cast<microseconds>(end - start);
-            cout <<  "std::unordered_map insert cost "
-                 << double(duration.count()) * microseconds::period::num / microseconds::period::den
-                 << " seconds" << endl;
-        }
-
-        {
-            auto start = system_clock::now();
-            for(const auto &[key,val]:dataset){
-                auto it=unordered_map.find(key);
-            }
-            auto end   = system_clock::now();
-            auto duration = duration_cast<microseconds>(end - start);
-
-            cout <<  "std::unordered_map query cost "
-                 << double(duration.count()) * microseconds::period::num / microseconds::period::den
-                 << " seconds" << endl;
-        }
-
-        {
-            auto start = system_clock::now();
-            for(const auto &[key,val]:dataset){
-                auto it=unordered_map.erase(key);
-            }
-            auto end   = system_clock::now();
-            auto duration = duration_cast<microseconds>(end - start);
-
-            cout <<  "std::unordered_map deletion cost "
-                 << double(duration.count()) * microseconds::period::num / microseconds::period::den
-                 << " seconds" << endl;
-        }
-    }
 }
 
 TEST(ART_TEST,CORRECTNESS_TST){
       Art::ARTree<string> art;
       std::unordered_map<string,string> data;
-      while(data.size()<1000){
+      while(data.size()<1000000){
           std::string str;
           size_t len=random()%23;
           for(size_t j=0;j<len;j++){
@@ -274,23 +240,24 @@ TEST(ART_TEST,CORRECTNESS_TST){
 
 TEST(ART_TEST,SIMPLE_TEST){
     Art::ARTree<std::string> art;
-    string *s1=new string("hello");
-    string *s2=new string("bye bye");
-    string *s3=new string("hello too");
-    string *s4=new string("hello shit");
-    string *s5=new string("hello!");
-    string *s6=new string("helloworld!");
-    art.insert(s1->data(),s1->length(),s1);
-    art.insert(s2->data(),s2->length(),s2);
-    art.insert(s3->data(),s3->length(),s3);
-    art.insert(s4->data(),s4->length(),s4);
-    art.insert(s5->data(),s5->length(),s5);
-    EXPECT_EQ(art.find(s1->data(),s1->length()),s1);
-    EXPECT_EQ(art.find(s2->data(),s2->length()),s2);
-    EXPECT_EQ(art.find(s3->data(),s3->length()),s3);
-    EXPECT_EQ(art.find(s4->data(),s4->length()),s4);
-    EXPECT_EQ(art.find(s5->data(),s5->length()),s5);
-    EXPECT_EQ(art.find(s6->data(),s6->length()),nullptr);
-    art.erase(s3->data(),s3->length());
-    EXPECT_EQ(art.find(s3->data(),s3->length()),nullptr);
+     string *s1=new string("hello");
+     string *s2=new string("bye bye");
+     string *s3=new string("hello too");
+     string *s4=new string("hello shit");
+     string *s5=new string("hello!");
+     string *s6=new string("helloworld!");
+     art.insert(s1->data(),s1->length(),s1);
+     art.insert(s2->data(),s2->length(),s2);
+     art.insert(s3->data(),s3->length(),s3);
+     art.insert(s4->data(),s4->length(),s4);
+     art.insert(s5->data(),s5->length(),s5);
+     EXPECT_EQ(art.find(s1->data(),s1->length()),s1);
+     EXPECT_EQ(art.find(s2->data(),s2->length()),s2);
+     EXPECT_EQ(art.find(s3->data(),s3->length()),s3);
+     EXPECT_EQ(art.find(s4->data(),s4->length()),s4);
+     EXPECT_EQ(art.find(s5->data(),s5->length()),s5);
+     EXPECT_EQ(art.find(s6->data(),s6->length()),nullptr);
+     std::string t_s3=*s3;
+     art.erase(s3->data(),s3->length());
+     EXPECT_EQ(art.find(t_s3.data(),t_s3.length()),nullptr);
 }

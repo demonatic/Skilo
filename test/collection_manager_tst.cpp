@@ -6,7 +6,7 @@ using namespace std;
 using namespace Skilo;
 
 TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
-    bool init=false;
+    bool init=true;
     static SkiloConfig conf;
     CollectionManager collection_manager(conf);
     std::string schema_str="{\
@@ -158,7 +158,7 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
 
     std::string search_str2="{\
                            \"query\": \"酸菜鱼\",\
-                           \"query by\": [\"recipe_name\",\"ingredients.title\"]\
+                           \"query by\": [\"recipe_name\",\"ingredients.$items.title\"]\
                            }";
     Query query2("recipe2",search_str2);
     Status query_res2=collection_manager.search(query2);

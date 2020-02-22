@@ -26,7 +26,7 @@ public:
 
 private:
     CompressedScalar<ScalarType::Sorted> _doc_ids;
-    CompressedScalar<ScalarType::Sorted> _doc_term_freqs;
+    CompressedScalar<ScalarType::UnSorted> _doc_term_freqs;
 
     CompressedScalar<ScalarType::Sorted> _offset_index;
     CompressedScalar<ScalarType::UnSorted> _offsets;

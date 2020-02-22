@@ -4,12 +4,12 @@
 Skilo is a simple Search Engine implemented in C++. It provides Restful API to create collection with corresponding schema, add documents to collection and word/phrase search services.
 
 
-### Navigator
+### Documents
 
 ***
-| 0x01     | 0x02     | 0x03     | 0x04 |
-| -------- | -------- | -------- | ---- |
-| 项目目的 | 项目概览 | 实现细节 |      |
+| 0x01     | 0x02     | 0x03       | 0x04 |
+| -------- | -------- | ---------- | ---- |
+| 项目概览 | 索引实现 | Schema实现 |      |
 
 
 ### Feature
@@ -136,3 +136,11 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
 ***
 
 Unit Test  and Integration Testing are based on [GoogleTest](https://github.com/google/googletest "Title") framework 
+
+#### Reference
+
+[Beating hash tables with trees? The ART-ful radix trie](https://www.the-paper-trail.org/post/art-paper-notes/ "Title")
+
+[The Adaptive Radix Tree: ARTful Indexing for Main-Memory Databases](https://db.in.tum.de/~leis/papers/ART.pdf "Title") 
+
+[Frame of Reference and Roaring Bitmaps](https://www.elastic.co/cn/blog/frame-of-reference-and-roaring-bitmaps "Title") 
