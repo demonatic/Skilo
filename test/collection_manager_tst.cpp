@@ -6,7 +6,7 @@ using namespace std;
 using namespace Skilo;
 
 TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
-    bool init=true;
+    bool init=false;
     static SkiloConfig conf;
     CollectionManager collection_manager(conf);
     std::string schema_str="{\

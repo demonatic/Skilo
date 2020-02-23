@@ -183,14 +183,15 @@ private:
         "product name": "iphoneXS MAX PLUS PRO",
         "price": 16432.5
     }
-  ]
+  ],
+  "scores":[4.12]
 }
 
 ******************************************************/
 class SearchResult:public DocumentBase{
 public:
     SearchResult(uint32_t num_found);
-    void add_hit(Document &doc);
+    void add_hit(Document &doc,float score);
     void add_took_ms(float ms);
 };
 

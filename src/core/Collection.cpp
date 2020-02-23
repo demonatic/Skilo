@@ -63,7 +63,7 @@ SearchResult Collection::search(const Query &query_info) const
 
     //init search criteria and do search
     uint32_t top_k=50;
-    Search::HitCollector collector(top_k,std::make_unique<Search::TFIDF_Scorer>());
+    Search::HitCollector collector(top_k,this->get_scorer("tfidf"));
     this->_indexes.search_fields(query_terms,search_fields,collector);
 
     //collect hit documents
@@ -75,7 +75,7 @@ SearchResult Collection::search(const Query &query_info) const
     for(auto [seq_id,score]:res_docs){
         std::cout<<"@collection search result: seq_id="<<seq_id<<" score="<<score<<endl;
         Document doc=_storage_service->get_document(_collection_id,seq_id);
-        result.add_hit(doc);
+        result.add_hit(doc,score);
     }
     return result;
 }
@@ -87,13 +87,24 @@ uint32_t Collection::document_num() const
 
 std::unique_ptr<Index::TokenizeStrategy> Collection::get_tokenize_strategy(const std::string &tokenizer_name) const
 {
-    using strategy_factory=std::function<std::unique_ptr<Index::TokenizeStrategy>()>;
-    static const std::unordered_map<std::string,strategy_factory> factories{
+    using StrategyFactory=std::function<std::unique_ptr<Index::TokenizeStrategy>()>;
+    static const std::unordered_map<std::string,StrategyFactory> factories{
         {"default",[](){return std::make_unique<Index::DefaultTokenizer>();}},
         {"jieba",[](){return std::make_unique<Index::JiebaTokenizer>(SkiloConfig::get_conf<std::string>("extensions.dict_dir"));}}
     };
     auto it=factories.find(tokenizer_name);
-    return it!=factories.end()?it->second():get_tokenize_strategy("default");
+    return it!=factories.end()?it->second():this->get_tokenize_strategy("default");
+}
+
+std::unique_ptr<Search::Scorer> Collection::get_scorer(const string &scorer_name) const
+{
+    using ScorerFactory=std::function<std::unique_ptr<Search::Scorer>()>;
+    static const std::unordered_map<std::string,ScorerFactory> factories{
+        {"default",[](){return std::make_unique<Search::TFIDF_Scorer>();}},
+        {"tfidf",[](){return std::make_unique<Search::TFIDF_Scorer>();}},
+    };
+    auto it=factories.find(scorer_name);
+    return it!=factories.end()?it->second():this->get_scorer("default");
 }
 
 

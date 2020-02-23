@@ -215,12 +215,15 @@ SearchResult::SearchResult(uint32_t num_found)
     _document.AddMember("found",found,_document.GetAllocator());
     rapidjson::Value hits(rapidjson::kArrayType);
     _document.AddMember("hits",hits,_document.GetAllocator());
+    rapidjson::Value scores(rapidjson::kArrayType);
+    _document.AddMember("scores",scores,_document.GetAllocator());
 }
 
-void SearchResult::add_hit(Document &doc)
+void SearchResult::add_hit(Document &doc,float score)
 {
     rapidjson::Value d(std::move(doc.get_raw()),_document.GetAllocator());
     _document["hits"].GetArray().PushBack(d.Move(),_document.GetAllocator());
+    _document["scores"].GetArray().PushBack(score,_document.GetAllocator());
 }
 
 void SearchResult::add_took_ms(float ms)

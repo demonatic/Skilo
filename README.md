@@ -4,17 +4,13 @@
 Skilo is a simple Search Engine implemented in C++. It provides Restful API to create collection with corresponding schema, add documents to collection and word/phrase search services.
 
 
-### Documents
-
-***
+## Documents
 | 0x01     | 0x02     | 0x03       | 0x04     |
 | -------- | -------- | ---------- | -------- |
 | [项目概览](./src/README.md) | [索引实现](./src/core/index/README.md) |  [Schema实现](./src/core/schema/README.md)| [查询实现](./src/core/search/README.md) |
 
 
-### Feature
-
-***
+## Feature
 
 * Simple and easy to use RESTful API
 
@@ -24,9 +20,9 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
 *   Typo tolerant(TODO)
 *   Search hint (TODO) 
 
-### Build
+## Build
 
-### Basic Usage Example
+## Basic Usage Example
 
 * Create a collection
 
@@ -73,11 +69,12 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
   }
   ```
 
-* Add a document to collection
+* Add  document(s) to collection
 
   ```http
   POST /collections/<collection_name>/documents
   ```
+  add single document:
   ```json
   {
       "id":1001,
@@ -97,7 +94,6 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
               "content": "花椒和麻椒冷油下锅，慢火2-3分钟爆出香味后捞出扔掉。",
               "image": "/recipe/image/1001/2.jpg"
           },{
-              "position": "4",
               "content": "锅里底油放入蒜末和郫县豆瓣酱小火翻炒1-2分钟。",
               "image": "/recipe/image/1001/3.jpg"
           },{
@@ -110,6 +106,17 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
               "content": "出锅前加入少许淀粉水，让汤汁更加浓稠。",
               "image": "/recipe/image/1001/6.jpg"
           }
+      ]
+  }
+  ```
+  add batch:
+  
+  ```json
+  {
+      "docs":[
+          <doc1>,
+          <doc2>,
+          <doc3>
       ]
   }
   ```
@@ -127,16 +134,32 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
   }
   ```
 
-  
+* Query Result
 
-### Test
+  ```
+  {
+    "found": 1,
+    "hits": [
+      {
+          "id": "1001",
+          "recipe_name": "麻婆豆腐",
+          ....
+      }
+    ],
+    "scores":[4.86]
+  }
+  ```
+
+## Test
 
 Unit Test  and Integration Testing are based on [GoogleTest](https://github.com/google/googletest "Title") framework 
 
-#### Reference
+## Reference
 
 [Beating hash tables with trees? The ART-ful radix trie](https://www.the-paper-trail.org/post/art-paper-notes/ "Title")
 
 [The Adaptive Radix Tree: ARTful Indexing for Main-Memory Databases](https://db.in.tum.de/~leis/papers/ART.pdf "Title") 
 
 [Frame of Reference and Roaring Bitmaps](https://www.elastic.co/cn/blog/frame-of-reference-and-roaring-bitmaps "Title") 
+
+[TypeSense Guide](https://typesense.org/docs/0.11.1/guide/ "Title") 
