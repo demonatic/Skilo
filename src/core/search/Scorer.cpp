@@ -13,7 +13,7 @@ float TFIDF_Scorer::get_score(const HitContext &context) const
 {
     float score=0;
     for(const Index::PostingList *posting:*context.term_postings){
-        score+=this->calcu_tf_idf(posting,context);
+        score+=context.phrase_match_count*this->calcu_tf_idf(posting,context);
     }
     return score;
 }

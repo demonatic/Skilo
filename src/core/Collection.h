@@ -36,7 +36,9 @@ public:
     SearchResult search(const Query &query_info) const;
 
     uint32_t document_num() const;
+
     std::unique_ptr<Index::TokenizeStrategy> get_tokenize_strategy(const std::string &tokenizer_name) const;
+    std::unique_ptr<Search::Scorer> get_scorer(const std::string &scorer_name) const;
 
 private:
     uint32_t _collection_id;

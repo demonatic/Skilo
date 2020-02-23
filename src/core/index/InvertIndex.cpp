@@ -116,7 +116,7 @@ void InvertIndex::search_field(const std::unordered_map<string, std::vector<uint
                         cur_pos++;
                     }
                     if(cur_pos==term_offs.size()){ //one of the cursor go to the end
-                        goto PHRASE_NOT_FOUND;
+                        goto END_OF_MATCH;
                     }
                     term_cursors[i].first=cur_pos;
                     long term_rel=term_offs[cur_pos]-following_qt_offset;
@@ -141,12 +141,11 @@ void InvertIndex::search_field(const std::unordered_map<string, std::vector<uint
             }
             // collect this hit
             if(phrase_match_count>0){
-                //TODO pass phrase count to hit context
-                Search::HitContext context{lead_doc,total_doc_count,&field_path,&candidate_postings};
+                Search::HitContext context{lead_doc,total_doc_count,&field_path,&candidate_postings,phrase_match_count};
                 collector.collect(context);
             }
         }
-PHRASE_NOT_FOUND:
+END_OF_MATCH:
         void(0);
     }
 }

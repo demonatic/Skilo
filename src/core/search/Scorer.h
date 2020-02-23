@@ -13,6 +13,7 @@ struct HitContext{
     uint32_t collection_doc_count;
     const std::string *field_path;
     const std::vector<const Index::PostingList*> *term_postings;
+    uint32_t phrase_match_count;
 };
 
 class Scorer
