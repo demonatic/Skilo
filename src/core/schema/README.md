@@ -30,7 +30,7 @@
                 "$items": {
                     "type": "object",
                     "$fields":{
-                        "content": {"type": "string"，"index":true},
+                        "content": {"type": "string","index":true},
                         "image": {"type": "string"}
                     }
                 }

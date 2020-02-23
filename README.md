@@ -111,7 +111,7 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
   ```
   add batch:
   
-  ```json
+  ```
   {
       "docs":[
           <doc1>,
