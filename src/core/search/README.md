@@ -61,9 +61,7 @@ Skilo搜索流程分为如下几步：
   ##### 寻找包含短语的文档
   
   ​	上述已经求得了包含所有词元的文档，现在需要计算文档中是否存在用户搜索的词组以及出现了几次。有了doc_id信息可以从每个词元的PostList中取出该词元在文档中出现过的一系列位置offsets，每个offsets列表也是有序存储的，设词元数量为k那么这样也有了k个有序列表。
-  
   ​	![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/phrase_match.png)
-  
   假设搜索字符串为”我们都是宝宝“，被分词为三个词元[”我们“，"都是"，”宝宝“]，那么三个词元在搜索字符串中的偏移量可以作为每个词元倒排列表中offsets的基数，整体思路和倒排列表求交集的方式一相似，计算词元”我们“所属cursor的元素与它的基数之间的相对偏移量relative_pos，然后线性搜索后续每个词元与它们各自的基数是否相等即可，如果每个词元的cursor都找到了一个位置使它们拥有共同的relative_pos，则此时能构成一个短语。如果至少能构成一个短语，则collect此文档。
   
   ```c++
@@ -77,7 +75,7 @@ Skilo搜索流程分为如下几步：
           ///
           /// @details: since 11-0=13-2=15-4, we got a phrase match the query phrase
           ///           since 26-0=28-2=30-4, we got another match...
-  		 std::vector<std::pair<uint32_t,const PostingList*>> query_offset_entry; //<query term offset, term postings>
+          std::vector<std::pair<uint32_t,const PostingList*>> query_offset_entry; //<query term offset, term postings>
           if(exists_in_all_entry){ //the doc contain all searching terms 
               std::vector<std::pair<uint32_t,std::vector<uint32_t>>> term_cursors; //<posting cur, doc term offsets>
               for(std::pair<uint32_t,const PostingList*> pair:query_offset_entry){
@@ -178,7 +176,28 @@ public:
             this->push_new_hit(new_hit);
         }
     }
-    
+
+    void HitCollector::push_new_hit(HitCollector::Hit &hit){
+        hit.heap_index=++this->_heap_index;
+        _doc_id_map[hit.doc_seq_id]=_min_score_heap[_heap_index];
+        *_min_score_heap[_heap_index]=hit;
+
+        size_t cur_index=_heap_index;
+        while(cur_index>1){
+            size_t parent_index=cur_index/2;
+            if(_min_score_heap[parent_index]->score<=_min_score_heap[cur_index]->score){
+                break;
+            }
+            swap_entry(&_min_score_heap[parent_index],&_min_score_heap[cur_index]);
+            cur_index=parent_index;
+        }
+    }
+           
+    void HitCollector::swap_entry(Hit **hit1,Hit **hit2){
+        swap((*hit1)->heap_index,(*hit2)->heap_index);
+        swap(*hit1,*hit2);
+    }
+ 
 private:
     struct Hit{
         float score;

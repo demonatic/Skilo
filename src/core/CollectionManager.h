@@ -2,7 +2,8 @@
 #define COLLECTIONMANAGER_H
 
 #include "Collection.h"
-#include "parallel_hashmap/phmap.h"
+#include "libcuckoo/cuckoohash_map.hh"
+#include <atomic>
 
 namespace Skilo {
 
@@ -28,12 +29,12 @@ private:
 private:
     const SkiloConfig &_config;
 
-    std::unordered_map<std::string,uint32_t> _collection_name_id_map;
-    std::unordered_map<uint32_t,std::unique_ptr<Collection>> _collection_map;
+    cuckoohash_map<std::string,uint32_t> _collection_name_id_map;
+    cuckoohash_map<uint32_t,std::unique_ptr<Collection>> _collection_map;
 
     std::unique_ptr<StorageService> _storage_service;
 
-    uint32_t _next_collection_id;
+    std::atomic_uint32_t _next_collection_id;
 };
 
 enum class RetCode{

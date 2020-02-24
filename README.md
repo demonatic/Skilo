@@ -22,7 +22,7 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
 
 ## Build
 
-## Basic Usage Example
+## Usage Example
 
 * Create a collection
 

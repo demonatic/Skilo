@@ -56,7 +56,7 @@ private:
 
 
 TEST(ART_TEST,PERFORMANCE_TEST) {
-    uint32_t n = 10000000; //10000000
+    uint32_t n = 100000; //10000000
     std::vector<std::pair<string,string>> dataset(n);
     {
         std::unordered_map<string, string> set(n);

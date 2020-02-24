@@ -9,7 +9,7 @@ set(RINX_ROOT ${CMAKE_SOURCE_DIR}/src/network/Rinx)
 add_subdirectory(${RINX_ROOT}/)
 
 include_directories(3rd/include ${RINX_ROOT}/include ${CMAKE_SOURCE_DIR}/src)
-link_directories(3rd/lib /usr/local/lib)
+link_directories(/usr/local/lib)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/src)
 add_subdirectory(${CMAKE_SOURCE_DIR}/test)

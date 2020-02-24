@@ -18,17 +18,39 @@ using namespace testing;
 using namespace std;
 using namespace Skilo;
 
+void send_request_to_server(bool init_collection,bool search);
+
+void init_collection_client(){
+    sleep(1);
+    send_request_to_server(true,true);
+}
+void search_client(){
+    sleep(2);
+    send_request_to_server(false,true);
+}
+
 TEST(SKILO_SERVER_TEST,CRUD_TEST){
     SkiloConfig config;
     SkiloServer server(config);
+    size_t client_count=8;
+    std::vector<std::thread> client_threads;
+    for(int i=0;i<client_count;i++){
+        if(i==0){
+            client_threads.push_back(std::thread(&init_collection_client));
+        }
+        else {
+            client_threads.push_back(std::thread(&search_client));
+        }
+    }
     EXPECT_TRUE(server.listen());
 }
 
 #define PORT 8080
 #define SERV "127.0.0.1"
-#define BUFF 65535
+#define BUFF 655350
 
-void send_request_to_server(){
+
+void send_request_to_server(bool init_collection,bool search){
     // 定义socket
     int sockfd = socket(AF_INET,SOCK_STREAM,0);
     // 定义sockaddr_in
@@ -45,8 +67,7 @@ void send_request_to_server(){
     char sendbuff[BUFF];
     char recvbuff[BUFF];
 
-    bool init_collection=true;
-    bool search=true;
+
     if(init_collection){
         string req_body= "{\
                          \"name\":\"recipe\",\
@@ -134,9 +155,12 @@ void send_request_to_server(){
 
         memcpy(sendbuff,req.data(),req.length());
         send(sockfd,sendbuff,req.length(),0);
-        recv(sockfd, recvbuff, sizeof(recvbuff), 0);
-        fputs(recvbuff,stdout);
-
+        ssize_t recv_len=recv(sockfd, recvbuff, sizeof(recvbuff), 0);
+        cout<<"client recv_len="<<recv_len<<endl;
+        for(int i=0;i<recv_len;i++){
+            cout<<recvbuff[i];
+        }
+        cout<<endl;
     }
     close(sockfd);
 }

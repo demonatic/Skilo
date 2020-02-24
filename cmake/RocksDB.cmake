@@ -1,6 +1,6 @@
 # Download and build RocksDB
 
-set(ROCKSDB_VERSION 5.13.1)
+set(ROCKSDB_VERSION 6.6.4)
 set(ROCKSDB_NAME rocksdb-${ROCKSDB_VERSION})
 set(ROCKSDB_TAR_PATH ${DEP_ROOT_DIR}/${ROCKSDB_NAME}.tar.gz)
 

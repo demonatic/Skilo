@@ -1,8 +1,9 @@
 #include "Skilo.h"
-
+#include "Protocol/HTTP/HttpResponse.h"
 namespace Skilo {
 
 using Rinx::HttpStatusCode;
+using MakeAsync=Rinx::MakeAsync;
 
 #define BIND_SKILO_CALLBACK(__handler__) std::bind(&SkiloServer::handle_request,this,\
                                             std::placeholders::_1,std::placeholders::_2,\
@@ -54,15 +55,13 @@ std::string SkiloServer::extract_collection_name(const HttpRequest *req) const
     uri.remove_prefix(1);
     size_t name_start=1+uri.find_first_of('/');
     size_t name_end=uri.find_last_of('/');
-    assert(name_start!=uri.npos);
-    assert(name_end!=uri.npos);
     return std::string(uri.substr(name_start,name_end-name_start));
 }
 
 void SkiloServer::init_http_route(Rinx::RxProtocolHttp1Factory &http1)
 {
-    http1.POST("^\\/collections$",BIND_SKILO_CALLBACK(SkiloServer::skilo_create_collection);
-    http1.POST("^\\/collections\\/[a-zA-Z_\\$][a-zA-Z\\d_]*\\/documents$",BIND_SKILO_CALLBACK(SkiloServer::skilo_add_document);
+    http1.POST("^\\/collections$",MakeAsync(BIND_SKILO_CALLBACK(SkiloServer::skilo_create_collection));
+    http1.POST("^\\/collections\\/[a-zA-Z_\\$][a-zA-Z\\d_]*\\/documents$",MakeAsync(BIND_SKILO_CALLBACK(SkiloServer::skilo_add_document));
     http1.GET("^\\/collections\\/[a-zA-Z_\\$][a-zA-Z\\d_]*\\/documents$",BIND_SKILO_CALLBACK(SkiloServer::skilo_query_collection);
 }
 

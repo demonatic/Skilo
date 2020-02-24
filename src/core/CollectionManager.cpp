@@ -27,8 +27,8 @@ void CollectionManager::init_collections()
         CollectionMeta &meta=collection_meta[i];
         uint32_t collection_id=meta.get_collection_id();
         const std::string collection_name=meta.get_collection_name();
-        _collection_name_id_map[collection_name]=collection_id;
-        _collection_map[collection_id]=init_futures[i].get();
+        _collection_name_id_map.insert(collection_name,collection_id);
+        _collection_map.insert(collection_id,init_futures[i].get());
     }
     LOG(INFO)<<"Loading all collections finished";
 }
@@ -52,8 +52,8 @@ Status CollectionManager::create_collection(CollectionMeta &collection_meta)
         }
 
         std::unique_ptr<Collection> new_colletion=std::make_unique<Collection>(collection_meta,_storage_service.get(),_config);
-        _collection_name_id_map[collection_name]=collection_id;
-        _collection_map[collection_id]=std::move(new_colletion);
+        _collection_map.insert(collection_id,std::move(new_colletion));
+        _collection_name_id_map.insert(collection_name,collection_id);
         LOG(INFO)<<"Collection \""<<collection_name<<"\" id="<<collection_id<<" has created";
 
     } catch (const InvalidFormatException &err){
@@ -153,17 +153,16 @@ Status CollectionManager::search(const Query &query_info) const
 
 Collection *CollectionManager::get_collection(const string &collection_name) const
 {
-    auto collection_id_it=_collection_name_id_map.find(collection_name);
-    if(collection_id_it==_collection_name_id_map.end()){
+    uint32_t cid;
+    if(!_collection_name_id_map.find(collection_name,cid)){
         return nullptr;
     }
-    uint32_t collection_id=collection_id_it->second;
-    auto collection_it=_collection_map.find(collection_id);
-    if(collection_it==_collection_map.end()){
-        return nullptr;
-    }
-    Collection *collection=collection_it->second.get();
-    return collection;
+
+    Collection *coll=nullptr;
+    _collection_map.find_fn(cid,[&](const std::unique_ptr<Collection> &ptr) mutable {
+        coll=ptr.get();
+    });
+    return coll;
 }
 
 uint32_t CollectionManager::get_next_collection_id()
