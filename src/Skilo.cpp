@@ -60,9 +60,9 @@ std::string SkiloServer::extract_collection_name(const HttpRequest *req) const
 
 void SkiloServer::init_http_route(Rinx::RxProtocolHttp1Factory &http1)
 {
-    http1.POST("^\\/collections$",MakeAsync(BIND_SKILO_CALLBACK(SkiloServer::skilo_create_collection));
-    http1.POST("^\\/collections\\/[a-zA-Z_\\$][a-zA-Z\\d_]*\\/documents$",MakeAsync(BIND_SKILO_CALLBACK(SkiloServer::skilo_add_document));
-    http1.GET("^\\/collections\\/[a-zA-Z_\\$][a-zA-Z\\d_]*\\/documents$",BIND_SKILO_CALLBACK(SkiloServer::skilo_query_collection);
+    http1.POST(R"(^\/collections$)",MakeAsync(BIND_SKILO_CALLBACK(SkiloServer::skilo_create_collection));
+    http1.POST(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*\/documents$)",MakeAsync(BIND_SKILO_CALLBACK(SkiloServer::skilo_add_document));
+    http1.GET(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*\/documents$)",BIND_SKILO_CALLBACK(SkiloServer::skilo_query_collection);
 }
 
 void SkiloServer::handle_request(HttpRequest &req, HttpResponse &resp, const SkiloReqHandler handler)
