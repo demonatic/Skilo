@@ -2,8 +2,8 @@
 #define SKILO_H
 
 #include <functional>
-#include "Server/Server.h"
-#include "Protocol/HTTP/ProtocolHttp1.h"
+#include "Rinx/Server/Server.h"
+#include "Rinx/Protocol/HTTP/ProtocolHttp1.h"
 #include "core/CollectionManager.h"
 
 namespace Skilo {

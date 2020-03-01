@@ -2,7 +2,7 @@
 #define RWLOCK_HPP
 
 #include <pthread.h>
-#include <network/Rinx/include/Util/Noncopyable.h>
+#include <network/Rinx/include/Rinx/Util/Noncopyable.h>
 
 namespace Skilo {
 

@@ -1,8 +1,12 @@
 #include "Skilo.h"
-#include "Protocol/HTTP/HttpResponse.h"
+#include "Rinx/Protocol/HTTP/HttpResponse.h"
+#include "Rinx/Protocol/HTTP/ProtocolHttp1.h"
 namespace Skilo {
 
 using Rinx::HttpStatusCode;
+using Rinx::HttpRequest;
+using Rinx::HttpResponse;
+using Rinx::RxProtocolHttp1Factory;
 using MakeAsync=Rinx::MakeAsync;
 
 #define BIND_SKILO_CALLBACK(__handler__) std::bind(&SkiloServer::handle_request,this,\
@@ -17,7 +21,7 @@ SkiloServer::SkiloServer(const SkiloConfig &config):_config(config),_collection_
 
 bool SkiloServer::listen()
 {
-    Rinx::RxProtocolHttp1Factory http1;
+    RxProtocolHttp1Factory http1;
     this->init_http_route(http1);
     return _server.listen(_config.get_listen_address(),_config.get_listen_port(),http1);
 }
