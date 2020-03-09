@@ -290,12 +290,6 @@ T *ARTree<T>::find(const char *key,size_t key_len) const
       Art::ARTree<PostingList> _index;
   };
   ```
-  
-* #### 未来展望
-  
-  1. 目前使用读写锁来控制整个InvertIndex并发访问，后续可能会尝试将ART树实现成Lock-free结构，对PostingList内部使用读写锁。	
-
-  2. PostingList在文档数目很大的时候会非常占用内存，考虑将其切分为固定大小的数据块存储在磁盘上，并在每块头部建立SkipData索引信息以减少读取磁盘次数。
 
 * #### 正向索引
 
@@ -315,3 +309,9 @@ T *ARTree<T>::find(const char *key,size_t key_len) const
   ​	![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/rocksdb_data_partition.webp)
   ​	![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/sstable_find.png)
 
+  
+* #### 未来展望
+  
+  1. 目前使用读写锁来控制整个InvertIndex并发访问，后续可能会尝试将ART树实现成Lock-free结构，对PostingList内部使用读写锁。	
+
+  2. PostingList在文档数目很大的时候会非常占用内存，考虑将其切分为固定大小的数据块存储在磁盘上，并在每块头部建立SkipData索引信息以减少读取磁盘次数。
