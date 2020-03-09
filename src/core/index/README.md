@@ -197,10 +197,6 @@ T *ARTree<T>::find(const char *key,size_t key_len) const
 
 可以看到ART树查询性能比hash表还快一些，并且远超过红黑树，与上述ART树论文中的描述基本一致。比较适合作为搜索引擎字典的实现。
 
-* 正向索引
-
-​	Skilo中正向索引通常维护文档id到文档具体内容的映射，在Skilo中这一部分主要由KV存储引擎帮助我们完成。在倒排索引中查询到目标文档id后再根据正向索引查询得到文档的具体内容。
-
 * #### 倒排列表实现
   ​	Skilo在倒排列表中存储了每个出现该term的文档ID，出现频率TF以及每个term的出现位置。由于PostList的大小与插入文档数成正比，当文档数目很大时PostingList会占用大量内存空间，因此需要对其进行压缩。我们将DocID、TF和offset信息分开存放，原因主要有两点：一是方便进行压缩，二是因为不同的查询，可能需要读取Posting中的不同的信息组合，分开压缩存放可以减少数据冗余读取。
 
@@ -283,6 +279,7 @@ T *ARTree<T>::find(const char *key,size_t key_len) const
       CompressedScalar<ScalarType::UnSorted> _offsets;
   };
   ```
+  ​	![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/PostingList.png)
   
   ​	由此整个InvertIndex实际上即为如下结构，构成了term到一系列含有该term的文档信息映射。
   
@@ -292,7 +289,6 @@ T *ARTree<T>::find(const char *key,size_t key_len) const
       mutable RWLock _index_lock;
       Art::ARTree<PostingList> _index;
   };
-  
   ```
   
 * #### 未来展望
@@ -300,3 +296,22 @@ T *ARTree<T>::find(const char *key,size_t key_len) const
   1. 目前使用读写锁来控制整个InvertIndex并发访问，后续可能会尝试将ART树实现成Lock-free结构，对PostingList内部使用读写锁。	
 
   2. PostingList在文档数目很大的时候会非常占用内存，考虑将其切分为固定大小的数据块存储在磁盘上，并在每块头部建立SkipData索引信息以减少读取磁盘次数。
+
+* #### 正向索引
+
+​	Skilo中正向索引通常维护文档id到文档具体内容的映射，在Skilo中这一部分主要由存储引擎RocksDB帮助我们完成。在倒排索引中查询到目标文档id后再根据正向索引查询得到文档的具体内容。
+  ​	![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/rocksdb_read.png)
+  ​	![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/rocksdb_read_process.png)
+
+​	memtable和sstable文件构成了RocksDB数据的全集。在这之上是缓存层，Block Cache是RocksDB的数据的缓存，这个缓存可以在多个RocksDB实例下缓存。一般默认的Block Cache中存储的数据是未压缩的，而用户可以再指定一个Block Cache，里面的数据是可压缩的，为了提升Cache缓存查询性能做了分片。
+
+​	RocksDB读数据时先访问时先访问默认的BlockCache，再访问用户Cache，如果没有则从MemTable中查找；MemTable默认情况是个跳表，提供log(n)的查询性能。无法命中再查找immutable_memtable。
+
+​	如果仍未命中则逐层查询sstable文件；则开始读取level0层sstable元信息文件manifest，获取level0层中每个sstable的key范围，由于Level0层sstable文件之间key可能有重叠，可能查找的key会落在多个sstable文件内，因此需要遍历每个sstable，查看该key是否真正在sstable中存储，否则继续进行下列流程。
+
+​	从level1层开始逐层向下查询，直到某一层查询到key或者所有层都未查询到key。由于非level0层的每一层所有key按序分片，保存在不同的文件中，查找key时先根据每个文件的start/end key对所有文件二分查找来确定哪些文件可能包含key，再通过二分查找在候选文件中定位key的精确位置，具体过程为：
+
+​	读取DataIndexBlock的offset和size，加载DataIndexBlock进内存，二分查找指定key的DataBlock偏移和大小，加载DataBlock进内存，二分查找DataBlock中特定key所在的重启点，遍历该重启点下的key，找到对应value。
+  ​	![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/rocksdb_data_partition.webp)
+  ​	![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/sstable_find.png)
+
