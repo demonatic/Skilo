@@ -31,7 +31,7 @@ public:
 
     StorageEngine &get_storage_engine();
 
-    void scan_for_each_doc(const uint32_t &collection_id,std::function<void(const std::string_view value)> callback) const;
+    void scan_for_each_doc(const uint32_t collection_id,std::function<void(const std::string_view value)> callback) const;
 public:
     /// @brief write <doc_id,seq_id>,<seq_id,doc>,<collection_next_seq_id_key,collection_next_seq_id_value> to storage
     bool write_document(uint32_t collection_id,const Document &document);

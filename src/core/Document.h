@@ -62,6 +62,9 @@ public:
     void add_seq_id(uint32_t seq_id);
     std::optional<uint32_t> get_seq_id() const;
 
+    /// @path for array: aaa.<element_index>.ccc
+    rapidjson::Value &get_value(const std::string &field_path);
+
 private:
     void extract_variables();
 

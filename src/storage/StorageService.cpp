@@ -80,7 +80,7 @@ StorageEngine &StorageService::get_storage_engine()
     return this->_storage_engine;
 }
 
-void StorageService::scan_for_each_doc(const uint32_t &collection_id, std::function<void (const std::string_view)> callback) const
+void StorageService::scan_for_each_doc(const uint32_t collection_id, std::function<void (const std::string_view)> callback) const
 {
     std::string seq_key_prefix=KeyConverter::doc_seq_key_prefix(collection_id);
     this->_storage_engine.scan_for_each(seq_key_prefix,callback);

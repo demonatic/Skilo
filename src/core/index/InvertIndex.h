@@ -7,7 +7,9 @@
 #include "core/Document.h"
 #include "core/schema/Schema.h"
 #include "core/search/HitCollector.h"
+#include "storage/StorageService.h"
 #include "utility/RWLock.hpp"
+#include "parallel_hashmap/phmap.h"
 
 namespace Skilo {
 namespace Index{
@@ -16,6 +18,21 @@ struct IndexRecord{
     uint32_t seq_id;
     std::unordered_map<std::string, std::vector<uint32_t>> term_offsets;
 };
+
+struct NumericValue{
+    std::variant<int,float> num;
+};
+
+struct SortIndexProxy{
+    using NumericSortIndex=phmap::parallel_flat_hash_map<uint32_t,NumericValue>;
+
+    uint32_t collection_id;
+    std::string field_path;
+    std::variant<NumericSortIndex,Storage::StorageService*> sort_data;
+
+    NumericValue get_numeric_val(const uint32_t doc_seq_id) const;
+};
+
 
 class InvertIndex
 {
@@ -40,7 +57,8 @@ private:
 
 class CollectionIndexes:public Schema::FieldVisitor{
 public:
-    CollectionIndexes(const Schema::CollectionSchema &schema);
+    CollectionIndexes(const uint32_t collection_id, const Schema::CollectionSchema &schema,
+                      const Storage::StorageService *storage_service);
 
     InvertIndex *get_index(const std::string &field_path);
     const InvertIndex *get_index(const std::string &field_path) const;
@@ -55,12 +73,19 @@ public:
 
 protected:
     virtual void visit_field_string(const Schema::FieldString *field_string) override;
+    virtual void visit_field_integer(const Schema::FieldInteger *field_integer) override;
 
 private:
     uint32_t _doc_count;
-    std::unordered_map<std::string,InvertIndex> _indexes; //<field_path,index>
+    uint32_t _collection_id;
+    const Storage::StorageService *_storage_service;
 
+    //!-- <field_path,index>
+    std::unordered_map<std::string,InvertIndex> _indexes;
+    //!-- <field_path,<doc_id,numeric_value>>
+    std::unordered_map<std::string,SortIndexProxy> _sort_indexes;
 };
+
 
 } //namespace Index
 } //namespace Skilo

@@ -1,7 +1,7 @@
 #include "Document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
-
+#include <iostream>
 namespace Skilo {
 
 DocumentBase::DocumentBase():_document(rapidjson::kObjectType)
@@ -97,6 +97,41 @@ void Document::add_seq_id(uint32_t seq_id)
 std::optional<uint32_t> Document::get_seq_id() const
 {
     return _seq_id;
+}
+
+rapidjson::Value &Document::get_value(const std::string &field_path)
+{
+    std::string_view path=field_path;
+    rapidjson::Value *v=&this->_document;
+    while(path.length()){
+        if(!v->IsObject()&&!v->IsArray()){
+            throw NotFoundException("invalid field path \""+field_path+"\"");
+        }
+        size_t delimiter_index=path.find_first_of('.');
+        std::string_view field_name=delimiter_index==std::string::npos?path:path.substr(0,delimiter_index);
+
+        if(v->IsObject()){
+            auto it=v->FindMember(std::string(field_name).c_str());
+            if(it==v->MemberEnd()){
+                throw NotFoundException("invalid field path \""+field_path+"\"");
+            }
+            v=&it->value;
+        }
+        else if(v->IsArray()){
+            try {
+                auto index=std::stoi(std::string(field_name));
+                v=&v->GetArray()[index];
+            }  catch (std::invalid_argument &) {
+                 throw NotFoundException("invalid field path \""+field_path+"\"");
+            }
+        }
+        else{
+            throw NotFoundException("invalid field path \""+field_path+"\"");
+        }
+
+        path.remove_prefix(delimiter_index==std::string::npos?path.length():delimiter_index+1);
+    }
+    return *v;
 }
 
 CollectionMeta::CollectionMeta(const std::string_view json_str):DocumentBase(json_str)

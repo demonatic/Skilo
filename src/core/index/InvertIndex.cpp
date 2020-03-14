@@ -4,6 +4,8 @@
 namespace Skilo {
 namespace Index{
 
+using StorageService=Storage::StorageService;
+
 InvertIndex::InvertIndex()
 {
 
@@ -156,7 +158,8 @@ size_t InvertIndex::dict_size() const
     return _index.size();
 }
 
-CollectionIndexes::CollectionIndexes(const Schema::CollectionSchema &schema)
+CollectionIndexes::CollectionIndexes(const uint32_t collection_id, const Schema::CollectionSchema &schema,
+    const Storage::StorageService *storage_service):_collection_id(collection_id),_storage_service(storage_service)
 {
     schema.accept(*this); //create indexes according to fields in the schema
 }
@@ -171,6 +174,28 @@ void CollectionIndexes::visit_field_string(const Schema::FieldString *field_stri
     if(std::get<bool>(index_option_value)){
         _indexes.emplace(field_string->path,InvertIndex());
     }
+}
+
+void CollectionIndexes::visit_field_integer(const Schema::FieldInteger *field_integer)
+{
+    auto it=field_integer->attributes.find("sort_field");
+    if(it==field_integer->attributes.end())
+        return;
+
+    const Schema::Field::ArrtibuteValue &sort_option=it->second;
+
+    SortIndexProxy sort_index_proxy;
+    sort_index_proxy.collection_id=this->_collection_id;
+    sort_index_proxy.field_path=field_integer->path;
+
+    if(std::get<bool>(sort_option)){
+        phmap::parallel_flat_hash_map<uint32_t,NumericValue> sort_index;
+        sort_index_proxy.sort_data=sort_index;
+    }
+    else{
+        sort_index_proxy.sort_data=const_cast<Storage::StorageService*>(this->_storage_service);
+    }
+    _sort_indexes.emplace(field_integer->path,sort_index_proxy);
 }
 
 const InvertIndex *CollectionIndexes::get_index(const string &field_path) const
@@ -201,7 +226,7 @@ void CollectionIndexes::search_fields(const std::unordered_map<string, std::vect
             for(const auto &[exist_field_name,index]:_indexes){
                 exist_fields.append("\""+exist_field_name+"\" ");
             }
-            throw InvalidFormatException("field path \""+path+"\" is not found, exist fields: "+exist_fields);
+            throw InvalidFormatException("field path \""+path+"\" is not found, existing fields: "+exist_fields);
         }
         const InvertIndex *index=this->get_index(path);
         if(index){
@@ -228,6 +253,22 @@ void CollectionIndexes::set_doc_num(const uint32_t doc_num)
 uint32_t CollectionIndexes::get_doc_num() const
 {
     return this->_doc_count;
+}
+
+NumericValue SortIndexProxy::get_numeric_val(const uint32_t doc_seq_id) const
+{
+    NumericValue value;
+    const NumericSortIndex *sort_index=std::get_if<NumericSortIndex>(&this->sort_data);
+    if(sort_index){
+        value=sort_index->at(doc_seq_id);
+    }
+    else{
+        StorageService *storage_service=std::get<StorageService*>(sort_data);
+        Document doc=storage_service->get_document(collection_id,doc_seq_id);
+        rapidjson::Value &raw_value=doc.get_value(field_path);
+        //TODO
+    }
+    return value;
 }
 
 

@@ -6,7 +6,8 @@ namespace Skilo {
 using namespace Schema;
 
 Collection::Collection(const CollectionMeta &collection_meta,StorageService *storage_service,const SkiloConfig &config):
-    _schema(collection_meta),_indexes(_schema),_storage_service(storage_service),_config(config)
+    _storage_service(storage_service),_schema(collection_meta),
+    _indexes(_collection_id,_schema,_storage_service),_config(config)
 {
     _collection_id=collection_meta.get_collection_id();
     _collection_name=collection_meta.get_collection_name();

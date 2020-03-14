@@ -46,12 +46,12 @@ private:
     std::atomic_uint32_t _next_seq_id;
     std::string _collection_name;
 
+    StorageService *_storage_service;
+
     Schema::CollectionSchema _schema;
     Index::CollectionIndexes _indexes;
 
     std::unique_ptr<Index::TokenizeStrategy> _tokenizer;
-
-    StorageService *_storage_service;
 
     const SkiloConfig &_config;
 };

@@ -114,6 +114,9 @@ TEST(SCHEMA_TEST,PARSE_TEST) {
     EXPECT_EQ(std::get<bool>(attr),true);
 
     Document document(json_str);
+    ASSERT_STREQ(document.get_value("product name").GetString(),"Car Model");
+    EXPECT_EQ(document.get_value("dimensions.length").GetFloat(),12.0);
+    ASSERT_STREQ(document.get_value("supplier.1.name").GetString(),"google.Inc");
 
     schema.validate(document);
 }

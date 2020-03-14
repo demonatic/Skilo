@@ -207,7 +207,7 @@ TEST(ART_TEST,PERFORMANCE_TEST) {
 TEST(ART_TEST,CORRECTNESS_TST){
       Art::ARTree<string> art;
       std::unordered_map<string,string> data;
-      while(data.size()<1000000){
+      while(data.size()<100000){
           std::string str;
           size_t len=random()%23;
           for(size_t j=0;j<len;j++){
