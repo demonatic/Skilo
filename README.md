@@ -133,7 +133,7 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
   {
       "query": "豆腐",
       "query by": ["recipe_name","ingredients.$items.title"],
-      "sort by":["difficulty":asc,"rank":desc]
+      "sort by":["difficulty:asc","rank:desc"]
   }
   ```
 
