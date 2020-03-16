@@ -6,10 +6,10 @@ namespace Skilo {
 using namespace Schema;
 
 Collection::Collection(const CollectionMeta &collection_meta,StorageService *storage_service,const SkiloConfig &config):
+    _collection_id(collection_meta.get_collection_id()),
     _storage_service(storage_service),_schema(collection_meta),
     _indexes(_collection_id,_schema,_storage_service),_config(config)
 {
-    _collection_id=collection_meta.get_collection_id();
     _collection_name=collection_meta.get_collection_name();
     _next_seq_id=_storage_service->get_collection_next_seq_id(_collection_id);
     _indexes.set_doc_num(_next_seq_id);
@@ -64,11 +64,23 @@ SearchResult Collection::search(const Query &query_info) const
 
     //init search criteria and do search
     uint32_t top_k=50;
-    Search::HitCollector collector(top_k,this->get_scorer("tfidf"));
+    Search::DocRanker ranker;
+    auto &sort_fields=query_info.get_sort_fields();
+    if(sort_fields.empty()){
+        ranker.push_scorer(std::make_unique<Search::TFIDF_Scorer>());
+    }
+    else{
+        for(auto &&[sort_field,ascend_order]:sort_fields){
+            //TODO test field exists
+            ranker.push_scorer(std::make_unique<Search::SortScorer>(sort_field,ascend_order));
+        }
+    }
+
+    Search::HitCollector collector(top_k,ranker);
     this->_indexes.search_fields(query_terms,search_fields,collector);
 
     //collect hit documents
-    std::vector<pair<uint32_t,float>> res_docs=collector.get_top_k();
+    std::vector<pair<uint32_t,double>> res_docs=collector.get_top_k();
     uint32_t hit_count=static_cast<uint32_t>(res_docs.size());
 
     //load hit documents
@@ -95,17 +107,6 @@ std::unique_ptr<Index::TokenizeStrategy> Collection::get_tokenize_strategy(const
     };
     auto it=factories.find(tokenizer_name);
     return it!=factories.end()?it->second():this->get_tokenize_strategy("default");
-}
-
-std::unique_ptr<Search::Scorer> Collection::get_scorer(const string &scorer_name) const
-{
-    using ScorerFactory=std::function<std::unique_ptr<Search::Scorer>()>;
-    static const std::unordered_map<std::string,ScorerFactory> factories{
-        {"default",[](){return std::make_unique<Search::TFIDF_Scorer>();}},
-        {"tfidf",[](){return std::make_unique<Search::TFIDF_Scorer>();}},
-    };
-    auto it=factories.find(scorer_name);
-    return it!=factories.end()?it->second():this->get_scorer("default");
 }
 
 

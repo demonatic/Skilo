@@ -3,7 +3,7 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 #include "g3log/g3log.hpp"
-
+#include <iostream>
 namespace Skilo {
 namespace Storage{
 
@@ -53,6 +53,7 @@ uint32_t StorageService::get_collection_next_seq_id(uint32_t collection_id) cons
 Document StorageService::get_document(const uint32_t collection_id,const uint32_t seq_id) const
 {
     const std::string &seq_key=KeyConverter::doc_seq_key(collection_id,seq_id);
+    std::cout<<"get document:seq key="<<seq_key<<std::endl;
     std::string doc_json_str;
     StorageEngine::Status status=_storage_engine.get(seq_key,doc_json_str);
     if(status!=StorageEngine::FOUND){
@@ -99,6 +100,7 @@ bool StorageService::write_document(uint32_t collection_id,const Document &docum
 
     batch.Put(doc_key,seq_key);
     batch.Put(seq_key,buffer.GetString());
+    std::cout<<"add seq key "<<seq_key<<std::endl;
     batch.Put(next_seq_key,std::to_string(document.get_seq_id().value()+1));
     return _storage_engine.batch_write(batch);
 }

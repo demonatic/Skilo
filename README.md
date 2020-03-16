@@ -13,9 +13,9 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
 ## Feature
 
 * Simple and easy to use RESTful API
-
 *   Nested schema field support
 *   Word/Phrase Search
+*   Query by/Sort by
 *   Chinese Support
 *   Typo tolerant(TODO)
 *   Search hint (TODO) 
@@ -41,9 +41,9 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
                 "type":"string",
                 "index":true
             },
-            "tips":{
-                "type":"string"
-            },
+            "difficulty":{"type":"integer"},
+            "rank":{"type":"integer"},
+            "tips":{"type":"string"},
             "ingredients": {
                 "type": "array",
                 "$items": {
@@ -80,6 +80,8 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
       "id":1001,
       "recipe_name": "麻婆豆腐",
       "tips": "反正很好吃哦，而且做起来很简单呢",
+      "difficulty":1,
+      "rank":4,
       "ingredients": [{
           "note": "500克",
           "title": "豆腐"
@@ -130,7 +132,8 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
   ```json
   {
       "query": "豆腐",
-      "query by": ["recipe_name","ingredients.$items.title"]
+      "query by": ["recipe_name","ingredients.$items.title"],
+      "sort by":["difficulty":asc,"rank":desc]
   }
   ```
 
@@ -138,15 +141,24 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
 
   ```
   {
-    "found": 1,
+    "found": 2,
     "hits": [
       {
           "id": "1001",
           "recipe_name": "麻婆豆腐",
+          "difficulty":1,
+          "rank":4,
+          ....
+      },
+      {
+          "id": "1002",
+          "recipe_name": "麻婆豆腐",
+          "difficulty":2,
+          "rank":3,
           ....
       }
     ],
-    "scores":[4.86]
+    "scores":[4.86,5.32]
   }
   ```
 

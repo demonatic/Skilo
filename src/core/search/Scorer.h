@@ -3,33 +3,44 @@
 
 #include <vector>
 #include <string>
-#include "../index/PostingList.h"
+#include "utility/Number.h"
+#include "core/index/PostingList.h"
 
 namespace Skilo {
 namespace Search {
 
-struct HitContext{
-    uint32_t doc_seq_id;
-    uint32_t collection_doc_count;
-    const std::string *field_path;
-    const std::vector<const Index::PostingList*> *term_postings;
-    uint32_t phrase_match_count;
-};
+struct HitContext;
 
 class Scorer
 {
 public:
     Scorer()=default;
     virtual ~Scorer();
-    virtual float get_score(const HitContext &context) const=0;
+    virtual number_t get_score(const HitContext &context) const=0;
 };
 
 class TFIDF_Scorer:public Scorer{
 public:
     TFIDF_Scorer()=default;
-    virtual float get_score(const HitContext &context) const;
+    virtual number_t get_score(const HitContext &context) const;
 
-    float calcu_tf_idf(const Index::PostingList* posting,const HitContext &context) const;
+    double calcu_tf_idf(const Index::PostingList* posting,const HitContext &context) const;
+};
+
+class SortScorer:public Scorer{
+public:
+    using IsAscendOrder=bool;
+
+    SortScorer(const std::string &rank_field,IsAscendOrder ascend_order)
+        :_is_ascend(ascend_order),_rank_field(rank_field)
+    {
+
+    }
+    virtual number_t get_score(const HitContext &context) const;
+
+private:
+    IsAscendOrder _is_ascend;
+    std::string _rank_field;
 };
 
 } //namespace search

@@ -224,6 +224,11 @@ const std::vector<std::string> &Query::get_query_fields() const
     return _query_fields;
 }
 
+const std::vector<std::pair<std::string,Query::SortInAscend>> &Query::get_sort_fields() const
+{
+    return _sort_fields;
+}
+
 void Query::extract_variables()
 {
     rapidjson::Value::ConstMemberIterator query_it=_document.FindMember("query");
@@ -241,6 +246,37 @@ void Query::extract_variables()
         }
         _query_fields.emplace_back(query_field.GetString());
     }
+
+    rapidjson::Value::ConstMemberIterator sort_by_it=_document.FindMember("sort by");
+    if(sort_by_it==_document.MemberEnd()){
+        return;
+    }
+    if(!sort_by_it->value.IsArray()){
+        throw InvalidFormatException("\"sort by\" is not string array");
+    }
+    for(const auto &sort_field:sort_by_it->value.GetArray()){
+        if(!sort_field.IsString()){
+            throw InvalidFormatException("\"sort by\" must be string array");
+        }
+        std::string_view sort_str=sort_field.GetString();
+        size_t delimiter_index=sort_str.find(':');
+        if(delimiter_index==std::string_view::npos||delimiter_index==sort_str.length()-1){
+            throw InvalidFormatException("missing order in \"sort by\"");
+        }
+        std::string_view sort_order=sort_str.substr(delimiter_index+1);
+
+        SortInAscend is_ascend;
+        if(sort_order=="desc"){
+            is_ascend=false;
+        }
+        else if(sort_order=="asc"){
+            is_ascend=true;
+        }
+        else{
+            throw InvalidFormatException(R"("sort by" order should be either "desc" or "asc")");
+        }
+        _sort_fields.emplace_back(sort_str.substr(0,delimiter_index),is_ascend);
+    }
 }
 
 SearchResult::SearchResult(uint32_t num_found)
@@ -254,7 +290,7 @@ SearchResult::SearchResult(uint32_t num_found)
     _document.AddMember("scores",scores,_document.GetAllocator());
 }
 
-void SearchResult::add_hit(Document &doc,float score)
+void SearchResult::add_hit(Document &doc,double score)
 {
     rapidjson::Value d(std::move(doc.get_raw()),_document.GetAllocator());
     _document["hits"].GetArray().PushBack(d.Move(),_document.GetAllocator());

@@ -4,9 +4,25 @@
 #include <vector>
 #include <memory>
 #include "Scorer.h"
+#include "DocRanker.h"
 
 namespace Skilo {
+
+namespace Index{
+struct SortFieldProxy;
+}
+
 namespace Search {
+
+struct HitContext{
+    uint32_t doc_seq_id;
+    uint32_t collection_doc_count;
+    const std::string *field_path;
+    const std::vector<const Index::PostingList*> *term_postings;
+    uint32_t phrase_match_count;
+
+    const std::unordered_map<std::string,Index::SortFieldProxy> *sort_indexes;
+};
 
 /// @class HitCollecter collects search candidate from different fields and rank them based on scorer generated score
 ///        It output top-K score's doc seq id
@@ -14,23 +30,27 @@ namespace Search {
 class HitCollector{
 
 public:
-    HitCollector(const size_t K,std::unique_ptr<Scorer> scorer);
+    HitCollector(const size_t K,DocRanker &ranker);
 
     /// @brief get top K score document sequence ids in score descending order
     /// the collector will be empty after the call
-    std::vector<pair<uint32_t,float>> get_top_k();
+    std::vector<pair<uint32_t,double>> get_top_k();
 
     void collect(const HitContext &context);
 
     bool empty() const;
     uint32_t num_docs_collected() const;
-    Scorer *get_scorer() const;
+    DocRanker& get_ranker();
 
 private:
     struct Hit{
-        float score;
         uint32_t doc_seq_id;
         size_t heap_index=0;
+        std::vector<number_t> rank_scores;
+
+        bool operator<(Hit &other){
+            return this->rank_scores<other.rank_scores;
+        }
     };
 
     Hit &top();
@@ -42,7 +62,8 @@ private:
 private:
     const size_t _K;
     std::vector<Hit> _hits; //pre-allocated space for heap entry
-    std::unique_ptr<Scorer> _scorer;
+
+    DocRanker _ranker;
 
     size_t _heap_index;
     ///<--points to _hits-->

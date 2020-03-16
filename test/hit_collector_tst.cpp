@@ -1,14 +1,16 @@
 #include <gtest/gtest.h>
 #include <unordered_set>
-#include "../../src/core/search/HitCollector.h"
+#include "utility/Number.h"
+#include "core/search/HitCollector.h"
 
 using namespace testing;
 using namespace std;
 using namespace Skilo::Search;
+using namespace Skilo;
 
 struct TestScorer:public Scorer{
 public:
-    virtual float get_score(const HitContext &context) const override{
+    virtual number_t get_score(const HitContext &context) const override{
         float score=(float)(rand()%10000)/(rand()%100+1);
         if(scores.count(context.doc_seq_id)){
             float pre_score=scores[context.doc_seq_id];
@@ -28,9 +30,12 @@ TEST(HIT_COLLECTOR_TEST,COLLECT_TEST) {
     for(int i=0;i<n;i++){
         contexts[i].doc_seq_id=rand()%(n/2);
     }
+    DocRanker ranker;
+    std::unique_ptr<TestScorer> p_scorer=std::make_unique<TestScorer>();
+    TestScorer *scorer=p_scorer.get();
+    ranker.push_scorer(std::move(p_scorer));
+    HitCollector collector(n/3,ranker);
 
-    HitCollector collector(n/3,std::make_unique<TestScorer>());
-    TestScorer *scorer=static_cast<TestScorer*>(collector.get_scorer());
     for(int i=0;i<n;i++){
         collector.collect(contexts[i]);
     }
@@ -44,7 +49,7 @@ TEST(HIT_COLLECTOR_TEST,COLLECT_TEST) {
         return p1.second>p2.second;
     });
 
-    vector<pair<uint32_t,float>> top_k=collector.get_top_k();
+    vector<pair<uint32_t,double>> top_k=collector.get_top_k();
 
     for(int i=0;i<top_k.size();i++){
 //        cout<<"data doc id="<<data[i].first<<" score="<<data[i].second<<endl;

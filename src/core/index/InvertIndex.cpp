@@ -37,7 +37,8 @@ PostingList *InvertIndex::get_postinglist(const string &term) const
 }
 
 void InvertIndex::search_field(const std::unordered_map<string, std::vector<uint32_t>> &query_terms, const string &field_path,
-                               Search::HitCollector &collector, uint32_t total_doc_count) const
+                               Search::HitCollector &collector, uint32_t total_doc_count,
+                               const std::unordered_map<string, SortFieldProxy> *sort_indexes) const
 {
     /// \brief find the conjuction doc_ids of the query terms
     /// @example:
@@ -143,7 +144,7 @@ void InvertIndex::search_field(const std::unordered_map<string, std::vector<uint
             }
             // collect this hit
             if(phrase_match_count>0){
-                Search::HitContext context{lead_doc,total_doc_count,&field_path,&candidate_postings,phrase_match_count};
+                Search::HitContext context{lead_doc,total_doc_count,&field_path,&candidate_postings,phrase_match_count,sort_indexes};
                 collector.collect(context);
             }
         }
@@ -179,17 +180,18 @@ void CollectionIndexes::visit_field_string(const Schema::FieldString *field_stri
 void CollectionIndexes::visit_field_integer(const Schema::FieldInteger *field_integer)
 {
     auto it=field_integer->attributes.find("sort_field");
-    if(it==field_integer->attributes.end())
-        return;
+    bool cache=false;
+    if(it!=field_integer->attributes.end()){
+        const Schema::Field::ArrtibuteValue &sort_option=it->second;
+        cache=std::get<bool>(sort_option);
+    }
 
-    const Schema::Field::ArrtibuteValue &sort_option=it->second;
-
-    SortIndexProxy sort_index_proxy;
+    SortFieldProxy sort_index_proxy;
     sort_index_proxy.collection_id=this->_collection_id;
     sort_index_proxy.field_path=field_integer->path;
 
-    if(std::get<bool>(sort_option)){
-        phmap::parallel_flat_hash_map<uint32_t,NumericValue> sort_index;
+    if(cache){
+        phmap::parallel_flat_hash_map<uint32_t,number_t> sort_index;
         sort_index_proxy.sort_data=sort_index;
     }
     else{
@@ -215,7 +217,7 @@ bool CollectionIndexes::contains(const string &field_path) const
 }
 
 void CollectionIndexes::search_fields(const std::unordered_map<string, std::vector<uint32_t>> &query_terms,
-                                        const std::vector<string> &field_paths,Search::HitCollector &collector) const
+                                        const std::vector<string> &field_paths, Search::HitCollector &collector) const
 {
     if(query_terms.empty())
         return;
@@ -230,7 +232,7 @@ void CollectionIndexes::search_fields(const std::unordered_map<string, std::vect
         }
         const InvertIndex *index=this->get_index(path);
         if(index){
-            index->search_field(query_terms,path,collector,_doc_count);
+            index->search_field(query_terms,path,collector,_doc_count,&this->_sort_indexes);
         }
     }
 }
@@ -255,9 +257,9 @@ uint32_t CollectionIndexes::get_doc_num() const
     return this->_doc_count;
 }
 
-NumericValue SortIndexProxy::get_numeric_val(const uint32_t doc_seq_id) const
+number_t SortFieldProxy::get_numeric_val(const uint32_t doc_seq_id) const
 {
-    NumericValue value;
+    number_t value;
     const NumericSortIndex *sort_index=std::get_if<NumericSortIndex>(&this->sort_data);
     if(sort_index){
         value=sort_index->at(doc_seq_id);
@@ -266,7 +268,12 @@ NumericValue SortIndexProxy::get_numeric_val(const uint32_t doc_seq_id) const
         StorageService *storage_service=std::get<StorageService*>(sort_data);
         Document doc=storage_service->get_document(collection_id,doc_seq_id);
         rapidjson::Value &raw_value=doc.get_value(field_path);
-        //TODO
+        if(raw_value.IsNumber()){
+            value=raw_value.GetInt64();
+        }
+        else{
+            value=raw_value.GetDouble();
+        }
     }
     return value;
 }

@@ -9,9 +9,12 @@
 #include "core/search/HitCollector.h"
 #include "storage/StorageService.h"
 #include "utility/RWLock.hpp"
+#include "utility/Number.h"
 #include "parallel_hashmap/phmap.h"
 
+
 namespace Skilo {
+
 namespace Index{
 
 struct IndexRecord{
@@ -19,18 +22,14 @@ struct IndexRecord{
     std::unordered_map<std::string, std::vector<uint32_t>> term_offsets;
 };
 
-struct NumericValue{
-    std::variant<int,float> num;
-};
-
-struct SortIndexProxy{
-    using NumericSortIndex=phmap::parallel_flat_hash_map<uint32_t,NumericValue>;
+struct SortFieldProxy{
+    using NumericSortIndex=phmap::parallel_flat_hash_map<uint32_t,number_t>;
 
     uint32_t collection_id;
     std::string field_path;
     std::variant<NumericSortIndex,Storage::StorageService*> sort_data;
 
-    NumericValue get_numeric_val(const uint32_t doc_seq_id) const;
+    number_t get_numeric_val(const uint32_t doc_seq_id) const;
 };
 
 
@@ -45,7 +44,8 @@ public:
     uint32_t term_docs_num(const std::string &term) const;
 
     void search_field(const std::unordered_map<string, std::vector<uint32_t>> &query_terms,
-        const std::string &field_path,Search::HitCollector &collector,uint32_t total_doc_count) const;
+        const std::string &field_path,Search::HitCollector &collector,uint32_t total_doc_count,
+            const std::unordered_map<string, SortFieldProxy> *sort_indexes) const;
 
 private:
     PostingList *get_postinglist(const std::string &term) const;
@@ -83,7 +83,7 @@ private:
     //!-- <field_path,index>
     std::unordered_map<std::string,InvertIndex> _indexes;
     //!-- <field_path,<doc_id,numeric_value>>
-    std::unordered_map<std::string,SortIndexProxy> _sort_indexes;
+    std::unordered_map<std::string,SortFieldProxy> _sort_indexes;
 };
 
 

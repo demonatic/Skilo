@@ -154,25 +154,32 @@ private:
 /****************************************************
 {
     "query": "iphone",
-    "query by": ["product name","price"]
+    "query by": ["product name","price"],
+    "sort by":["price:asc","sales:desc"]
 }
 ***************************************************/
 
 class Query:public DocumentBase{
 public:
+    using SortInAscend=bool;
+
     Query(const std::string &collection_name,const std::string_view json_str);
     Query(const std::string &collection_name,const SegmentBuf &json_str);
 
     const std::string &get_collection_name() const;
     const std::string &get_search_str() const;
+
     const std::vector<std::string>& get_query_fields() const;
+    const std::vector<std::pair<std::string,SortInAscend>>& get_sort_fields() const;
 
 private:
     void extract_variables();
+
 private:
     std::string _collection_name;
     std::string _search_str;
     std::vector<std::string> _query_fields;
+    std::vector<std::pair<std::string,SortInAscend>> _sort_fields;
 };
 
 ///SearchResult example:
@@ -194,7 +201,7 @@ private:
 class SearchResult:public DocumentBase{
 public:
     SearchResult(uint32_t num_found);
-    void add_hit(Document &doc,float score);
+    void add_hit(Document &doc,double score);
     void add_took_ms(float ms);
 };
 

@@ -7,6 +7,8 @@
 		    "$numberInt": "202193"
 		},
 		"recipe_name": "鱼香肉丝",
+		"difficulty": 2,
+		"rank": 2,
 		"context": "一直以来，我做菜都会避开那些个经典菜式，觉得经典菜比较大众，我有喜新厌旧的毛病，这个熟悉我的都知道，比较喜欢做那些有新意的菜。所以自己掌厨好几年，居然就是没有尝试过做这道鱼香肉丝。前段时间，小少爷因为在外用餐吃过后特别喜欢，于是回家一个劲的鼓动我做鱼香肉丝，我当然得满足他，于是尝试着做了一次，哪个晓得，这一做就不可收拾了，首先我自己喜欢死了这个菜，其次灰太狼也喜欢上了，结局就是一周内做了三次这道鱼香肉丝，酸、甜、香、鲜，很开胃,味道实在非常的讨巧！大力推荐给各位，一个绝对镇得住场面的家常菜，主妇必学人气菜式之一。",
 		"ingredients": [{
 		    "note": "250g",
@@ -108,6 +110,8 @@
 		    "$numberInt": "1080829"
 		},
 		"recipe_name": "飘香酸菜鱼",
+		"difficulty": 3,
+		"rank": 4,
 		"context": "我爱吃鱼，老爹爱喝汤，所以酸菜鱼在我家出现率还是很高的，尤其在冬季，守着一锅热腾腾的酸菜鱼，吃的满头冒汗，鼻涕眼泪的，多么幸福又满足(^_^)",
 		"ingredients": [{
 		    "note": "一条（二斤四两）",
@@ -305,6 +309,8 @@
 		    "$numberInt": "1064542"
 		},
 		"recipe_name": "川味家常菜~麻婆豆腐",
+		"difficulty": 1,
+		"rank": 2,
 		"context": "我是一个80后热爱美食的爱美大妞，我喜欢美食更喜欢美食摄影，潜心专研美食制作和美食摄影，感谢您的关注与厚爱，我将会不断的在这里给大家分享我边吃边瘦的美丽秘籍哦！我是一个超级吃货，从不放过任何美食，甜品更是我割舍不下的情人旧爱，那么我的体重一直保持在80-90斤，从不超过90以上。曾近我是个110的胖妞，所以我并不是吃什么都不会长肉的体质。只要您吃多了方式、吃对了时间就会享受美食边享瘦哦！",
 		"ingredients": [{
 		    "note": "500克",
@@ -369,6 +375,8 @@
 		    "$numberInt": "994159"
 		},
 		"recipe_name": "【麻婆豆腐】三分钟烧出让米饭遭殃的滋味豆腐",
+		"difficulty": 2,
+		"rank": 3,
 		"context": "这日在逛早市时候，突然发现自己貌似整个夏天豆腐买的次数真是有限，想着自己其实是个豆腐控，因为心念孩子中考事情，对自己倒是忽略了？好吧，重新买上一份，为自己弄上让米饭遭殃的麻婆豆腐，也是可以哒。",
 		"ingredients": [{
 		    "note": "2块",
@@ -415,6 +423,8 @@
 		    "$numberInt": "1424342"
 		},
 		"recipe_name": "夏日开胃必备——酸菜鱼",
+		"difficulty": 4,
+		"rank": 5,
 		"context": "酸菜鱼是一道源自山城重庆的经典川菜，以其特有的调味和独特的烹调技法而著称，各地也有称之为“酸汤鱼”，主要以鲜草鱼为主料，配以四川泡菜煮制而成，口味酸辣可口。酸菜鱼流行于上世纪90年代，也是重庆江湖菜的开路先锋之一。",
 		"ingredients": [{
 		    "note": "1条",
@@ -543,7 +553,8 @@
 		    "thumb": "/caiku/2/4/3/140_2428cad0383b51f15f99079f28af36a3.jpeg",
 		    "image": "/caiku/2/4/3/600_2428cad0383b51f15f99079f28af36a3.jpeg"
 		}]
-	}
+	},
+	{"id":8534571,"keyword":"酸菜鱼","user_name":"抄母","difficulty":4,"rank":2,"recipe_id":{"$numberInt":"229312"},"recipe_name":"酸菜鱼片","context":"这次来做个酸菜鱼～～","ingredients":[{"note":"1条","title":"黑鱼"},{"note":"适量","title":"酸菜"}],"tips":"","steps":[{"position":"1","content":"酸菜洗净切段、姜、蒜、花椒、红辣椒、泡小米椒备好。","thumb":"https://cp1.douguo.com/upload/caiku/2/2/d/140_22dbdd2f23eb147ef35bbaf8e10b170d.jpg","image":"https://cp1.douguo.com/upload/caiku/2/2/d/600_22dbdd2f23eb147ef35bbaf8e10b170d.jpg"},{"position":"2","content":"油入锅烧热，放入姜、蒜爆香，再放入红辣椒、小米椒、酸菜翻炒出香味，装盘备用。","thumb":"https://cp1.douguo.com/upload/caiku/d/4/8/140_d48db82396fc37a2cd1eee4f17b5f4f8.jpg","image":"https://cp1.douguo.com/upload/caiku/d/4/8/600_d48db82396fc37a2cd1eee4f17b5f4f8.jpg"},{"position":"3","content":"鱼清理干净，分成鱼头、鱼片肉、鱼骨三部分，鱼头洗干净切成两半，鱼背肉切片，鱼骨斩断，我是让卖鱼的帮我弄的～我下不去这手～鱼片肉放入一个碗，鱼头鱼骨装另一个碗，分别用料酒、淀粉、盐腌制10分钟。","thumb":"https://cp1.douguo.com/upload/caiku/e/4/2/140_e41e8d692290c2f94663a79306fda9b2.jpg","image":"https://cp1.douguo.com/upload/caiku/e/4/2/600_e41e8d692290c2f94663a79306fda9b2.jpg"},{"position":"4","content":"油入锅烧热，将鱼头、鱼骨入锅略煎，倒入清水盖上锅盖大火煮沸。（从第3步往下开始很考验耐受度啊～恶心到我了～～）","thumb":"https://cp1.douguo.com/upload/caiku/8/a/3/140_8a745c21fbe0728fb812a7b2db510d13.jpg","image":"https://cp1.douguo.com/upload/caiku/8/a/3/600_8a745c21fbe0728fb812a7b2db510d13.jpg"},{"position":"5","content":"放入酸菜、盐，接着煮。等煮沸，捞出鱼头、鱼骨，再放入鱼片肉煮至变色，出锅。接下来这补很重要！锅内重新入油，放入花椒爆香，将爆香后的花椒油淋在刚刚出锅入碗的酸菜鱼片上～～～～～","thumb":"https://cp1.douguo.com/upload/caiku/5/9/3/140_591ac3180f04d3c354c3b649b0c6b313.jpg","image":"https://cp1.douguo.com/upload/caiku/5/9/3/600_591ac3180f04d3c354c3b649b0c6b313.jpg"},{"position":"6","content":"大功告成～～～～美美的酸菜鱼片就这么成了～～～","thumb":"https://cp1.douguo.com/upload/caiku/1/5/3/140_154f8a0a6fa87c724f95d451801a6ba3.jpg","image":"https://cp1.douguo.com/upload/caiku/1/5/3/600_154f8a0a6fa87c724f95d451801a6ba3.jpg"}]}
 	]
 	
 }
