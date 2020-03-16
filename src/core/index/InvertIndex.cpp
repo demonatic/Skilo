@@ -38,7 +38,7 @@ PostingList *InvertIndex::get_postinglist(const string &term) const
 
 void InvertIndex::search_field(const std::unordered_map<string, std::vector<uint32_t>> &query_terms, const string &field_path,
                                Search::HitCollector &collector, uint32_t total_doc_count,
-                               const std::unordered_map<string, SortFieldProxy> *sort_indexes) const
+                               const std::unordered_map<string, SortIndex> *sort_indexes) const
 {
     /// \brief find the conjuction doc_ids of the query terms
     /// @example:
@@ -179,36 +179,38 @@ void CollectionIndexes::visit_field_string(const Schema::FieldString *field_stri
 
 void CollectionIndexes::visit_field_integer(const Schema::FieldInteger *field_integer)
 {
-    auto it=field_integer->attributes.find("sort_field");
-    bool cache=false;
-    if(it!=field_integer->attributes.end()){
-        const Schema::Field::ArrtibuteValue &sort_option=it->second;
-        cache=std::get<bool>(sort_option);
-    }
-
-    SortFieldProxy sort_index_proxy;
-    sort_index_proxy.collection_id=this->_collection_id;
-    sort_index_proxy.field_path=field_integer->path;
-
-    if(cache){
-        phmap::parallel_flat_hash_map<uint32_t,number_t> sort_index;
-        sort_index_proxy.sort_data=sort_index;
-    }
-    else{
-        sort_index_proxy.sort_data=const_cast<Storage::StorageService*>(this->_storage_service);
-    }
-    _sort_indexes.emplace(field_integer->path,sort_index_proxy);
+    init_sort_field(field_integer);
 }
 
-const InvertIndex *CollectionIndexes::get_index(const string &field_path) const
+void CollectionIndexes::visit_field_float(const Schema::FieldFloat *field_float)
+{
+    init_sort_field(field_float);
+}
+
+void CollectionIndexes::init_sort_field(const Schema::Field *field_numeric)
+{
+    SortIndex sort_index;
+    sort_index.collection_id=this->_collection_id;
+    sort_index.field_path=field_numeric->path;
+    sort_index.storage=const_cast<Storage::StorageService*>(this->_storage_service);
+
+    auto it=field_numeric->attributes.find("sort_field");
+    if(it!=field_numeric->attributes.end()){
+        const Schema::Field::ArrtibuteValue &sort_option=it->second;
+        sort_index.cache=std::get<bool>(sort_option);
+    }
+    _sort_indexes.emplace(field_numeric->path,sort_index);
+}
+
+const InvertIndex *CollectionIndexes::get_invert_index(const string &field_path) const
 {
     auto field_it=this->_indexes.find(field_path);
     return field_it!=_indexes.cend()?&field_it->second:nullptr;
 }
 
-InvertIndex *CollectionIndexes::get_index(const string &field_path)
+InvertIndex *CollectionIndexes::get_invert_index(const string &field_path)
 {
-    return const_cast<InvertIndex*>(static_cast<const CollectionIndexes*>(this)->get_index(field_path));
+    return const_cast<InvertIndex*>(static_cast<const CollectionIndexes*>(this)->get_invert_index(field_path));
 }
 
 bool CollectionIndexes::contains(const string &field_path) const
@@ -230,10 +232,18 @@ void CollectionIndexes::search_fields(const std::unordered_map<string, std::vect
             }
             throw InvalidFormatException("field path \""+path+"\" is not found, existing fields: "+exist_fields);
         }
-        const InvertIndex *index=this->get_index(path);
+        const InvertIndex *index=this->get_invert_index(path);
         if(index){
             index->search_field(query_terms,path,collector,_doc_count,&this->_sort_indexes);
         }
+    }
+}
+
+void CollectionIndexes::add_sort_field(const string &field_path, const uint32_t seq_id, const number_t number)
+{
+    SortIndex &sort_index=_sort_indexes[field_path];
+    if(sort_index.cache){
+        sort_index.add_number(seq_id,number);
     }
 }
 
@@ -257,25 +267,25 @@ uint32_t CollectionIndexes::get_doc_num() const
     return this->_doc_count;
 }
 
-number_t SortFieldProxy::get_numeric_val(const uint32_t doc_seq_id) const
+number_t SortIndex::get_numeric_val(const uint32_t doc_seq_id) const
 {
-    number_t value;
-    const NumericSortIndex *sort_index=std::get_if<NumericSortIndex>(&this->sort_data);
-    if(sort_index){
-        value=sort_index->at(doc_seq_id);
+    auto num_it=index.find(doc_seq_id);
+    if(num_it!=index.end()){
+        std::cout<<"!!!!!hit cache"<<std::endl;
+        return num_it->second;
     }
-    else{
-        StorageService *storage_service=std::get<StorageService*>(sort_data);
-        Document doc=storage_service->get_document(collection_id,doc_seq_id);
-        rapidjson::Value &raw_value=doc.get_value(field_path);
-        if(raw_value.IsNumber()){
-            value=raw_value.GetInt64();
-        }
-        else{
-            value=raw_value.GetDouble();
-        }
-    }
+    std::cout<<"!!!!miss cache"<<std::endl;
+    //not in the index, load from storage service
+    Document doc=storage->get_document(collection_id,doc_seq_id);
+    rapidjson::Value &raw_value=doc.get_value(field_path);
+    number_t value=raw_value.IsNumber()?raw_value.GetInt64():raw_value.GetDouble();
+    index[doc_seq_id]=value; //load to index
     return value;
+}
+
+void SortIndex::add_number(uint32_t seq_id,const number_t number)
+{
+    index[seq_id]=number;
 }
 
 

@@ -2,9 +2,11 @@
 #define SKILO_H
 
 #include <functional>
+#include <memory>
 #include "Rinx/Server/Server.h"
 #include "Rinx/Protocol/HTTP/ProtocolHttp1.h"
 #include "core/CollectionManager.h"
+#include "utility/LogSink.h"
 
 namespace Skilo {
 
@@ -20,7 +22,7 @@ class SkiloServer
     using SkiloReqHandler=std::function<void(const SegmentBuf &json,Status &status,QueryContext &context)>;
 
 public:
-    SkiloServer(const SkiloConfig &config);
+    SkiloServer(const SkiloConfig &config,const bool debug=false);
     bool listen();
 
 private:
@@ -42,11 +44,12 @@ private:
 
 private:
     const SkiloConfig &_config;
+    std::unique_ptr<g3::LogWorker> _log_worker;
 
     Rinx::RxServer _server;
-
     CollectionManager _collection_manager;
 };
+
 
 } //namespace Skilo
 

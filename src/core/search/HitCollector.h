@@ -9,7 +9,7 @@
 namespace Skilo {
 
 namespace Index{
-struct SortFieldProxy;
+struct SortIndex;
 }
 
 namespace Search {
@@ -21,7 +21,7 @@ struct HitContext{
     const std::vector<const Index::PostingList*> *term_postings;
     uint32_t phrase_match_count;
 
-    const std::unordered_map<std::string,Index::SortFieldProxy> *sort_indexes;
+    const std::unordered_map<std::string,Index::SortIndex> *sort_indexes;
 };
 
 /// @class HitCollecter collects search candidate from different fields and rank them based on scorer generated score

@@ -24,10 +24,12 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
                                           \"index\":true\
                                       },\
                                       \"difficulty\":{\
-                                          \"type\":\"integer\"\
+                                          \"type\":\"integer\",\
+                                          \"sort_field\":false\
                                       },\
                                       \"rank\":{\
-                                          \"type\":\"integer\"\
+                                          \"type\":\"integer\",\
+                                          \"sort_field\":true\
                                       },\
                                       \"context\":{\
                                           \"type\":\"string\",\
@@ -77,10 +79,12 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
                                            \"index\":true\
                                        },\
                                        \"difficulty\":{\
-                                           \"type\":\"integer\"\
+                                           \"type\":\"integer\",\
+                                           \"sort_field\":false\
                                        },\
                                        \"rank\":{\
-                                           \"type\":\"integer\"\
+                                           \"type\":\"integer\",\
+                                           \"sort_field\":true\
                                        },\
                                        \"context\":{\
                                            \"type\":\"string\",\

@@ -30,7 +30,7 @@ double TFIDF_Scorer::calcu_tf_idf(const Index::PostingList* posting,const HitCon
 
 number_t SortScorer::get_score(const HitContext &context) const
 {
-    const Index::SortFieldProxy &sort_index=context.sort_indexes->at(_rank_field);
+    const Index::SortIndex &sort_index=context.sort_indexes->at(_rank_field);
     number_t number=sort_index.get_numeric_val(context.doc_seq_id);
     if(_is_ascend){
         number=-number;

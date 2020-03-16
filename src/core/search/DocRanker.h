@@ -10,7 +10,6 @@ namespace Search {
 class DocRanker
 {
 public:
-
     DocRanker();
 
     void push_scorer(std::unique_ptr<Scorer> scorer);

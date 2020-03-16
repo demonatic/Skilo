@@ -31,7 +31,7 @@ void search_client(){
 
 TEST(SKILO_SERVER_TEST,CRUD_TEST){
     SkiloConfig config;
-    SkiloServer server(config);
+    SkiloServer server(config,true);
     size_t client_count=8;
     std::vector<std::thread> client_threads;
     for(int i=0;i<client_count;i++){

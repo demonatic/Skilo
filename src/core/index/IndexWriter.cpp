@@ -17,34 +17,36 @@ void IndexWriter::index_in_memory(const Schema::CollectionSchema &schema, const 
     schema.accept(*this,document.get_raw());
 }
 
-void IndexWriter::visit_field_string(const Schema::FieldString *field_string, const rapidjson::Value &document)
+void IndexWriter::visit_field_string(const Schema::FieldString *field_string, const rapidjson::Value &node)
 {
-    InvertIndex *index=_indexes.get_index(field_string->path);
+    InvertIndex *index=_indexes.get_invert_index(field_string->path);
     if(!index) return;
 
     std::unordered_map<std::string, std::vector<uint32_t>> word_offsets;
-    word_offsets=_tokenizer->tokenize(document.GetString());
+    word_offsets=_tokenizer->tokenize(node.GetString());
 
     IndexRecord record{_seq_id,std::move(word_offsets)};
     index->add_record(record);
 }
 
-void IndexWriter::visit_field_integer(const Schema::FieldInteger *field_integer, const rapidjson::Value &document)
+void IndexWriter::visit_field_integer(const Schema::FieldInteger *field_integer, const rapidjson::Value &node)
+{
+    number_t integer_number=node.GetInt64();
+    _indexes.add_sort_field(field_integer->path,_seq_id,integer_number);
+}
+
+void IndexWriter::visit_field_float(const Schema::FieldFloat *field_float, const rapidjson::Value &node)
+{
+    number_t real_number=node.GetDouble();
+    _indexes.add_sort_field(field_float->path,_seq_id,real_number);
+}
+
+void IndexWriter::visit_field_boolean(const Schema::FieldBoolean *field_boolean, const rapidjson::Value &node)
 {
 
 }
 
-void IndexWriter::visit_field_float(const Schema::FieldFloat *field_float, const rapidjson::Value &document)
-{
-
-}
-
-void IndexWriter::visit_field_boolean(const Schema::FieldBoolean *field_boolean, const rapidjson::Value &document)
-{
-
-}
-
-void IndexWriter::visit_field_array(const Schema::FieldArray *field_array, const rapidjson::Value &document)
+void IndexWriter::visit_field_array(const Schema::FieldArray *field_array, const rapidjson::Value &node)
 {
 
 }

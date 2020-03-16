@@ -22,14 +22,15 @@ struct IndexRecord{
     std::unordered_map<std::string, std::vector<uint32_t>> term_offsets;
 };
 
-struct SortFieldProxy{
-    using NumericSortIndex=phmap::parallel_flat_hash_map<uint32_t,number_t>;
-
+struct SortIndex{
+    bool cache;
     uint32_t collection_id;
     std::string field_path;
-    std::variant<NumericSortIndex,Storage::StorageService*> sort_data;
+    mutable phmap::parallel_flat_hash_map<uint32_t,number_t> index;
+    Storage::StorageService *storage;
 
     number_t get_numeric_val(const uint32_t doc_seq_id) const;
+    void add_number(uint32_t seq_id,const number_t number);
 };
 
 
@@ -45,7 +46,7 @@ public:
 
     void search_field(const std::unordered_map<string, std::vector<uint32_t>> &query_terms,
         const std::string &field_path,Search::HitCollector &collector,uint32_t total_doc_count,
-            const std::unordered_map<string, SortFieldProxy> *sort_indexes) const;
+            const std::unordered_map<string, SortIndex> *sort_indexes) const;
 
 private:
     PostingList *get_postinglist(const std::string &term) const;
@@ -60,8 +61,9 @@ public:
     CollectionIndexes(const uint32_t collection_id, const Schema::CollectionSchema &schema,
                       const Storage::StorageService *storage_service);
 
-    InvertIndex *get_index(const std::string &field_path);
-    const InvertIndex *get_index(const std::string &field_path) const;
+    InvertIndex *get_invert_index(const std::string &field_path);
+    const InvertIndex *get_invert_index(const std::string &field_path) const;
+
     bool contains(const std::string &field_path) const;
     uint32_t field_term_doc_num(const std::string &field_path,const std::string &term) const;
 
@@ -71,9 +73,15 @@ public:
     void search_fields(const std::unordered_map<std::string, std::vector<uint32_t>> &query_terms,
                        const std::vector<std::string> &field_paths,Search::HitCollector &collector) const;
 
+    void add_sort_field(const std::string &field_path,const uint32_t seq_id,const number_t number);
+
 protected:
     virtual void visit_field_string(const Schema::FieldString *field_string) override;
     virtual void visit_field_integer(const Schema::FieldInteger *field_integer) override;
+    virtual void visit_field_float(const Schema::FieldFloat *field_float) override;
+
+private:
+    void init_sort_field(const Schema::Field *field_numeric);
 
 private:
     uint32_t _doc_count;
@@ -83,7 +91,7 @@ private:
     //!-- <field_path,index>
     std::unordered_map<std::string,InvertIndex> _indexes;
     //!-- <field_path,<doc_id,numeric_value>>
-    std::unordered_map<std::string,SortFieldProxy> _sort_indexes;
+    std::unordered_map<std::string,SortIndex> _sort_indexes;
 };
 
 

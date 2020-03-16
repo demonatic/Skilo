@@ -1,8 +1,6 @@
 #include "Skilo.h"
 #include "Rinx/Protocol/HTTP/HttpResponse.h"
 #include "Rinx/Protocol/HTTP/ProtocolHttp1.h"
-#include <g3log/g3log.hpp>
-#include <g3log/logworker.hpp>
 
 namespace Skilo {
 
@@ -17,12 +15,18 @@ using MakeAsync=Rinx::MakeAsync;
                                                 static_cast<SkiloReqHandler>(std::bind(&__handler__,this,\
                                                    std::placeholders::_1,std::placeholders::_2,std::placeholders::_3))))
 
-SkiloServer::SkiloServer(const SkiloConfig &config):_config(config),_collection_manager(config)
+SkiloServer::SkiloServer(const SkiloConfig &config,const bool debug):_config(config),_collection_manager(config)
 {
     nanolog::initialize(nanolog::GuaranteedLogger(),config.get_log_dir(),"log",20);
+    _log_worker = g3::LogWorker::createLogWorker();
+    if(debug){
+        _log_worker->addSink(std::make_unique<CustomLogSink>(),&CustomLogSink::ReceiveLogMessage);
+    }
+    else{
+        auto handle = _log_worker->addDefaultLogger("skilo_log", config.get_log_dir());
+    }
+    g3::initializeLogging(_log_worker.get());
 
-    auto log_worker = g3::LogWorker::createLogWorker();
-    g3::initializeLogging(log_worker.get());
 }
 
 bool SkiloServer::listen()
@@ -91,5 +95,25 @@ void SkiloServer::handle_request(HttpRequest &req, HttpResponse &resp, const Ski
     resp.status_code(HttpStatusCode(status.code)).headers("Content-Length",std::move(body_length));
     resp.body()<<status.description;
 }
+
+struct CustomSink {
+  enum FG_Color {YELLOW = 33, RED = 31, GREEN=32, WHITE = 97};
+
+  FG_Color GetColor(const LEVELS level) const {
+     if (level.value == WARNING.value) { return YELLOW; }
+     if (level.value == DEBUG.value) { return GREEN; }
+     if (g3::internal::wasFatal(level)) { return RED; }
+
+     return WHITE;
+  }
+
+  void ReceiveLogMessage(g3::LogMessageMover logEntry) {
+     auto level = logEntry.get()._level;
+     auto color = GetColor(level);
+
+     std::cout << "\033[" << color << "m"
+       << logEntry.get().toString() << "\033[m" << std::endl;
+  }
+};
 
 } //namespace Skilo
