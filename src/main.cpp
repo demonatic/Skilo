@@ -1,10 +1,10 @@
 #include <iostream>
 #include <g3log/g3log.hpp>
 #include <g3log/logworker.hpp>
-#include <roaring/roaring.hh>
-
+#include "Skilo.h"
 using namespace std;
 using namespace g3;
+using namespace Skilo;
 
 struct ColorCoutSink {
 
@@ -36,8 +36,9 @@ int main()
 
     auto sinkHandle = log_worker->addSink(std::make_unique<ColorCoutSink>(),
                                      &ColorCoutSink::ReceiveLogMessage);
-    LOG(DEBUG) << "g3 log test";
 
-
+    SkiloConfig config;
+    SkiloServer server(config);
+    server.listen();
     return 0;
 }

@@ -1,6 +1,9 @@
 #include "Skilo.h"
 #include "Rinx/Protocol/HTTP/HttpResponse.h"
 #include "Rinx/Protocol/HTTP/ProtocolHttp1.h"
+#include <g3log/g3log.hpp>
+#include <g3log/logworker.hpp>
+
 namespace Skilo {
 
 using Rinx::HttpStatusCode;
@@ -17,6 +20,9 @@ using MakeAsync=Rinx::MakeAsync;
 SkiloServer::SkiloServer(const SkiloConfig &config):_config(config),_collection_manager(config)
 {
     nanolog::initialize(nanolog::GuaranteedLogger(),config.get_log_dir(),"log",20);
+
+    auto log_worker = g3::LogWorker::createLogWorker();
+    g3::initializeLogging(log_worker.get());
 }
 
 bool SkiloServer::listen()

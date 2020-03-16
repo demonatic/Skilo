@@ -44,7 +44,6 @@ Status CollectionManager::create_collection(CollectionMeta &collection_meta)
         }
 
         uint32_t collection_id=this->get_next_collection_id();
-        std::cout<<"@CollectionManager::create_collection  collection id="<<collection_id<<std::endl;
         collection_meta.add_collection_id(collection_id);
         collection_meta.add_create_time(static_cast<uint64_t>(std::time(nullptr)));
         if(!_storage_service->write_new_collection(collection_id,collection_meta)){
