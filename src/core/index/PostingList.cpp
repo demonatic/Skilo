@@ -3,7 +3,7 @@
 namespace Skilo {
 namespace Index{
 
-PostingList::PostingList()
+PostingList::PostingList():_avg_doc_len(0)
 {
 
 }
@@ -13,11 +13,20 @@ uint32_t PostingList::num_docs() const
     return _doc_ids.length();
 }
 
-void PostingList::add_doc(const uint32_t seq_id,const std::vector<uint32_t> &offsets)
+double PostingList::avg_doc_len() const
 {
-     uint32_t term_freq=static_cast<uint32_t>(offsets.size());
+    return _avg_doc_len;
+}
+
+void PostingList::add_doc(const uint32_t seq_id,const uint32_t doc_len,const std::vector<uint32_t> &offsets)
+{
+    _avg_doc_len=(_avg_doc_len*num_docs()+doc_len)/(num_docs()+1);
+    _doc_len.append(doc_len);
+
     _doc_ids.append(seq_id);
+     uint32_t term_freq=offsets.size();
     _doc_term_freqs.append(term_freq);
+
     uint32_t curr_offset_index=_offsets.length();
     _offset_index.append(curr_offset_index);
     for(uint32_t off:offsets){
@@ -33,7 +42,13 @@ uint32_t PostingList::get_doc_id(const uint32_t index) const
 uint32_t PostingList::get_doc_tf(const uint32_t doc_id) const
 {
     uint32_t index=_doc_ids.index_of(doc_id);
-    return _doc_term_freqs.at(index);
+    return _doc_term_freqs[index];
+}
+
+uint32_t PostingList::get_doc_len(const uint32_t doc_id) const
+{
+    uint32_t index=_doc_ids.index_of(doc_id);
+    return _doc_len[index];
 }
 
 std::vector<uint32_t> PostingList::get_doc_term_offsets(const uint32_t doc_id) const

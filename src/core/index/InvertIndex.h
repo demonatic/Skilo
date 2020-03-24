@@ -19,6 +19,7 @@ namespace Index{
 
 struct IndexRecord{
     uint32_t seq_id;
+    uint32_t doc_len;
     std::unordered_map<std::string, std::vector<uint32_t>> term_offsets;
 };
 

@@ -14,7 +14,6 @@ Collection::Collection(const CollectionMeta &collection_meta,StorageService *sto
     _next_seq_id=_storage_service->get_collection_next_seq_id(_collection_id);
     _indexes.set_doc_num(_next_seq_id);
     _tokenizer=this->get_tokenize_strategy(collection_meta.get_tokenizer());
-    cout<<"@Collection constructor next_seq_id="<<_next_seq_id<<endl;
     this->build_index();
 }
 
@@ -67,7 +66,7 @@ SearchResult Collection::search(const Query &query_info) const
     Search::DocRanker ranker;
     auto &sort_fields=query_info.get_sort_fields();
     if(sort_fields.empty()){
-        ranker.push_scorer(std::make_unique<Search::TFIDF_Scorer>());
+        ranker.push_scorer(std::make_unique<Search::BM25_Scorer>());
     }
     else{
         for(auto &&[sort_field,ascend_order]:sort_fields){
@@ -86,7 +85,7 @@ SearchResult Collection::search(const Query &query_info) const
     //load hit documents
     SearchResult result(hit_count);
     for(auto [seq_id,score]:res_docs){
-        std::cout<<"@collection search result: seq_id="<<seq_id<<" score="<<score<<endl;
+        LOG(DEBUG)<<"@collection search hit: seq_id="<<seq_id<<" score="<<score<<endl;
         Document doc=_storage_service->get_document(_collection_id,seq_id);
         result.add_hit(doc,score);
     }

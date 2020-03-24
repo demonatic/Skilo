@@ -20,7 +20,7 @@ struct HitContext{
     const std::string *field_path;
     const std::vector<const Index::PostingList*> *term_postings;
     uint32_t phrase_match_count;
-
+    const std::unordered_map<string, std::vector<uint32_t>> *query_terms;
     const std::unordered_map<std::string,Index::SortIndex> *sort_indexes;
 };
 

@@ -20,7 +20,7 @@ void InvertIndex::add_record(const IndexRecord &record)
             posting_list=new PostingList();
             _index.insert(term.data(),term.length(),posting_list);
         }
-        posting_list->add_doc(record.seq_id,offsets);
+        posting_list->add_doc(record.seq_id,record.doc_len,offsets);
     }
 }
 
@@ -144,7 +144,7 @@ void InvertIndex::search_field(const std::unordered_map<string, std::vector<uint
             }
             // collect this hit
             if(phrase_match_count>0){
-                Search::HitContext context{lead_doc,total_doc_count,&field_path,&candidate_postings,phrase_match_count,sort_indexes};
+                Search::HitContext context{lead_doc,total_doc_count,&field_path,&candidate_postings,phrase_match_count,&query_terms,sort_indexes};
                 collector.collect(context);
             }
         }
@@ -271,10 +271,8 @@ number_t SortIndex::get_numeric_val(const uint32_t doc_seq_id) const
 {
     auto num_it=index.find(doc_seq_id);
     if(num_it!=index.end()){
-        std::cout<<"!!!!!hit cache"<<std::endl;
         return num_it->second;
     }
-    std::cout<<"!!!!miss cache"<<std::endl;
     //not in the index, load from storage service
     Document doc=storage->get_document(collection_id,doc_seq_id);
     rapidjson::Value &raw_value=doc.get_value(field_path);

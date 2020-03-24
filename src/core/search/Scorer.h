@@ -27,6 +27,17 @@ public:
     double calcu_tf_idf(const Index::PostingList* posting,const HitContext &context) const;
 };
 
+class BM25_Scorer:public Scorer{
+public:
+    virtual number_t get_score(const HitContext &context) const;
+    double calcu_term_score(const Index::PostingList* posting,const HitContext &context) const;
+
+private:
+    double k1=1.2;
+    double k3=1;
+    double b=0.75;
+};
+
 class SortScorer:public Scorer{
 public:
     using IsAscendOrder=bool;
