@@ -50,10 +50,10 @@ double BM25_Scorer::calcu_term_score(const Index::PostingList *posting, const Hi
 {
     uint32_t tf=posting->get_doc_tf(context.doc_seq_id);
     uint32_t doc_len=posting->get_doc_len(context.doc_seq_id);
-    double s2=(k1*tf)/(tf+k1*(1-b+b*doc_len/posting->avg_doc_len()));
+    double R=(k1*tf)/(tf+k1*(1-b+b*doc_len/posting->avg_doc_len()));
     uint32_t df=posting->num_docs();
-    double s3=log(context.collection_doc_count-df+0.5)/(df+0.5);
-    return s2*s3;
+    double W=log(context.collection_doc_count-df+0.5)/(df+0.5);
+    return W*R;
 }
 
 } //namespace search
