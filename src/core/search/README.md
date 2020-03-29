@@ -133,28 +133,67 @@ Skilo搜索流程分为如下几步：
   
 * ### 文档评分与TopK搜集
 
-  Skilo目前采用TF-IDF来计算目标文档每个term的权重，然后计算和phrase_match_count的加权和。TF是该文档中词元出现频率，IDF为逆文档频率因子，计算方式为:
-  $$
-  \lg{N\over{TF+1}}
-  $$
-  其中N代表文档集合中总共有多少个文档。IDF考虑的不是文档本身的特征，而是特征单词之间的相对重要性，即衡量不同单词对文档的区分能力。一个词在大部分文档中都没有出现，那么IDF越高，说明这个单词信息含量越多，也就越有价值。例如查询字符串为”搜索引擎技术“，包含”技术“的文档很多，可能有各种各样的技术，但我们要找的不是别的技术而是”搜索引擎“技术，因此”搜索引擎“这个词元含有的信息量更多，被赋予更高的权重。
-
-  由于用户通常不会浏览完所有的搜索结果，因此评分完成后我们取前K个得分的文档返回即可。我们不能简单使用优先队列收集前K个文档，因为用户可能在不同字段上搜索关键字，某个文档在一个字段上的得分可能比另一个字段上的得分要高，因此文档的得分需要动态更新。我们使用小顶堆来使每次插入新文档时能够让其和当前已收集的文档中得分最小值进行比较，如果已经收集了K个结果且新文档得分小于堆顶的文档得分则不加入该文档，否则便添加进来；使用hash表来维护文档id到hit_entry的地址映射，以便更新hit_entry得分。我们提前为K个hit_entry分配好空间，避免每次插入时动态分配内存；堆和hash表中的值都指向分配出来的hit_entry空间，以避免堆调整时hash表也要跟着一起调整。关键代码如下：
+  Skilo目前支持以下几种评分和排序方式：TF-IDF, BM25,按一个或多个数值字段递增递减排序。
+  对于TF-IDF方式而言：TF是该文档中词元出现频率，IDF为逆文档频率因子，计算方式为:
+  
+  ```mathematica
+tdidf=tf*log(N/k)
+  ```
+  
+  其中N代表文档集合中总共有多少个文档,k代表出现过该词元的文档数目。IDF考虑的不是文档本身的特征，而是特征单词之间的相对重要性，即衡量不同单词对文档的区分能力。一个词在大部分文档中都没有出现，那么IDF越高，说明这个单词信息含量越多，也就越有价值。例如查询字符串为”搜索引擎技术“，包含”技术“的文档很多，可能有各种各样的技术，但我们要找的不是别的技术而是”搜索引擎“技术，因此”搜索引擎“这个词元含有的信息量更多，被赋予更高的权重。
+  
+  BM25方式与IF-IDF思路有不少相似之处，但是更为复杂：
+  
+  ![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/bm25.png)
+  
+  该公式分为三个部分，第一部分为外部公式，表明对于包含多个词项的查询Q，每个词项对整个查询得分的贡献，如对于查询＂中国人说中国话＂，＂中国＂出现了两次qtf=2，说明希望查询到的文档和＂中国＂应该更相关，该词项权重应该更高。第二部分类似于IF-IDF模型中的TF项，某个词项在文档中出现次数越多则该文档越重要。为了抑制长文档词项较多从而词频天然较高的倾向，因此使用文档长度除以平均文档长度进行归一化。第三部分类似于IDF项，对于一些含有比较稀有的查询词的文档给予更高的评分。
+  
+  上述每种评分方式都是一个Scorer, 一次查询可能包含多种评分标准，如先按照与查询词匹配度排序，匹配度相同时再按照某个数值字段递增排序。由此实现一个DocRanker来对每个文档依次按照不同评分标准评分。
+  
+  ```c++
+  //根据本次查询需要的评分方式构造一个DocRanker
+  class DocRanker
+  {
+  public:
+      DocRanker();
+  
+      void add_scorer(std::unique_ptr<Scorer> scorer);
+      // 对于每个candidate文档调用rank方法，依次调用不同类型的Scorer对文档进行评分
+      // 得到该文档在每个评分标准上的分值
+      std::vector<number_t> rank(const HitContext &ctx) const{
+            std::vector<number_t> rank_scores;
+            for(size_t i=0;i<_scorer_num;i++){
+                number_t score=_scorers[i]->get_score(ctx);
+                rank_scores.push_back(score);
+            }
+            return rank_scores;
+      }
+  
+      inline static constexpr size_t MaxRankCriteriaCount=4;
+  private:
+      size_t _scorer_num;
+      //多种评分标准的评分器，按优先级依次排列
+      std::array<std::unique_ptr<Scorer>,MaxRankCriteriaCount> _scorers;
+  };
+  ```
+  
+  
+  
+  由于用户通常不会浏览完所有的搜索结果，因此评分完成后我们取前K个得分的文档返回即可。我们使用HitCollector类收集top K高评分的文档，它包含一个DocRanker来对文档进行评分。我们不能简单使用优先队列收集前K个文档，因为用户可能在不同字段上搜索关键字，某个文档在一个字段上的得分(如查询匹配度)可能比另一个字段上的得分更高，因此文档的得分需要动态更新。我们使用小顶堆来使每次插入新文档时能够让其和当前已收集的文档中得分最小值进行比较，如果已经收集了K个结果且新文档得分小于堆顶的文档得分则不加入该文档，否则便添加进来；使用hash表来维护文档id到hit_entry的地址映射，以便更新hit_entry得分。我们提前为K个hit_entry分配好空间，避免每次插入时动态分配内存；堆和hash表中的值都指向分配出来的hit_entry空间，以避免堆调整时hash表也要跟着一起调整。关键代码如下：
 
 ```c++
 class HitCollector{
 
 public:
-    HitCollector(const size_t K,std::unique_ptr<Scorer> scorer)：_K(K),_hits(_K+1),_scorer(std::move(scorer)),_heap_index(0),_min_score_heap(_K+1,nullptr){
-    	 for(size_t i=1;i<=_K;i++){
-        	_min_score_heap[i]=_hits.data()+i;
-    	}
-    }
+    HitCollector(const size_t K,DocRanker &ranker);
     
+    //收集查询到的candidate文档，进行评分并判断是否加入结果集
     void HitCollector::collect(const HitContext &context){
         uint32_t doc_id=context.doc_seq_id;
-        float score=_scorer->get_score(context);
-        if(this->num_docs_collected()>=_K&&score<=this->top().score){
+        std::vector<number_t> scores=_ranker.rank(context); //计算当前candidate评分
+            
+        //结果集已包含K个文档且该文档分数比当前结果集中任何文档分数都小
+        if(this->num_docs_collected()>=_K&&scores<=this->top().rank_scores){
             return;
         }
 
@@ -162,20 +201,20 @@ public:
         if(it!=_doc_id_map.end()){
             //update the already exists doc's score(higher) and sift heap
             Hit *hit=it->second;
-            if(score>hit->score){
-                hit->score=score;
-                this->heap_sift_down(hit->heap_index);
+            if(scores>hit->rank_scores){
+                hit->rank_scores=std::move(scores);
+                heap_sift_down(hit->heap_index);
             }
         }
         else{
-            Hit new_hit{score,doc_id,0};
-            if(num_docs_collected()>=_K){
-               uint32_t victim_id=this->pop_least_score_doc();
-               _doc_id_map.erase(victim_id);
-            }
-            this->push_new_hit(new_hit);
+            Hit new_hit{doc_id,0,scores};
+            if(num_docs_collected()>=_K){ //替换当前堆中分数最小的文档
+            uint32_t victim_id=this->pop_least_score_doc();
+            _doc_id_map.erase(victim_id);
         }
+        this->push_new_hit(new_hit);
     }
+    
 
     void HitCollector::push_new_hit(HitCollector::Hit &hit){
         hit.heap_index=++this->_heap_index;
@@ -200,15 +239,19 @@ public:
  
 private:
     struct Hit{
-        float score;
         uint32_t doc_seq_id;
         size_t heap_index=0;
+        std::vector<number_t> rank_scores;
+
+        bool operator<(Hit &other){
+            return this->rank_scores<other.rank_scores;
+        }
     };
 
 private:
     const size_t _K;
-    std::vector<Hit> _hits; //pre-allocated space for heap entry
-    std::unique_ptr<Scorer> _scorer;
+    std::vector<Hit> _hits; //pre-allocated k space for heap entry
+    DocRanker _ranker;　//文档评分器
 
     size_t _heap_index;
     ///<--points to _hits-->
