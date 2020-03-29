@@ -12,6 +12,11 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
     std::string schema_str="{\
                             \"name\":\"recipe\",\
                             \"tokenizer\":\"jieba\",\
+                            \"auto_suggestion\":{\
+                                \"entry_num\":5,\
+                                \"min_gram\":1,\
+                                \"max_gram\":15\
+                            },\
                             \"schema\":{\
                                 \"type\":\"object\",\
                                 \"$fields\": {\
@@ -67,6 +72,11 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
      std::string schema_str2="{\
                              \"name\":\"recipe2\",\
                              \"tokenizer\":\"jieba\",\
+                             \"auto_suggestion\":{\
+                                 \"entry_num\":5,\
+                                 \"min_gram\":1,\
+                                 \"max_gram\":15\
+                             },\
                              \"schema\":{\
                                  \"type\":\"object\",\
                                  \"$fields\": {\
@@ -123,18 +133,14 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
      CollectionMeta collection_meta(schema_str);
      string collection_name=collection_meta.get_collection_name();
      if(init){
-         Status create_res=collection_manager.create_collection(collection_meta);
-         cout<<create_res.description<<endl;
-         EXPECT_TRUE(create_res.code==RetCode::CREATED);
+         cout<<collection_manager.create_collection(collection_meta)<<endl;
      }
 
      //collection2
      CollectionMeta collection_meta2(schema_str2);
      string collection_name2=collection_meta2.get_collection_name();
      if(init){
-         Status create_res2=collection_manager.create_collection(collection_meta2);
-         cout<<create_res2.description<<endl;
-         EXPECT_TRUE(create_res2.code==RetCode::CREATED);
+         cout<<collection_manager.create_collection(collection_meta2)<<endl;
      }
 
      if(init){
@@ -148,18 +154,13 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
          DocumentBatch doc_batch(collection_name,str);
          std::vector<Document> &docs=doc_batch.get_docs();
          for(Document &d:docs){
-             Status add_res=collection_manager.add_document(collection_name,d);
-             cout<<add_res.description<<endl;
-             EXPECT_TRUE(add_res.code==RetCode::CREATED);
-
+             cout<<collection_manager.add_document(collection_name,d)<<endl;
          }
 
          DocumentBatch doc_batch2(collection_name2,str);
          std::vector<Document> &docs2=doc_batch2.get_docs();
          for(Document &d:docs2){
-             Status add_res2=collection_manager.add_document(collection_name2,d);
-             cout<<add_res2.description<<endl;
-             EXPECT_TRUE(add_res2.code==RetCode::CREATED);
+             cout<<collection_manager.add_document(collection_name2,d)<<endl;
          }
      }
 
@@ -168,16 +169,15 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
                             \"query by\": [\"recipe_name\",\"context\"]\
                             }";
     Query query("recipe",search_str);
-    Status query_res=collection_manager.search(query);
-    EXPECT_TRUE(query_res.code==RetCode::OK);
-    cout<<query_res.description<<endl;
+    cout<<collection_manager.search(query)<<endl;
 
     std::string search_str2="{\
                            \"query\": \"酸菜鱼\",\
                            \"query by\": [\"recipe_name\",\"ingredients.$items.title\"]\
                            }";
     Query query2("recipe2",search_str2);
-    Status query_res2=collection_manager.search(query2);
-    EXPECT_TRUE(query_res2.code==RetCode::OK);
-    cout<<query_res2.description<<endl;
+    cout<<collection_manager.search(query2)<<endl;
+    cout<<collection_manager.auto_suggest(collection_name,"镇得住")<<endl;
+    cout<<collection_manager.auto_suggest(collection_name2,"酸菜")<<endl;
+
 }

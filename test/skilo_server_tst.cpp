@@ -43,6 +43,9 @@ TEST(SKILO_SERVER_TEST,CRUD_TEST){
         }
     }
     EXPECT_TRUE(server.listen());
+    for(auto &t:client_threads){
+        t.join();
+    }
 }
 
 #define PORT 8080
@@ -154,7 +157,8 @@ void send_request_to_server(bool init_collection,bool search){
                          "Content-Length: "+body_len_str+"\r\n\r\n"+req_body;
 
         memcpy(sendbuff,req.data(),req.length());
-        send(sockfd,sendbuff,req.length(),0);
+        ssize_t send_len=send(sockfd,sendbuff,req.length(),0);
+        cout<<"client send_len="<<send_len<<endl;
         ssize_t recv_len=recv(sockfd, recvbuff, sizeof(recvbuff), 0);
         cout<<"client recv_len="<<recv_len<<endl;
         for(int i=0;i<recv_len;i++){

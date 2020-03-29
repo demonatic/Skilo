@@ -86,6 +86,10 @@ TEST(AUTO_SUGGEST_TEST,CHINESE_TEST){
 
     auto sug5=suggestor.auto_suggest("我爱coding");
     EXPECT_EQ(sug5.empty(),true);
+
+    suggestor.update("酸菜鱼");
+    EXPECT_TRUE(suggestor.auto_suggest("酸菜")[0]=="酸菜鱼");
+    cout<<suggestor.auto_suggest("酸菜")[0]<<endl;
 }
 
 

@@ -14,12 +14,14 @@ public:
     CollectionManager(const SkiloConfig &config);
 
     void init_collections();
-    Status create_collection(CollectionMeta &collection_meta);
+    std::string create_collection(CollectionMeta &collection_meta);
 
-    Status add_document(const std::string &collection_name,Document &document);
-    Status add_document_batch(const std::string &collection_name,DocumentBatch &doc_batch);
+    std::string add_document(const std::string &collection_name,Document &document);
+    std::string add_document_batch(const std::string &collection_name,DocumentBatch &doc_batch);
 
-    Status search(const Query &query_info) const;
+    std::string search(const Query &query_info) const;
+    
+    std::string auto_suggest(const std::string &collection_name,const std::string &query_prefix) const;
 
     Collection *get_collection(const std::string &collection_name) const;
 
@@ -35,25 +37,6 @@ private:
     std::unique_ptr<StorageService> _storage_service;
 
     std::atomic_uint32_t _next_collection_id;
-};
-
-enum class RetCode{
-    OK=200,
-    CREATED=201,
-    NOT_CONTENT=204,
-    BAD_REQUEST=400,
-    FORBIDDEN=403,
-    NOT_FOUND=404,
-    METHOD_NOT_ALLOWED=405,
-    CONFLICT=409,
-    INTERNAL_SERVER_ERROR=500,
-    UNDEFINED=0
-};
-
-struct Status{
-    RetCode code=RetCode::UNDEFINED;
-    std::string description;
-
 };
 
 } //namespace Skilo

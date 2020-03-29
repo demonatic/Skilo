@@ -17,8 +17,8 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
 *   Word/Phrase Search
 *   Query by/Sort by
 *   Chinese Support
+*   Auto Suggestion
 *   Typo tolerant(TODO)
-*   Search hint (TODO) 
 
 ## Build
 
@@ -65,7 +65,12 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
                 }
             }
         }
-    }
+    },
+    "auto_suggestion":{
+        "entry_num":5,
+        "min_gram":2,
+        "max_gram":15
+    },
   }
   ```
 
@@ -162,6 +167,26 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
   }
   ```
 
+* Auto Suggestion
+
+  List top K hot queries start with given prefix <query_prefix>
+  
+  ```http
+  GET /collections/<collection_name>/auto_suggestion?q=<query_prefix>
+  ```
+  
+  e.g. list hot query suggestions start with "红烧" :
+
+  ```json
+  {
+    "suggestions": [
+      "红烧肉",
+      "红烧狮子头",
+      "红烧带鱼"
+    ]
+  }
+  ```
+
 ## Test
 
 Unit Test  and Integration Testing are based on [GoogleTest](https://github.com/google/googletest "Title") framework 
@@ -174,6 +199,8 @@ Unit Test  and Integration Testing are based on [GoogleTest](https://github.com/
 
 [Frame of Reference and Roaring Bitmaps](https://www.elastic.co/cn/blog/frame-of-reference-and-roaring-bitmaps "Title") 
 
+[现代信息检索](https://blog.idejie.com/2018/11/25/ir-review/) 
+
 [TypeSense Guide](https://typesense.org/docs/0.11.1/guide/ "Title") 
 
 [ELASTICSEARCH 搜索的评分机制](https://www.cnblogs.com/hoojjack/p/8261075.html "Title") 
@@ -182,3 +209,7 @@ Unit Test  and Integration Testing are based on [GoogleTest](https://github.com/
 https://niyanchun.com/lucene-learning-10.html"Title") 
 
 [Elasticsearch权威指南（中文版）](https://es.xiaoleilu.com/052_Mapping_Analysis/35_Inverted_index.html"Title") 
+
+[Autosuggest Retrieval Data Structures & Algorithms](https://medium.com/related-works-inc/autosuggest-retrieval-data-structures-algorithms-3a902c74ffc8) 
+
+

@@ -5,6 +5,7 @@
 #include "schema/Schema.h"
 #include "index/IndexWriter.h"
 #include "storage/StorageService.h"
+#include "search/AutoSuggestion.h"
 #include "SkiloConfig.h"
 #include <string>
 #include <optional>
@@ -37,7 +38,10 @@ public:
     SearchResult search(const Query &query_info) const;
 
     uint32_t document_num() const;
-
+    
+    std::vector<std::string_view> auto_suggest(const std::string &query_prefix) const;
+    
+private:
     std::unique_ptr<Index::TokenizeStrategy> get_tokenize_strategy(const std::string &tokenizer_name) const;
 
 private:
@@ -51,6 +55,7 @@ private:
     Index::CollectionIndexes _indexes;
 
     std::unique_ptr<Index::TokenizeStrategy> _tokenizer;
+    std::unique_ptr<Search::AutoSuggestor> _auto_suggestor;
 
     const SkiloConfig &_config;
 };

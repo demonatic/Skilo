@@ -28,6 +28,8 @@ public:
     rapidjson::Document &get_raw();
     const rapidjson::Document& get_raw() const;
 
+    std::optional<uint32_t> extract_opt_int(const rapidjson::Value &v,const std::string &field_name) const;
+
 protected:
     rapidjson::Document _document;
 };
@@ -117,8 +119,13 @@ private:
                 "type":"float"
             }
         }
-    }
-    "id":1
+    },
+    "auto_suggestion":{
+        "entry_num":5,
+        "min_gram":2,
+        "max_gram":15
+    },
+    "id":1,
     "create time":5342534432
 }
 ***************************************************/
@@ -137,16 +144,26 @@ public:
 
     const std::string& get_tokenizer() const;
 
+    bool enable_auto_suggestion() const;
+
     void add_create_time(uint64_t created_time);
     void add_collection_id(uint32_t collection_id);
+
+    uint32_t get_min_gram(const uint32_t default_min_gram) const;
+    uint32_t get_max_gram(const uint32_t default_max_gram) const;
+    uint32_t get_suggest_entry_num(const uint32_t default_suggest_entry_num) const;
 
 private:
     void extract_variables();
 
 private:
+    bool _enable_auto_suggestion;
+    std::optional<uint32_t> _min_gram,_max_gram,_suggest_entry_num;
+
     std::optional<uint32_t> _collection_id;
     std::string _collection_name;
     std::string _tokenizer_name;
+
 };
 
 /// SearchInfo example:
@@ -203,6 +220,23 @@ public:
     SearchResult(uint32_t num_found);
     void add_hit(Document &doc,double score);
     void add_took_ms(float ms);
+};
+
+///AutoSuggestion result example with query prefix="I love":
+/******************************************************
+{
+  "suggestions": [
+    "I love C++",
+    "I love Python",
+    "I love swimming in the ocean"
+  ]
+}
+******************************************************/
+
+class AutoSuggestion:public DocumentBase{
+public:
+    AutoSuggestion();
+    void add_suggestion(std::string_view suggestion);
 };
 
 namespace detail{

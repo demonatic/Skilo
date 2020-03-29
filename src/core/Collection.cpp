@@ -14,19 +14,27 @@ Collection::Collection(const CollectionMeta &collection_meta,StorageService *sto
     _next_seq_id=_storage_service->get_collection_next_seq_id(_collection_id);
     _indexes.set_doc_num(_next_seq_id);
     _tokenizer=this->get_tokenize_strategy(collection_meta.get_tokenizer());
+
+    if(collection_meta.enable_auto_suggestion()){
+        uint32_t suggest_entry_num=collection_meta.get_suggest_entry_num(5);
+        uint32_t min_gram=collection_meta.get_min_gram(2);
+        uint32_t max_gram=collection_meta.get_max_gram(15);
+        _auto_suggestor=std::make_unique<Search::AutoSuggestor>(suggest_entry_num,min_gram,max_gram);
+    }
     this->build_index();
 }
 
 void Collection::build_index()
 {
     size_t load_doc_count=0;
+    LOG(INFO)<<"Loading documents of collection \""<<_collection_name<<"\" ...";
     _storage_service->scan_for_each_doc(_collection_id,[this,&load_doc_count](const std::string_view doc_str){
         Index::IndexWriter index_writer(_indexes,_tokenizer.get());
         const Document doc(doc_str);
         index_writer.index_in_memory(_schema,doc);
         load_doc_count++;
     });
-    LOG(DEBUG)<<"Collection \""<<_collection_name<<"\" load finished. total "<<load_doc_count<<" documents";
+    LOG(INFO)<<"Collection \""<<_collection_name<<"\" load finished. total "<<load_doc_count<<" documents";
 }
 
 void Collection::add_new_document(Document &document)
@@ -89,12 +97,24 @@ SearchResult Collection::search(const Query &query_info) const
         Document doc=_storage_service->get_document(_collection_id,seq_id);
         result.add_hit(doc,score);
     }
+
+    if(_auto_suggestor){
+        _auto_suggestor->update(query_str);
+    }
     return result;
 }
 
 uint32_t Collection::document_num() const
 {
     return _next_seq_id;
+}
+
+std::vector<string_view> Collection::auto_suggest(const string &query_prefix) const
+{
+    if(!_auto_suggestor){
+        throw UnAuthorizedException("auto suggestion is not enabled in schema");
+    }
+    return _auto_suggestor->auto_suggest(query_prefix);
 }
 
 std::unique_ptr<Index::TokenizeStrategy> Collection::get_tokenize_strategy(const std::string &tokenizer_name) const

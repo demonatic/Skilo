@@ -36,6 +36,21 @@ std::string DocumentBase::dump() const
     return std::string(buffer.GetString(),buffer.GetSize());
 }
 
+std::optional<uint32_t> DocumentBase::extract_opt_int(const rapidjson::Value &v, const std::string &field_name) const
+{
+    std::optional<uint32_t> opt;
+    auto field_it=v.FindMember(field_name.c_str());
+    if(field_it!=v.MemberEnd()){
+        if(field_it->value.IsUint()){
+            opt=std::make_optional<uint32_t>(field_it->value.GetUint());
+        }
+        else{
+            throw InvalidFormatException("\""+field_name+"\" must be an unsigned integer");
+        }
+    }
+    return opt;
+}
+
 rapidjson::Document &DocumentBase::get_raw()
 {
     return _document;
@@ -45,6 +60,7 @@ const rapidjson::Document &DocumentBase::get_raw() const
 {
     return _document;
 }
+
 
 Document::Document(DocumentBase &base)
 {
@@ -170,8 +186,22 @@ void CollectionMeta::extract_variables()
          throw InvalidFormatException("missing \"name\" in collection meta data or \"name\" is not string");
     }
     this->_collection_name=name_it->value.GetString();
-    rapidjson::Value::ConstMemberIterator schema_it=_document.FindMember("tokenizer");
-    this->_tokenizer_name=(schema_it!=_document.MemberEnd()&&schema_it->value.IsString())?schema_it->value.GetString():"default";
+    rapidjson::Value::ConstMemberIterator tokenizer_it=_document.FindMember("tokenizer");
+    this->_tokenizer_name=(tokenizer_it!=_document.MemberEnd()&&tokenizer_it->value.IsString())?
+                tokenizer_it->value.GetString():"default";
+
+    rapidjson::Value::ConstMemberIterator auto_sugg_it=_document.FindMember("auto_suggestion");
+    _enable_auto_suggestion=!(auto_sugg_it==_document.MemberEnd());
+
+    if(_enable_auto_suggestion){
+        if(!auto_sugg_it->value.IsObject()){
+            throw InvalidFormatException("\"auto_suggestion\" must be an object");
+        }
+        const rapidjson::Value &auto_sugg=auto_sugg_it->value;
+        _min_gram=extract_opt_int(auto_sugg,"min_gram");
+        _max_gram=extract_opt_int(auto_sugg,"max_gram");
+        _suggest_entry_num=extract_opt_int(auto_sugg,"entry_num");
+    }
 }
 
 const std::string& CollectionMeta::get_collection_name() const
@@ -194,9 +224,29 @@ void CollectionMeta::add_collection_id(uint32_t collection_id)
     _collection_id.emplace(collection_id);
 }
 
+uint32_t CollectionMeta::get_min_gram(const uint32_t default_min_gram) const
+{
+    return _min_gram.value_or(default_min_gram);
+}
+
+uint32_t CollectionMeta::get_max_gram(const uint32_t default_max_gram) const
+{
+    return _max_gram.value_or(default_max_gram);
+}
+
+uint32_t CollectionMeta::get_suggest_entry_num(const uint32_t default_suggest_entry_num) const
+{
+    return _suggest_entry_num.value_or(default_suggest_entry_num);
+}
+
 const std::string& CollectionMeta::get_tokenizer() const
 {
     return _tokenizer_name;
+}
+
+bool CollectionMeta::enable_auto_suggestion() const
+{
+    return _enable_auto_suggestion;
 }
 
 Query::Query(const std::string &collection_name,const std::string_view json_str):DocumentBase(json_str),_collection_name(collection_name)
@@ -341,6 +391,18 @@ void DocumentBatch::extract_variables()
         Document document(std::move(doc_obj),this->_document.GetAllocator());
         _docs.emplace_back(std::move(document));
     }
+}
+
+AutoSuggestion::AutoSuggestion()
+{
+    rapidjson::Value suggestions(rapidjson::kArrayType);
+    _document.AddMember("suggestions",suggestions,_document.GetAllocator());
+}
+
+void AutoSuggestion::add_suggestion(std::string_view suggestion)
+{
+    rapidjson::GenericStringRef<char> sug(suggestion.data(),suggestion.length());
+    _document["suggestions"].GetArray().PushBack(sug,_document.GetAllocator());
 }
 
 
