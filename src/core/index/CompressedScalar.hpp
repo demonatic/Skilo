@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <memory>
 #include <libfor/for.h>
+
 using namespace std;
 
 namespace Skilo{
@@ -35,9 +36,10 @@ public:
     }
 
     void append(const uint32_t value){
-        uint32_t size_required=this->get_append_size_required(value,_elm_count+1);
-        if(size_required>_byte_capacity){
-            size_t new_size=size_required*GrowthFactor;
+        uint32_t size_required=this->get_append_size_required(value, _elm_count+1);
+        if(size_required+ElementSize>_byte_capacity){
+            size_t new_size=(size_t) size_required*GrowthFactor;
+
             uint8_t *new_addr=static_cast<uint8_t*>(std::realloc(_data,new_size));
             if(!new_addr){
                 throw std::bad_alloc();
@@ -56,10 +58,11 @@ public:
         if(!new_length){ //re-encond trigerred and failed due to malloc failure
             throw std::bad_alloc();
         }
-        _byte_length=new_length;
+
+        _min_val=std::min(_min_val,value);
+        _max_val=std::max(_max_val,value);
+        _byte_length = new_length;
         _elm_count++;
-        _min_val=std::min(value,_min_val);
-        _max_val=std::max(value,_max_val);
     }
 
     /// Uncompresses the entire sequence of ints in the array and return it
@@ -121,10 +124,12 @@ public:
 
 private:
     uint32_t get_append_size_required(uint32_t value,uint32_t new_length){
-        uint32_t new_max=std::max(_max_val,value);
         uint32_t new_min=std::min(_min_val,value);
-        uint32_t b=(value==0?0:32-__builtin_clz(new_max-new_min));
-        return MEDATA_OVERHEAD+for_compressed_size_bits(new_length,b);
+        uint32_t new_max=std::max(_max_val,value);
+
+        uint32_t diff=new_max-new_min;
+        uint32_t b=(diff==0?0:32-__builtin_clz(diff));
+        return MEDATA_OVERHEAD+4+for_compressed_size_bits(new_length,b);
     }
 
 protected:

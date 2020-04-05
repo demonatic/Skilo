@@ -5,6 +5,7 @@
 #include <memory>
 #include "Scorer.h"
 #include "DocRanker.h"
+#include <unordered_map>
 
 namespace Skilo {
 

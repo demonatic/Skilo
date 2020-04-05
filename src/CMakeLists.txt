@@ -23,6 +23,7 @@ file(GLOB SOURCES
     core/network/*.cpp
     storage/*.h
     storage/*.cpp
+    storage/*.hpp
     utility/*.h
     utility/*.cpp
     utility/*.hpp

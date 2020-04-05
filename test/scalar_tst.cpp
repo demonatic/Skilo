@@ -9,7 +9,7 @@ using namespace Skilo::Index;
 TEST(SCALAR_TEST,SORTED_CRUD_TEST) {
     CompressedScalar<ScalarType::Sorted> scalar;
     vector<uint32_t> data;
-    uint32_t n=100;
+    uint32_t n=1000;
     for(uint32_t i=0;i<n;i++){
         data.push_back(i);
         scalar.append(i);
@@ -20,7 +20,7 @@ TEST(SCALAR_TEST,SORTED_CRUD_TEST) {
         EXPECT_EQ(scalar.index_of(i),i);
         EXPECT_TRUE(scalar[i]==data[i]&&data[i]==uncompressed_data[i]&&data[i]==scalar.at(i));
         EXPECT_EQ(scalar.at(i),i);
-//        cout<<"i="<<i<<" scalar="<<scalar[i]<<" uncompress="<<uncompressed_data[i]<<" data="<<data[i]<<endl;
+        cout<<"i="<<i<<" scalar="<<scalar[i]<<" uncompress="<<uncompressed_data[i]<<" data="<<data[i]<<endl;
     }
     EXPECT_EQ(scalar.index_of(n+1),scalar.length());
 }
@@ -29,10 +29,10 @@ TEST(SCALAR_TEST,UNSORTED_CRUD_TEST) {
     CompressedScalar<ScalarType::UnSorted> scalar;
     vector<uint32_t> data;
     unordered_set<uint32_t> randoms;
-    uint32_t n=100;
+    uint32_t n=1000;
     for(uint32_t i=0;i<n;i++){
 GENERATE:
-         uint32_t num=rand()%1000;
+         uint32_t num=rand();
          auto it=randoms.find(num);
          if(it!=randoms.end()){
              goto GENERATE;
@@ -50,7 +50,7 @@ GENERATE:
         EXPECT_EQ(scalar.index_of(data[i]),i);
         EXPECT_TRUE(scalar[i]==data[i]&&data[i]==uncompressed_data[i]&&data[i]==scalar.at(i));
         EXPECT_EQ(scalar.at(i),data[i]);
-//        cout<<"i="<<i<<" scalar="<<scalar[i]<<" uncompress="<<uncompressed_data[i]<<" data="<<data[i]<<endl;
+        cout<<"i="<<i<<" scalar="<<scalar[i]<<" uncompress="<<uncompressed_data[i]<<" data="<<data[i]<<endl;
     }
     EXPECT_EQ(scalar.index_of(1001),scalar.length());
 }

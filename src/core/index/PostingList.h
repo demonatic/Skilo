@@ -2,7 +2,7 @@
 #define POSTINGLIST_H
 
 #include "CompressedScalar.hpp"
-#include <roaring/roaring.hh>
+#include <vector>
 
 namespace Skilo {
 namespace Index{
@@ -36,8 +36,8 @@ private:
 
     CompressedScalar<ScalarType::UnSorted> _doc_len;
 
-    CompressedScalar<ScalarType::Sorted> _offset_index;
     CompressedScalar<ScalarType::UnSorted> _offsets;
+    CompressedScalar<ScalarType::Sorted> _offset_index;
 };
 
 } //namespace Index

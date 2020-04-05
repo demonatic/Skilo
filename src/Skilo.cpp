@@ -58,6 +58,9 @@ void SkiloServer::skilo_add_document(QueryContext &context,std::string &response
 void SkiloServer::skilo_query_collection(QueryContext &context,std::string &response)
 {
     std::string collection_name=extract_collection_name(context.req->uri());
+    if(context.req->body().empty()){
+        throw InvalidFormatException("missing query body");
+    }
     Query query(collection_name,context.req->body().get_data());
     response=_collection_manager.search(query);
 }

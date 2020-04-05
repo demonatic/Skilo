@@ -21,9 +21,9 @@ double PostingList::avg_doc_len() const
 void PostingList::add_doc(const uint32_t seq_id,const uint32_t doc_len,const std::vector<uint32_t> &offsets)
 {
     _avg_doc_len=(_avg_doc_len*num_docs()+doc_len)/(num_docs()+1);
+    _doc_ids.append(seq_id);
     _doc_len.append(doc_len);
 
-    _doc_ids.append(seq_id);
      uint32_t term_freq=offsets.size();
     _doc_term_freqs.append(term_freq);
 

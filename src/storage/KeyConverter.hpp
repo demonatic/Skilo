@@ -11,33 +11,44 @@ static constexpr const char *COLLECTION_META_KEY_PREFIX="$MT";
 static constexpr const char *COLLECTION_NEXT_SEQ_KEY_PREFIX="$CS";
 static constexpr const char *NEXT_COLLECTION_ID="$CI";
 
-inline std::string doc_seq_key_prefix(const uint32_t collection_id){
-    return std::to_string(collection_id)+'_'+DOC_SEQ_KEY_PREFIX+'_';
+
+std::string serialize_uint32_t(const uint32_t num){
+    uint8_t encoded[4];
+    encoded[0]=(num>>24)&0xff;
+    encoded[1]=(num>>16)&0xff;
+    encoded[2]=(num>>8)&0xff;
+    encoded[3]=num&0xff;
+    return std::string(encoded,encoded+4);
 }
 
-inline std::string collection_meta_prefix(){
+std::string doc_seq_key_prefix(const uint32_t collection_id){
+    return serialize_uint32_t(collection_id)+'_'+DOC_SEQ_KEY_PREFIX+'_';
+}
+
+std::string collection_meta_prefix(){
      return std::string(COLLECTION_META_KEY_PREFIX)+'_';
 }
 
-inline std::string doc_id_key(const uint32_t collection_id,const uint32_t doc_id){
-    return std::to_string(collection_id)+'_'+DOC_ID_KEY_PREFIX+'_'+std::to_string(doc_id);
+std::string doc_id_key(const uint32_t collection_id,const uint32_t doc_id){
+    return serialize_uint32_t(collection_id)+'_'+DOC_ID_KEY_PREFIX+'_'+serialize_uint32_t(doc_id);
 }
 
-inline std::string doc_seq_key(const uint32_t collection_id,const uint32_t seq_id){
-    return doc_seq_key_prefix(collection_id)+std::to_string(seq_id);
+std::string doc_seq_key(const uint32_t collection_id,const uint32_t seq_id){
+    return doc_seq_key_prefix(collection_id)+serialize_uint32_t(seq_id);
 }
 
-inline std::string collection_next_seq_key(const uint32_t collection_id){
-    return std::to_string(collection_id)+'_'+COLLECTION_NEXT_SEQ_KEY_PREFIX;
+std::string collection_next_seq_key(const uint32_t collection_id){
+    return serialize_uint32_t(collection_id)+'_'+COLLECTION_NEXT_SEQ_KEY_PREFIX;
 }
 
-inline std::string collection_meta_key(const std::string &collection_name){
+std::string collection_meta_key(const std::string &collection_name){
     return collection_meta_prefix()+collection_name;
 }
 
-inline const char* next_collection_id_key(){
+const char* next_collection_id_key(){
     return NEXT_COLLECTION_ID;
 }
+
 
 }
 
