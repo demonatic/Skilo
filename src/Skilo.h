@@ -48,6 +48,7 @@ private:
 private:
     const SkiloConfig &_config;
     std::unique_ptr<g3::LogWorker> _log_worker;
+    std::unique_ptr<g3::FileSinkHandle> _log_file_handle;
 
     Rinx::RxServer _server;
     CollectionManager _collection_manager;

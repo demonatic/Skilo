@@ -23,16 +23,24 @@ SkiloServer::SkiloServer(const SkiloConfig &config,const bool debug):_config(con
         _log_worker->addSink(std::make_unique<CustomLogSink>(),&CustomLogSink::ReceiveLogMessage);
     }
     else{
-        auto handle = _log_worker->addDefaultLogger("skilo_log", config.get_log_dir());
+        _log_file_handle =_log_worker->addDefaultLogger("skilo_log", config.get_log_dir());
     }
     g3::initializeLogging(_log_worker.get());
 }
 
 bool SkiloServer::listen()
 {
+    LOG(INFO)<<"Initiating collections...";
+    _collection_manager.init_collections();
     RxProtocolHttp1Factory http1;
+    LOG(INFO)<<"Initiating server Http route";
     this->init_http_route(http1);
-    return _server.listen(_config.get_listen_address(),_config.get_listen_port(),http1);
+
+    uint16_t port=_config.get_listen_port();
+    const std::string &addr=_config.get_listen_address();
+
+    LOG(INFO)<<"Start listening on address "<<addr<<":"<<port;
+    return _server.listen(addr,port,http1);
 }
 
 void SkiloServer::skilo_create_collection(QueryContext &context,std::string &response)

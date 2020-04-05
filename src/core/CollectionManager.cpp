@@ -7,7 +7,7 @@ namespace Skilo {
 CollectionManager::CollectionManager(const SkiloConfig &config)
     :_config(config),_storage_service(std::make_unique<StorageService>(config.get_db_dir()))
 {
-   this->init_collections();
+
 }
 
 void CollectionManager::init_collections()
@@ -17,7 +17,7 @@ void CollectionManager::init_collections()
 
     std::vector<std::future<std::unique_ptr<Collection>>> init_futures;
     for(CollectionMeta &meta:collection_meta){
-        init_futures.emplace_back(std::async([this,&meta](){ //TODO
+        init_futures.emplace_back(std::async(std::launch::async,[this,&meta](){
             LOG(INFO)<<"Loading collection \""<<meta.get_collection_name()<<"\"";
             return std::make_unique<Collection>(meta,_storage_service.get(),_config);
         }));
