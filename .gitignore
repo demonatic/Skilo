@@ -42,3 +42,4 @@ CmakeCache.txt
 Makefile
 src/CMakeFiles/*
 *build*
+test/skilo_test
