@@ -1,5 +1,6 @@
 #include "Collection.h"
 #include "g3log/g3log.hpp"
+#include "search/IndexSearcher.h"
 
 namespace Skilo {
 
@@ -8,19 +9,13 @@ using namespace Schema;
 Collection::Collection(const CollectionMeta &collection_meta,StorageService *storage_service,const SkiloConfig &config):
     _collection_id(collection_meta.get_collection_id()),
     _storage_service(storage_service),_schema(collection_meta),
-    _indexes(_collection_id,_schema,_storage_service),_config(config)
+    _indexes(_collection_id,_schema,collection_meta,_storage_service),_config(config)
 {
     _collection_name=collection_meta.get_collection_name();
     _next_seq_id=_storage_service->get_collection_next_seq_id(_collection_id);
     _indexes.set_doc_num(_next_seq_id);
     _tokenizer=this->get_tokenize_strategy(collection_meta.get_tokenizer());
 
-    if(collection_meta.enable_auto_suggestion()){
-        uint32_t suggest_entry_num=collection_meta.get_suggest_entry_num(5);
-        uint32_t min_gram=collection_meta.get_min_gram(2);
-        uint32_t max_gram=collection_meta.get_max_gram(15);
-        _auto_suggestor=std::make_unique<Search::AutoSuggestor>(suggest_entry_num,min_gram,max_gram);
-    }
     this->build_index();
 }
 
@@ -64,30 +59,9 @@ void Collection::validate_document(const Document &document)
 
 SearchResult Collection::search(const Query &query_info) const
 {
-    //extract and split query terms and fields
-    const std::string &query_str=query_info.get_search_str();
-    std::unordered_map<std::string, std::vector<uint32_t>> query_terms=_tokenizer->tokenize(query_str);
-    const vector<std::string> &search_fields=query_info.get_query_fields();
+    Search::IndexSearcher searcher(query_info,_indexes,_tokenizer.get());
+    std::vector<pair<uint32_t,double>> res_docs=searcher.do_search();
 
-    //init search criteria and do search
-    uint32_t top_k=50;
-    Search::DocRanker ranker;
-    auto &sort_fields=query_info.get_sort_fields();
-    if(sort_fields.empty()){
-        ranker.push_scorer(std::make_unique<Search::BM25_Scorer>());
-    }
-    else{
-        for(auto &&[sort_field,ascend_order]:sort_fields){
-            //TODO test field exists
-            ranker.push_scorer(std::make_unique<Search::SortScorer>(sort_field,ascend_order));
-        }
-    }
-
-    Search::HitCollector collector(top_k,ranker);
-    this->_indexes.search_fields(query_terms,search_fields,collector);
-
-    //collect hit documents
-    std::vector<pair<uint32_t,double>> res_docs=collector.get_top_k();
     uint32_t hit_count=static_cast<uint32_t>(res_docs.size());
 
     //load hit documents
@@ -98,9 +72,6 @@ SearchResult Collection::search(const Query &query_info) const
         result.add_hit(doc,score);
     }
 
-    if(_auto_suggestor){
-        _auto_suggestor->update(query_str);
-    }
     return result;
 }
 
@@ -111,10 +82,11 @@ uint32_t Collection::document_num() const
 
 std::vector<string_view> Collection::auto_suggest(const string &query_prefix) const
 {
-    if(!_auto_suggestor){
+    Search::AutoSuggestor *suggestor=_indexes.get_suggestor();
+    if(!suggestor){
         throw UnAuthorizedException("auto suggestion is not enabled in schema");
     }
-    return _auto_suggestor->auto_suggest(query_prefix);
+    return suggestor->auto_suggest(query_prefix);
 }
 
 std::unique_ptr<Index::TokenizeStrategy> Collection::get_tokenize_strategy(const std::string &tokenizer_name) const

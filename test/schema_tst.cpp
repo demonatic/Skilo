@@ -110,7 +110,7 @@ TEST(SCHEMA_TEST,PARSE_TEST) {
     EXPECT_EQ(root_field["supplier"]["$items"]["e-mail"].type,FieldType::STRING);
     EXPECT_EQ(root_field["supplier"]["$items"]["e-mail"].path,"supplier.$items.e-mail");
 
-    Field::ArrtibuteValue attr=root_field["product name"].arrtibute("index");
+    Field::AttributeValue attr=root_field["product name"].attribute("index");
     EXPECT_EQ(std::get<bool>(attr),true);
 
     Document document(json_str);

@@ -1,7 +1,7 @@
 #include "Scorer.h"
 #include <cmath>
 #include "HitCollector.h"
-#include "core/index/InvertIndex.h"
+#include "core/index/Indexes.h"
 
 namespace Skilo {
 namespace Search {

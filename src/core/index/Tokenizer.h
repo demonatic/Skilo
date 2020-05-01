@@ -19,7 +19,7 @@ public:
     virtual ~TokenizeStrategy()=default;
 
     /// @return word->offsets(offsets could be empty)
-    virtual std::unordered_map<std::string, std::vector<uint32_t>> tokenize(const std::string &text)=0;
+    virtual std::unordered_map<std::string, std::vector<uint32_t>> tokenize(const std::string &text) const=0;
 };
 
 class DefaultTokenizer:public TokenizeStrategy
@@ -29,7 +29,7 @@ public:
     virtual ~DefaultTokenizer() override=default;
 
     /// @return word->offsets
-    virtual std::unordered_map<std::string, std::vector<uint32_t>> tokenize(const std::string &text) override;
+    virtual std::unordered_map<std::string, std::vector<uint32_t>> tokenize(const std::string &text) const override;
 };
 
 class JiebaTokenizer:public TokenizeStrategy{
@@ -38,7 +38,7 @@ public:
     virtual ~JiebaTokenizer() override=default ;
 
     /// @return a set of "unicode word and unicode offsets"
-    virtual std::unordered_map<std::string, std::vector<uint32_t>> tokenize(const std::string &text) override;
+    virtual std::unordered_map<std::string, std::vector<uint32_t>> tokenize(const std::string &text) const override;
 
     /// @brief load stop words from file
     /// @return the num of stop words loaded
@@ -55,7 +55,8 @@ private:
     std::unordered_set<std::string> _stop_words;
 };
 
-#endif // TOKENIZER_H
-
 } //namespace Index
 } //namespace Skilo
+
+#endif // TOKENIZER_H
+

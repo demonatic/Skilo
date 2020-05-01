@@ -1,5 +1,5 @@
-#ifndef INVERTINDEX_H
-#define INVERTINDEX_H
+#ifndef INDEXES_H
+#define INDEXES_H
 
 #include <unordered_map>
 #include "Art.hpp"
@@ -11,7 +11,7 @@
 #include "utility/RWLock.hpp"
 #include "utility/Number.h"
 #include "parallel_hashmap/phmap.h"
-
+#include "../search/AutoSuggestion.h"
 
 namespace Skilo {
 
@@ -35,10 +35,10 @@ struct SortIndex{
 };
 
 
-class InvertIndex
+class Indexes
 {
 public:
-    InvertIndex();
+    Indexes();
     void add_record(const IndexRecord &record);
 
     size_t dict_size() const;
@@ -60,10 +60,12 @@ private:
 class CollectionIndexes:public Schema::FieldVisitor{
 public:
     CollectionIndexes(const uint32_t collection_id, const Schema::CollectionSchema &schema,
-                      const Storage::StorageService *storage_service);
+                      const CollectionMeta &collection_meta,const Storage::StorageService *storage_service);
 
-    InvertIndex *get_invert_index(const std::string &field_path);
-    const InvertIndex *get_invert_index(const std::string &field_path) const;
+    Indexes *get_invert_index(const std::string &field_path);
+    const Indexes *get_invert_index(const std::string &field_path) const;
+
+    Search::AutoSuggestor *get_suggestor() const;
 
     bool contains(const std::string &field_path) const;
     uint32_t field_term_doc_num(const std::string &field_path,const std::string &term) const;
@@ -90,12 +92,14 @@ private:
     const Storage::StorageService *_storage_service;
 
     //!-- <field_path,index>
-    std::unordered_map<std::string,InvertIndex> _indexes;
+    std::unordered_map<std::string,Indexes> _indexes;
     //!-- <field_path,<doc_id,numeric_value>>
     std::unordered_map<std::string,SortIndex> _sort_indexes;
+
+    std::unique_ptr<Search::AutoSuggestor> _auto_suggestor;
 };
 
 
 } //namespace Index
 } //namespace Skilo
-#endif // INVERTINDEX_H
+#endif // INDEXES_H

@@ -9,7 +9,7 @@ Field::Field(const std::string &name,const std::string &path,const rapidjson::Va
     this->name=name;
     this->type=get_field_type(schema);
     this->path=path.empty()?name:path+"."+name;
-    parse_arrtibutes(schema);
+    parse_attributes(schema);
 
     if(type==FieldType::ARRAY){
         if(!schema.HasMember(item_keyword)){
@@ -26,10 +26,10 @@ Field::Field(const std::string &name,const std::string &path,const rapidjson::Va
     }
 }
 
-Field::ArrtibuteValue Field::arrtibute(const std::string &attribute_name)
+Field::AttributeValue Field::attribute(const std::string &attribute_name) const
 {
     auto it=attributes.find(attribute_name);
-    return it!=attributes.end()?it->second:ArrtibuteValue{};
+    return it!=attributes.end()?it->second:AttributeValue{};
 }
 
 Field &Field::operator[](const std::string &sub_field_name)
@@ -38,29 +38,36 @@ Field &Field::operator[](const std::string &sub_field_name)
     return *sub_fields[sub_field_name];
 }
 
-void Field::parse_arrtibutes(const rapidjson::Value &schema)
+bool Field::attribute_val_true(const std::string &attribute_name) const
+{
+    Schema::Field::AttributeValue attr=this->attribute(attribute_name);
+    bool* ptr=std::get_if<bool>(&attr);
+    return ptr&&(*ptr);
+}
+
+void Field::parse_attributes(const rapidjson::Value &schema)
 {
     if(schema.IsObject()){
         for(rapidjson::Value::ConstMemberIterator it=schema.MemberBegin();it!=schema.MemberEnd();++it){
-            const std::string &arrtibute_name=it->name.GetString();
-            auto keyword_it=Field::s_parsing_keywords.find(arrtibute_name);
+            const std::string &attribute_name=it->name.GetString();
+            auto keyword_it=Field::s_parsing_keywords.find(attribute_name);
             if(keyword_it!=Field::s_parsing_keywords.end()){
                 continue;
             }
-            ArrtibuteValue arrtibute_value;
+            AttributeValue attribute_value;
             if(it->value.IsBool()){
-                arrtibute_value=it->value.GetBool();
+                attribute_value=it->value.GetBool();
             }
             else if(it->value.IsInt()){
-                arrtibute_value=it->value.GetInt();
+                attribute_value=it->value.GetInt();
             }
             else if(it->value.IsFloat()){
-                arrtibute_value=it->value.GetFloat();
+                attribute_value=it->value.GetFloat();
             }
             else if(it->value.IsString()){
-                arrtibute_value=it->value.GetString();
+                attribute_value=it->value.GetString();
             }
-            attributes[arrtibute_name]=arrtibute_value;
+            attributes[attribute_name]=attribute_value;
         }
     }
 }

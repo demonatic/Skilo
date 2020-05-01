@@ -54,7 +54,7 @@ std::string CollectionManager::create_collection(CollectionMeta &collection_meta
     _collection_name_id_map.insert(collection_name,collection_id);
     LOG(INFO)<<"Collection \""<<collection_name<<"\" id="<<collection_id<<" has created";
 
-    return "Create Collection OK";
+    return "Create Collection with name \'"+collection_name+"\' OK";
 }
 
 std::string Skilo::CollectionManager::add_document(const std::string &collection_name,Document &document)
@@ -68,14 +68,14 @@ std::string Skilo::CollectionManager::add_document(const std::string &collection
         throw ConflictException("The collection with name `"+collection_name+"` has already contained doc "+std::to_string(doc_id));
     }
     collection->add_new_document(document);
-    return "Add Document Success";
+    return "Add Document "+std::to_string(doc_id)+" Success";
 }
 
 std::string CollectionManager::add_document_batch(const string &collection_name, DocumentBatch &doc_batch)
 {
     string err_reason;
     std::vector<Document> &docs=doc_batch.get_docs();
-    //TODO rollback when failed
+    //TODO rollback when failed?
     for(Document &doc:docs){
         this->add_document(collection_name,doc);
     }

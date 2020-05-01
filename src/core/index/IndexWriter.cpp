@@ -19,15 +19,24 @@ void IndexWriter::index_in_memory(const Schema::CollectionSchema &schema, const 
 
 void IndexWriter::visit_field_string(const Schema::FieldString *field_string, const rapidjson::Value &node)
 {
-    InvertIndex *index=_indexes.get_invert_index(field_string->path);
-    if(!index) return;
+    Indexes *index=_indexes.get_invert_index(field_string->path);
+    if(!index) return; //schema says we needn't index this field
 
     std::unordered_map<std::string, std::vector<uint32_t>> word_offsets;
-    word_offsets=_tokenizer->tokenize(node.GetString());
+    auto content=node.GetString();
+    word_offsets=_tokenizer->tokenize(content);
 
-    uint32_t doc_len=strlen(node.GetString());
+    uint32_t doc_len=strlen(content);
     IndexRecord record{_seq_id,doc_len,std::move(word_offsets)};
     index->add_record(record);
+
+    if(field_string->attribute_val_true("suggest")){
+        DefaultTokenizer segment_splitter;
+        auto segments=segment_splitter.tokenize(content);
+        for(auto &&[seg,offsets]:segments){
+            _indexes.get_suggestor()->update(seg);
+        }
+    }
 }
 
 void IndexWriter::visit_field_integer(const Schema::FieldInteger *field_integer, const rapidjson::Value &node)

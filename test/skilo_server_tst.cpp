@@ -18,7 +18,7 @@ using namespace testing;
 using namespace std;
 using namespace Skilo;
 
-#define PORT 8989
+#define PORT 8983
 #define SERV "127.0.0.1"
 #define BUFF 655350
 
@@ -91,7 +91,8 @@ void send_request_to_server(bool init_collection,bool search){
                                    },\
                                    \"recipe_name\":{\
                                        \"type\":\"string\",\
-                                       \"index\":true\
+                                       \"index\":true,\
+                                       \"suggest\":true\
                                    },\
                                    \"context\":{\
                                        \"type\":\"string\",\
@@ -123,6 +124,11 @@ void send_request_to_server(bool init_collection,bool search){
                                        }\
                                    }\
                                }\
+                             },\
+                            \"auto_suggestion\":{\
+                                 \"entry_num\":5,\
+                                 \"min_gram\":1,\
+                                 \"max_gram\":15\
                              }\
                           }";
         string body_len_str=to_string(req_body.size());
@@ -165,9 +171,19 @@ void send_request_to_server(bool init_collection,bool search){
 
         memcpy(sendbuff,req.data(),req.length());
         ssize_t send_len=send(sockfd,sendbuff,req.length(),0);
-        cout<<"client send_len="<<send_len<<endl;
+//        cout<<"client send_len="<<send_len<<endl;
         ssize_t recv_len=recv(sockfd, recvbuff, sizeof(recvbuff), 0);
-        cout<<"client recv_len="<<recv_len<<endl;
+//        cout<<"client recv_len="<<recv_len<<endl;
+        for(int i=0;i<recv_len;i++){
+            cout<<recvbuff[i];
+        }
+        cout<<endl;
+
+        string sug_req="GET /collections/recipe/auto_suggestion?q=%e9%85%b8 HTTP/1.1\r\n"
+                       "Host: Chrome\r\n\r\n";
+        memcpy(sendbuff,sug_req.data(),sug_req.length());
+        send_len=send(sockfd,sendbuff,req.length(),0);
+        recv_len=recv(sockfd, recvbuff, sizeof(recvbuff), 0);
         for(int i=0;i<recv_len;i++){
             cout<<recvbuff[i];
         }

@@ -40,8 +40,9 @@ protected:
 {
     "id": 1001,
     "product name":{
-        "type":"string"
-        "index":true
+        "type":"string",
+        "index":true,
+        "suggest":true
     },
     "price":{
         "type":"float"

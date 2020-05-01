@@ -17,7 +17,7 @@ JiebaTokenizer::JiebaTokenizer(const std::string &dict_dir):TokenizeStrategy(dic
     this->load_stop_words(dict_dir+STOP_WORD_PATH);
 }
 
-std::unordered_map<std::string, std::vector<uint32_t>> JiebaTokenizer::tokenize(const std::string &text)
+std::unordered_map<std::string, std::vector<uint32_t>> JiebaTokenizer::tokenize(const std::string &text) const
 {
     std::vector<cppjieba::Word> words;
     _jieba.CutForSearch(text,words,true);
@@ -49,7 +49,7 @@ DefaultTokenizer::DefaultTokenizer():TokenizeStrategy()
 
 }
 
-std::unordered_map<std::string, std::vector<uint32_t> > DefaultTokenizer::tokenize(const std::string &text)
+std::unordered_map<std::string, std::vector<uint32_t>> DefaultTokenizer::tokenize(const std::string &text) const
 {
     std::regex reg("[^\\ \\.|,:;&]+");
     std::sregex_iterator first{text.begin(),text.end(),reg},last;

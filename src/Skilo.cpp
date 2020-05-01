@@ -49,6 +49,7 @@ void SkiloServer::stop()
 {
     LOG(INFO)<<"Stopping Skilo server...";
     _server.stop();
+    LOG(INFO)<<"Server has stopped";
 }
 
 void SkiloServer::skilo_create_collection(QueryContext &context,std::string &response)
@@ -73,7 +74,7 @@ void SkiloServer::skilo_add_document(QueryContext &context,std::string &response
 
 void SkiloServer::skilo_query_collection(QueryContext &context,std::string &response)
 {
-    LOG(DEBUG)<<"@query_collection";
+    LOG(DEBUG)<<"@skilo_query_collection";
     std::string collection_name=extract_collection_name(context.req->uri());
     if(context.req->body().empty()){
         throw InvalidFormatException("missing query body");
@@ -84,10 +85,11 @@ void SkiloServer::skilo_query_collection(QueryContext &context,std::string &resp
 
 void SkiloServer::skilo_auto_suggest(SkiloServer::QueryContext &context,std::string &response)
 {
+    LOG(DEBUG)<<"@skilo_auto_suggest";
     std::string decoded_uri=context.req->decode_uri();
     std::string collection_name=this->extract_collection_name(decoded_uri);
 
-    size_t query_index=decoded_uri.find_first_of('?');
+    size_t query_index=decoded_uri.find_first_of('=');
     std::string query_prefix=decoded_uri.substr(query_index+1);
     response=_collection_manager->auto_suggest(collection_name,query_prefix);
 }
@@ -110,7 +112,7 @@ void SkiloServer::init_http_route(Rinx::RxProtocolHttp1Factory &http1)
     http1.GET(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*\/documents$)",BIND_SKILO_CALLBACK(SkiloServer::skilo_query_collection);
     //in case some clients doesn't support GET with body
     http1.POST(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*\/documents$)",BIND_SKILO_CALLBACK(SkiloServer::skilo_query_collection);
-    http1.GET(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*\/auto_suggestion?q=[\w\W]*$)",BIND_SKILO_CALLBACK(SkiloServer::skilo_auto_suggest);
+    http1.GET(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*\/auto_suggestion\?q=[\w\W]*$)",BIND_SKILO_CALLBACK(SkiloServer::skilo_auto_suggest);
 
     if(_debug){
         http1.head_filter(R"([\s\S]*)",[](HttpRequest &req,Rinx::HttpResponseHead &head,Rinx::Next next){

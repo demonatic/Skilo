@@ -1,4 +1,4 @@
-#include "InvertIndex.h"
+#include "Indexes.h"
 #include <unordered_map>
 
 namespace Skilo {
@@ -6,12 +6,12 @@ namespace Index{
 
 using StorageService=Storage::StorageService;
 
-InvertIndex::InvertIndex()
+Indexes::Indexes()
 {
 
 }
 
-void InvertIndex::add_record(const IndexRecord &record)
+void Indexes::add_record(const IndexRecord &record)
 {
     WriterLockGuard lock_guard(this->_index_lock);
     for(const auto &[term,offsets]:record.term_offsets){
@@ -24,19 +24,19 @@ void InvertIndex::add_record(const IndexRecord &record)
     }
 }
 
-uint32_t InvertIndex::term_docs_num(const string &term) const
+uint32_t Indexes::term_docs_num(const string &term) const
 {
     ReaderLockGuard lock_guard(this->_index_lock);
     PostingList *posting_list=this->get_postinglist(term);
     return posting_list?posting_list->num_docs():0;
 }
 
-PostingList *InvertIndex::get_postinglist(const string &term) const
+PostingList *Indexes::get_postinglist(const string &term) const
 {
     return _index.find(term.data(),term.length());
 }
 
-void InvertIndex::search_field(const std::unordered_map<string, std::vector<uint32_t>> &query_terms, const string &field_path,
+void Indexes::search_field(const std::unordered_map<string, std::vector<uint32_t>> &query_terms, const string &field_path,
                                Search::HitCollector &collector, uint32_t total_doc_count,
                                const std::unordered_map<string, SortIndex> *sort_indexes) const
 {
@@ -153,27 +153,29 @@ END_OF_MATCH:
     }
 }
 
-size_t InvertIndex::dict_size() const
+size_t Indexes::dict_size() const
 {
     ReaderLockGuard lock_guard(this->_index_lock);
     return _index.size();
 }
 
 CollectionIndexes::CollectionIndexes(const uint32_t collection_id, const Schema::CollectionSchema &schema,
-    const Storage::StorageService *storage_service):_collection_id(collection_id),_storage_service(storage_service)
+                                     const CollectionMeta &collection_meta,const Storage::StorageService *storage_service)
+    :_collection_id(collection_id),_storage_service(storage_service)
 {
     schema.accept(*this); //create indexes according to fields in the schema
+    if(collection_meta.enable_auto_suggestion()){
+        uint32_t suggest_entry_num=collection_meta.get_suggest_entry_num(5);
+        uint32_t min_gram=collection_meta.get_min_gram(2);
+        uint32_t max_gram=collection_meta.get_max_gram(15);
+        _auto_suggestor=std::make_unique<Search::AutoSuggestor>(suggest_entry_num,min_gram,max_gram);
+    }
 }
 
 void CollectionIndexes::visit_field_string(const Schema::FieldString *field_string)
 {
-    auto it=field_string->attributes.find("index");
-    if(it==field_string->attributes.end())
-        return;
-
-    const Schema::Field::ArrtibuteValue &index_option_value=it->second;
-    if(std::get<bool>(index_option_value)){
-        _indexes.emplace(field_string->path,InvertIndex());
+    if(field_string->attribute_val_true("index")){
+        _indexes.emplace(field_string->path,Indexes());
     }
 }
 
@@ -193,24 +195,24 @@ void CollectionIndexes::init_sort_field(const Schema::Field *field_numeric)
     sort_index.collection_id=this->_collection_id;
     sort_index.field_path=field_numeric->path;
     sort_index.storage=const_cast<Storage::StorageService*>(this->_storage_service);
-
-    auto it=field_numeric->attributes.find("sort_field");
-    if(it!=field_numeric->attributes.end()){
-        const Schema::Field::ArrtibuteValue &sort_option=it->second;
-        sort_index.cache=std::get<bool>(sort_option);
-    }
+    sort_index.cache=field_numeric->attribute_val_true("sort_field");
     _sort_indexes.emplace(field_numeric->path,sort_index);
 }
 
-const InvertIndex *CollectionIndexes::get_invert_index(const string &field_path) const
+const Indexes *CollectionIndexes::get_invert_index(const string &field_path) const
 {
     auto field_it=this->_indexes.find(field_path);
     return field_it!=_indexes.cend()?&field_it->second:nullptr;
 }
 
-InvertIndex *CollectionIndexes::get_invert_index(const string &field_path)
+Search::AutoSuggestor *CollectionIndexes::get_suggestor() const
 {
-    return const_cast<InvertIndex*>(static_cast<const CollectionIndexes*>(this)->get_invert_index(field_path));
+    return _auto_suggestor.get();
+}
+
+Indexes *CollectionIndexes::get_invert_index(const string &field_path)
+{
+    return const_cast<Indexes*>(static_cast<const CollectionIndexes*>(this)->get_invert_index(field_path));
 }
 
 bool CollectionIndexes::contains(const string &field_path) const
@@ -232,7 +234,7 @@ void CollectionIndexes::search_fields(const std::unordered_map<string, std::vect
             }
             throw InvalidFormatException("field path \""+path+"\" is not found, existing fields: "+exist_fields);
         }
-        const InvertIndex *index=this->get_invert_index(path);
+        const Indexes *index=this->get_invert_index(path);
         if(index){
             index->search_field(query_terms,path,collector,_doc_count,&this->_sort_indexes);
         }
@@ -253,7 +255,7 @@ uint32_t CollectionIndexes::field_term_doc_num(const string &field_path, const s
     if(index_it==_indexes.end()){
         return 0;
     }
-    const InvertIndex &index=index_it->second;
+    const Indexes &index=index_it->second;
     return index.term_docs_num(term);
 }
 

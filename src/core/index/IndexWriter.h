@@ -3,7 +3,7 @@
 
 #include "../schema/Schema.h"
 #include "Tokenizer.h"
-#include "InvertIndex.h"
+#include "Indexes.h"
 
 namespace Skilo {
 namespace Index {
@@ -21,10 +21,10 @@ public:
     virtual void visit_field_array(const Schema::FieldArray *field_array,const rapidjson::Value &node) override;
 
 private:
+    uint32_t _seq_id;
+
     CollectionIndexes &_indexes;
     TokenizeStrategy *_tokenizer;
-
-    uint32_t _seq_id;
 };
 
 } //namespace Index

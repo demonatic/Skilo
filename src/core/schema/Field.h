@@ -24,11 +24,11 @@ enum class FieldType{
 
 struct FieldVisitor;
 struct Field{
-    using ArrtibuteValue=std::variant<std::string,bool,int,float>;
+    using AttributeValue=std::variant<std::string,bool,int,float>;
     std::string name;
     std::string path;
     FieldType type;
-    std::unordered_map<std::string,ArrtibuteValue> attributes;
+    std::unordered_map<std::string,AttributeValue> attributes;
     std::unordered_map<std::string,std::unique_ptr<Field>> sub_fields;
 
     Field(const std::string &name,const std::string &path,const rapidjson::Value &schema);
@@ -38,13 +38,15 @@ struct Field{
     virtual void accept(FieldVisitor &field_visitor)=0;
     virtual void accept(FieldVisitor &field_visitor,const rapidjson::Value &document)=0;
 
-    ArrtibuteValue arrtibute(const std::string &arrtibute_name);
+    AttributeValue attribute(const std::string &attribute_name) const;
     Field &operator[](const std::string &sub_field_name);
+
+    bool attribute_val_true(const std::string &attribute_name) const;
 
 protected:
     static FieldType get_field_type(const rapidjson::Value &schema);
 
-    void parse_arrtibutes(const rapidjson::Value &schema);
+    void parse_attributes(const rapidjson::Value &schema);
     void parse_sub_fields(const rapidjson::Value &sub_schema,const std::string &path);
 
     inline static const char *item_keyword="$items";
