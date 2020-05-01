@@ -23,13 +23,15 @@ class SkiloServer
 
 public:
     SkiloServer(const SkiloConfig &config,const bool debug=false);
+
     bool listen();
+    void stop();
 
 private:
     ///Route: POST /collections
     void skilo_create_collection(QueryContext &context,std::string &response);
 
-    ///Route: POST /collections/<collection_name>/documents
+    ///Route: POST /collections/<collection_name>
     void skilo_add_document(QueryContext &context,std::string &response);
 
     ///Route: GET /collections/<collection_name>/documents
@@ -46,12 +48,13 @@ private:
     void handle_request(HttpRequest &req,HttpResponse &resp,const SkiloReqHandler handler);
 
 private:
+    bool _debug;
     const SkiloConfig &_config;
     std::unique_ptr<g3::LogWorker> _log_worker;
     std::unique_ptr<g3::FileSinkHandle> _log_file_handle;
 
     Rinx::RxServer _server;
-    CollectionManager _collection_manager;
+    std::unique_ptr<CollectionManager> _collection_manager;
 };
 
 enum class RetCode{

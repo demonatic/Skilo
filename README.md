@@ -77,7 +77,7 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
 * Add  document(s) to collection
 
   ```http
-  POST /collections/<collection_name>/documents
+  POST /collections/<collection_name>
   ```
   add single document:
   ```json
@@ -132,6 +132,10 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
 
   ```http
   GET /collections/<collection_name>/documents
+  ```
+  in case some client doesn't support GET with body, also:
+  ```http
+  POST /collections/<collection_name>/documents
   ```
 
   ```json

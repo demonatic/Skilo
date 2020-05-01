@@ -18,19 +18,25 @@ using namespace testing;
 using namespace std;
 using namespace Skilo;
 
+#define PORT 8989
+#define SERV "127.0.0.1"
+#define BUFF 655350
+
 void send_request_to_server(bool init_collection,bool search);
 
 void init_collection_client(){
-    sleep(1);
+    sleep(2);
     send_request_to_server(true,true);
 }
 void search_client(){
-    sleep(2);
+    sleep(3);
     send_request_to_server(false,true);
 }
 
 TEST(SKILO_SERVER_TEST,CRUD_TEST){
     SkiloConfig config;
+    config.set_listen_port(PORT);
+    config.set_db_dir("/tmp/skilo_server_tst");
     SkiloServer server(config,true);
     size_t client_count=8;
     std::vector<std::thread> client_threads;
@@ -42,15 +48,16 @@ TEST(SKILO_SERVER_TEST,CRUD_TEST){
             client_threads.push_back(std::thread(&search_client));
         }
     }
+    client_threads.push_back(std::thread([&](){
+        sleep(5);
+        server.stop();
+    }));
     EXPECT_TRUE(server.listen());
     for(auto &t:client_threads){
         t.join();
     }
 }
 
-#define PORT 8080
-#define SERV "127.0.0.1"
-#define BUFF 655350
 
 
 void send_request_to_server(bool init_collection,bool search){
@@ -137,7 +144,7 @@ void send_request_to_server(bool init_collection,bool search){
             file.close();
 
             string body_len_str=to_string(req_body.size());
-            std::string req= "POST /collections/recipe/documents HTTP/1.1\r\n"
+            std::string req= "POST /collections/recipe HTTP/1.1\r\n"
                              "Content-Length: "+body_len_str+"\r\n\r\n"+req_body;
 
             memcpy(sendbuff,req.data(),req.length());

@@ -15,7 +15,8 @@ using MakeAsync=Rinx::MakeAsync;
                                                 static_cast<SkiloReqHandler>(std::bind(&__handler__,this,\
                                                    std::placeholders::_1,std::placeholders::_2))))
 
-SkiloServer::SkiloServer(const SkiloConfig &config,const bool debug):_config(config),_collection_manager(config)
+SkiloServer::SkiloServer(const SkiloConfig &config,const bool debug)
+    :_debug(debug),_config(config)
 {
     nanolog::initialize(nanolog::GuaranteedLogger(),config.get_log_dir(),"log",20);
     _log_worker = g3::LogWorker::createLogWorker();
@@ -26,12 +27,13 @@ SkiloServer::SkiloServer(const SkiloConfig &config,const bool debug):_config(con
         _log_file_handle =_log_worker->addDefaultLogger("skilo_log", config.get_log_dir());
     }
     g3::initializeLogging(_log_worker.get());
+    _collection_manager=std::make_unique<CollectionManager>(config);
 }
 
 bool SkiloServer::listen()
 {
     LOG(INFO)<<"Initiating collections...";
-    _collection_manager.init_collections();
+    _collection_manager->init_collections();
     RxProtocolHttp1Factory http1;
     LOG(INFO)<<"Initiating server Http route";
     this->init_http_route(http1);
@@ -43,10 +45,16 @@ bool SkiloServer::listen()
     return _server.listen(addr,port,http1);
 }
 
+void SkiloServer::stop()
+{
+    LOG(INFO)<<"Stopping Skilo server...";
+    _server.stop();
+}
+
 void SkiloServer::skilo_create_collection(QueryContext &context,std::string &response)
 {
     CollectionMeta collection_meta(context.req->body().get_data());
-    response=_collection_manager.create_collection(collection_meta);
+    response=_collection_manager->create_collection(collection_meta);
 }
 
 void SkiloServer::skilo_add_document(QueryContext &context,std::string &response)
@@ -55,22 +63,23 @@ void SkiloServer::skilo_add_document(QueryContext &context,std::string &response
     std::string collection_name=this->extract_collection_name(context.req->uri());
     if(base.contain_key("docs")){
         DocumentBatch doc_batch(base);
-        response=_collection_manager.add_document_batch(collection_name,doc_batch);
+        response=_collection_manager->add_document_batch(collection_name,doc_batch);
     }
     else{
         Document new_doc(base);
-        response=_collection_manager.add_document(collection_name,new_doc);
+        response=_collection_manager->add_document(collection_name,new_doc);
     }
 }
 
 void SkiloServer::skilo_query_collection(QueryContext &context,std::string &response)
 {
+    LOG(DEBUG)<<"@query_collection";
     std::string collection_name=extract_collection_name(context.req->uri());
     if(context.req->body().empty()){
         throw InvalidFormatException("missing query body");
     }
     Query query(collection_name,context.req->body().get_data());
-    response=_collection_manager.search(query);
+    response=_collection_manager->search(query);
 }
 
 void SkiloServer::skilo_auto_suggest(SkiloServer::QueryContext &context,std::string &response)
@@ -80,7 +89,7 @@ void SkiloServer::skilo_auto_suggest(SkiloServer::QueryContext &context,std::str
 
     size_t query_index=decoded_uri.find_first_of('?');
     std::string query_prefix=decoded_uri.substr(query_index+1);
-    response=_collection_manager.auto_suggest(collection_name,query_prefix);
+    response=_collection_manager->auto_suggest(collection_name,query_prefix);
 }
 
 std::string SkiloServer::extract_collection_name(std::string_view uri) const
@@ -97,18 +106,27 @@ std::string SkiloServer::extract_collection_name(std::string_view uri) const
 void SkiloServer::init_http_route(Rinx::RxProtocolHttp1Factory &http1)
 {
     http1.POST(R"(^\/collections$)",MakeAsync(BIND_SKILO_CALLBACK(SkiloServer::skilo_create_collection));
-    http1.POST(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*\/documents$)",MakeAsync(BIND_SKILO_CALLBACK(SkiloServer::skilo_add_document));
+    http1.POST(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*$)",MakeAsync(BIND_SKILO_CALLBACK(SkiloServer::skilo_add_document));
     http1.GET(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*\/documents$)",BIND_SKILO_CALLBACK(SkiloServer::skilo_query_collection);
+    //in case some clients doesn't support GET with body
+    http1.POST(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*\/documents$)",BIND_SKILO_CALLBACK(SkiloServer::skilo_query_collection);
     http1.GET(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*\/auto_suggestion?q=[\w\W]*$)",BIND_SKILO_CALLBACK(SkiloServer::skilo_auto_suggest);
+
+    if(_debug){
+        http1.head_filter(R"([\s\S]*)",[](HttpRequest &req,Rinx::HttpResponseHead &head,Rinx::Next next){
+            head.header_fields.add("Access-Control-Allow-Origin","*");
+            next();
+        });
+    }
 }
 
 void SkiloServer::handle_request(HttpRequest &req, HttpResponse &resp, const SkiloReqHandler handler)
 {
     Status status;
     try {
-          QueryContext ctx;
-          ctx.req=&req; ctx.resp=&resp;
-          handler(ctx,status.description);
+        QueryContext ctx;
+        ctx.req=&req; ctx.resp=&resp;
+        handler(ctx,status.description);
     }  catch (const InvalidFormatException &err) {
         status.code=RetCode::BAD_REQUEST;
         status.description=err.what();

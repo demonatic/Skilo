@@ -8,6 +8,7 @@ using namespace Skilo;
 TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
     bool init=true;
     static SkiloConfig conf;
+    conf.set_db_dir("/tmp/collection_manager_tst");
     CollectionManager collection_manager(conf);
     std::string schema_str="{\
                             \"name\":\"recipe\",\

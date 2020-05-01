@@ -25,6 +25,21 @@ const std::string &SkiloConfig::get_log_dir() const
     return _log_dir;
 }
 
+void SkiloConfig::set_listen_port(const uint16_t port)
+{
+    this->_listen_port=port;
+}
+
+void SkiloConfig::set_db_dir(const std::string &db_dir)
+{
+    this->_database_dir=db_dir;
+}
+
+void SkiloConfig::set_log_dir(const std::string &log_dir)
+{
+    this->_log_dir=log_dir;
+}
+
 uint16_t SkiloConfig::get_listen_port() const
 {
     return _listen_port;

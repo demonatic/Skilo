@@ -18,7 +18,12 @@ public:
     const std::string &get_db_dir() const;
     const std::string &get_log_dir() const;
 
+    void set_listen_port(const uint16_t port);
+    void set_db_dir(const std::string &db_dir);
+
     uint16_t get_listen_port() const;
+    void set_log_dir(const std::string &log_dir);
+
     const std::string &get_listen_address() const;
 
     const std::string &get_tokenizer_dict_dir() const;
