@@ -70,7 +70,7 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
         "entry_num":5,
         "min_gram":2,
         "max_gram":15
-    },
+    }
   }
   ```
 

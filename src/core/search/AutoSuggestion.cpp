@@ -41,10 +41,11 @@ void AutoSuggestor::update(const std::string &query)
                 }
                 --pre_index;
             }
-            if(sug[pre_index].query==query){ //query entry already in, increase its frequency by 1
+            if(pre_index>=0&&sug[pre_index].query==query){ //query entry already in, increase its frequency by 1
                 sug[pre_index].freq++;
-                while(sug[pre_index].freq>sug[pre_index+1].freq&&pre_index+1<sug.size()){ //move it to right position
+                while(pre_index+1<sug.size()&&sug[pre_index].freq>sug[pre_index+1].freq){ //move it to right position
                     swap(sug[pre_index],sug[pre_index+1]);
+                    pre_index++;
                 }
             }
             else if(sug.size()<_suggestion_num){ // add as a new suggestion node
@@ -55,12 +56,13 @@ void AutoSuggestor::update(const std::string &query)
                 }
                 sug[i]=node;
             }
-            else{ //replace the first suggestion node and mobe it to right position
+            else{ //replace the first suggestion node and move it to right position
                 size_t index=0;
                 sug[index].freq=query_freq;
                 sug[index].query=query;
-                while(index+1<sug.size()&&sug[index+1].freq<query_freq){
+                while(index+1<sug.size()&&sug[index+1].freq<=query_freq){
                     swap(sug[index],sug[index+1]);
+                    index++;
                 }
             }
         }
@@ -75,9 +77,9 @@ void AutoSuggestor::update(const std::string &query)
 std::vector<std::string_view> AutoSuggestor::auto_suggest(const string &query_prefix)
 {
     std::vector<std::string_view> suggestions;
-    SuggestionList &sug=_suggest_map[query_prefix];
-
-    if(!sug.empty()){
+    auto it=_suggest_map.find(query_prefix);
+    if(it!=_suggest_map.end()){
+        SuggestionList &sug=it->second;
         size_t len=sug.size();
         suggestions.resize(len);
         for(size_t i=0;i<sug.size();i++){
