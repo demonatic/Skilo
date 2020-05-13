@@ -1,6 +1,6 @@
 #include "StorageEngine.h"
 #include <g3log/g3log.hpp>
-#include <iostream>
+
 namespace Skilo {
 namespace Storage{
 
@@ -9,8 +9,8 @@ StorageEngine::StorageEngine(const std::string &db_path):_db_path(db_path)
     LOG(INFO)<<"initialize database from dir:"<<db_path;
     _options.IncreaseParallelism();
     _options.create_if_missing=true;
-//    _options.write_buffer_size=4*1310724;
-    _options.max_background_flushes=2;
+    _options.write_buffer_size=4*1310724;
+    _options.max_write_buffer_number=2;
     _options.compression=rocksdb::CompressionType::kSnappyCompression;
     rocksdb::Status status=rocksdb::DB::Open(_options,db_path,&_db);
     if(!status.ok()){

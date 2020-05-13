@@ -1,8 +1,9 @@
 # Download and build RocksDB
 
-set(ROCKSDB_VERSION 6.6.4)
+set(ROCKSDB_VERSION 6.8.1)
 set(ROCKSDB_NAME rocksdb-${ROCKSDB_VERSION})
 set(ROCKSDB_TAR_PATH ${DEP_ROOT_DIR}/${ROCKSDB_NAME}.tar.gz)
+set(ROCKSDB_LIBRARIES "${DEP_ROOT_DIR}/${ROCKSDB_NAME}/librocksdb.a")
 
 if(NOT EXISTS ${ROCKSDB_TAR_PATH})
     message(STATUS "Downloading ${ROCKSDB_NAME}...")

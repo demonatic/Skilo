@@ -3,7 +3,7 @@
 
 #include <cstdlib>
 #include <memory>
-#include <libfor/for.h>
+#include <for.h>
 
 using namespace std;
 
