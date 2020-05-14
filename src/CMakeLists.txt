@@ -31,4 +31,4 @@ MESSAGE("src core libs=" ${CORE_LIBS})
 set(ALL_SRCS ${ALL_SRCS} ${SOURCES} CACHE INTERNAL "")
 
 add_executable(Skilo main.cpp ${SOURCES})
-target_link_libraries(Skilo ${CORE_LIBS} boost_regex)
+target_link_libraries(Skilo ${CORE_LIBS})
