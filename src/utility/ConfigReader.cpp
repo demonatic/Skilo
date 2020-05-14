@@ -1,6 +1,5 @@
 #include "ConfigReader.h"
-#include <boost/algorithm/string.hpp>
-#include <iostream>
+#include <boost/algorithm/string/predicate.hpp>
 
 namespace Skilo {
 

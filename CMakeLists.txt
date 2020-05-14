@@ -8,9 +8,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(RINX_ROOT ${CMAKE_SOURCE_DIR}/src/network/Rinx)
 
-include_directories(3rd/include ${RINX_ROOT}/include ${CMAKE_SOURCE_DIR}/src)
+include_directories(3rd/include ${RINX_ROOT}/include ${RINX_ROOT}/include/3rd ${CMAKE_SOURCE_DIR}/src)
 link_directories(/usr/local/lib)
-
 
 FIND_PACKAGE(Snappy REQUIRED)
 FIND_PACKAGE(ZLIB REQUIRED)
