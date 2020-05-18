@@ -16,6 +16,8 @@ std::vector<pair<uint32_t,double>> IndexSearcher::do_search()
     //extract and split query terms and fields
     const std::string &query_str=_query_info.get_search_str();
     std::unordered_map<std::string, std::vector<uint32_t>> query_terms=_tokenizer->tokenize(query_str);
+    std::vector<Token> result_tokens; //TODO init it
+
     const vector<std::string> &search_fields=_query_info.get_query_fields();
 
     //init search criteria and do search

@@ -34,9 +34,9 @@ include_directories(${DEP_ROOT_DIR}/${FOR_NAME})
 
 add_subdirectory(${RINX_ROOT}/)
 add_subdirectory(${CMAKE_SOURCE_DIR}/src)
-if(SKILO_BUILD_TESTS)
+#if(SKILO_BUILD_TESTS)
     add_subdirectory(${CMAKE_SOURCE_DIR}/test)
-endif(SKILO_BUILD_TESTS)
+#endif(SKILO_BUILD_TESTS)
 
 find_path(SNAPPY_INCLUDE_DIR snappy.h PATHS
   /usr/local/include

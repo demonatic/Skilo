@@ -227,6 +227,11 @@ TEST(ART_TEST,CORRECTNESS_TST){
               cout<<"【----------check insertion of "<<num<<" keys ok--------】"<<endl;
           }
       }
+      size_t it_count=0;
+      art.iterate("",0,[&it_count](unsigned char *key,size_t len,std::string* s){
+          it_count++;
+      });
+      EXPECT_EQ(it_count,100000);
       num=0;
       for(const auto &[key,val]:data){
            art.erase(key.c_str(),key.size());
@@ -251,12 +256,32 @@ TEST(ART_TEST,SIMPLE_TEST){
      art.insert(s3->data(),s3->length(),s3);
      art.insert(s4->data(),s4->length(),s4);
      art.insert(s5->data(),s5->length(),s5);
+//     art.insert(s6->data(),s6->length(),s6);
      EXPECT_EQ(art.find(s1->data(),s1->length()),s1);
      EXPECT_EQ(art.find(s2->data(),s2->length()),s2);
      EXPECT_EQ(art.find(s3->data(),s3->length()),s3);
      EXPECT_EQ(art.find(s4->data(),s4->length()),s4);
      EXPECT_EQ(art.find(s5->data(),s5->length()),s5);
      EXPECT_EQ(art.find(s6->data(),s6->length()),nullptr);
+
+     std::vector<std::string*> iterate_res1,iterate_res2;
+     const char* prefix="hello";
+     art.iterate(prefix,strlen(prefix),[&](unsigned char *key,size_t len,std::string *s){
+         iterate_res1.push_back(s);
+     },[](auto c){
+         return c=='t'?true:false;
+     });
+     EXPECT_EQ(iterate_res1.size(),3);
+     EXPECT_EQ(iterate_res1[0],s1);
+     EXPECT_EQ(iterate_res1[1],s4);
+     EXPECT_EQ(iterate_res1[2],s5);
+
+     const char* prefix2="helloo";
+     art.iterate(prefix2,strlen(prefix2),[&](unsigned char *key,size_t len,std::string *s){
+         iterate_res2.push_back(s);
+     });
+     EXPECT_EQ(iterate_res2.size(),0);
+
      std::string t_s3=*s3;
      art.erase(s3->data(),s3->length());
      EXPECT_EQ(art.find(t_s3.data(),t_s3.length()),nullptr);

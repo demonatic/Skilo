@@ -22,6 +22,11 @@ public:
 
     void erase(const char *key,size_t key_len);
 
+    /// @brief iterate though all elements over the sub tree designated by given prefix
+    /// @param callback will be called when iterating reaches a leaf
+    /// @param early_termination will be called when descend to a lower level, return true would stop current node's dfs process
+    void iterate(const char *prefix,size_t prefix_len,std::function<void(unsigned char *, size_t, T*)> callback,std::function<bool(const unsigned char)> early_termination=[](const unsigned char){return false;});
+
     size_t size() const;
 
 private:
@@ -32,6 +37,8 @@ private:
     T* insert_impl(ArtNode *node,ArtNode::Ptr &node_ptr,const unsigned char *child_key,size_t child_key_len,size_t depth,T *val);
     bool erase_impl(ArtNode *node,ArtNode::Ptr &node_ptr,const unsigned char *child_key,size_t child_key_len,size_t depth);
     void destroy_impl(ArtNode *node);
+
+    void iterate_impl(ArtNode *node,std::function<void(unsigned char *, size_t, T*)> callback, std::function<bool(const unsigned char)> early_termination);
 
 private:
     ArtNode *_root;
@@ -72,9 +79,10 @@ T *ARTree<T>::find(const char *key,size_t key_len) const
         if(inner_node->prefix_len){
             depth+=inner_node->prefix_len;
         }
-
+        if(depth>key_len){
+            return nullptr;
+        }
         ArtNode::Ptr *child=this->find_child(inner_node,key[depth]);
-
         node=child?*child:nullptr;
         depth++;
     }
@@ -86,6 +94,78 @@ void ARTree<T>::erase(const char *key, size_t key_len)
 {
     bool ok=this->erase_impl(_root,_root,reinterpret_cast<const unsigned char*>(key),key_len,0);
     if(ok) _size--;
+}
+
+template<class T>
+void ARTree<T>::iterate(const char *prefix, size_t prefix_len, std::function<void(unsigned char *, size_t, T*)> callback, std::function<bool(const unsigned char)> early_termination)
+{
+    ArtNode *node=_root;
+    size_t depth=0;
+    while(depth<prefix_len){
+        if(is_leaf(node)){
+            break;
+        }
+        InnerNode *inner_node=as_inner_node(node);
+        depth+=inner_node->prefix_len;
+        if(depth<prefix_len){
+            ArtNode::Ptr *child=this->find_child(inner_node,prefix[depth]);
+            node=child?*child:nullptr;
+            depth++;
+        }
+    }
+    iterate_impl(node,callback,early_termination);
+}
+
+template<class T>
+void ARTree<T>::iterate_impl(ArtNode *node,std::function<void(unsigned char *, size_t, T*)> callback, std::function<bool(const unsigned char)> early_termination)
+{
+    if(!node)
+        return;
+
+    if(is_leaf(node)){
+        ArtLeaf<T> *leaf=ArtLeaf<T>::as_leaf_node(node);
+        callback(leaf->get_key(),leaf->key_len,leaf->data);
+        return;
+    }
+    InnerNode *inner_node=as_inner_node(node);
+    switch(inner_node->type) {
+        case InnerNode::Node4:{
+            ArtNode4 *node4=as_node4(inner_node);
+            for(int i=0;i<node4->num_children;i++){
+                if(!early_termination(node4->keys[i])){
+                    iterate_impl(node4->children[i],callback,early_termination);
+                }
+            }
+        }
+        break;
+        case InnerNode::Node16:{
+            ArtNode16 *node16=as_node16(inner_node);
+            for(int i=0;i<node16->num_children;i++){
+                if(!early_termination(node16->keys[i])){
+                    iterate_impl(node16->children[i],callback,early_termination);
+                }
+            }
+        }
+        break;
+        case InnerNode::Node48:{
+            ArtNode48 *node48=as_node48(inner_node);
+            for(int i=0;i<256;i++){
+                if(node48->child_indexs[i]!=0&&!early_termination(i)){
+                    iterate_impl(node48->children[i],callback,early_termination);
+                }
+            }
+        }
+        break;
+        case InnerNode::Node256:{
+            ArtNode256 *node256=as_node256(inner_node);
+            for(int i=0;i<256;i++){
+                if(node256->children[i]&&!early_termination(i)){
+                    iterate_impl(node256->children[i],callback,early_termination);
+                }
+            }
+        }
+        break;
+    }
 }
 
 template<class T>

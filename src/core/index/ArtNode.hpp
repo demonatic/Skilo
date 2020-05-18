@@ -25,6 +25,10 @@ struct ArtLeaf:public ArtNode{
         return this->key_len<key_local_capacity;
     }
 
+    unsigned char* get_key(){
+         return is_key_local()?key_local:this->key;
+    }
+
     static ArtLeaf* make_leaf(const unsigned char *key,size_t key_len,T *value){
         ArtLeaf *leaf=new ArtLeaf;
         leaf->key_len=key_len;
@@ -47,7 +51,7 @@ struct ArtLeaf:public ArtNode{
         if(key_len!=this->key_len){
             return false;
         }
-        return std::memcmp(key,is_key_local()?key_local:this->key,key_len)==0;
+        return std::memcmp(key,get_key(),key_len)==0;
     }
 
     static constexpr uint32_t key_local_capacity=16;
@@ -229,8 +233,10 @@ struct ArtNode48:public InnerNode{
     }
 
     void add_child(const unsigned char key,ArtNode *child_node){
-        child_indexs[key]=num_children+1;
-        children[num_children]=child_node;
+        int pos=0;
+        while(children[pos]) pos++;
+        child_indexs[key]=pos+1;
+        children[pos]=child_node;
         num_children++;
     }
     
