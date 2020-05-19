@@ -19,7 +19,7 @@ void IndexWriter::index_in_memory(const Schema::CollectionSchema &schema, const 
 
 void IndexWriter::visit_field_string(const Schema::FieldString *field_string, const rapidjson::Value &node)
 {
-    Indexes *index=_indexes.get_invert_index(field_string->path);
+    InvertIndex *index=_indexes.get_invert_index(field_string->path);
     if(!index) return; //schema says we needn't index this field
 
     std::unordered_map<std::string, std::vector<uint32_t>> word_offsets;

@@ -9,20 +9,19 @@ namespace Skilo {
 namespace Search {
 
 struct Token{
-    size_t offset;
-    std::string content;
-    std::vector<std::vector<std::string>> fuzzy_tokens_array; // edit distance->token contents with given distance
+    std::string term;
+    std::vector<uint32_t> offsets;
+    std::vector<std::vector<std::string>> fuzzy_terms; //index: edit distance, element: fuzzy matches
 };
 
 class IndexSearcher
 {
 public:
     IndexSearcher(const Query &query_info, const Index::CollectionIndexes &indexes,const Index::TokenizeStrategy *tokenizer);
+
     std::vector<pair<uint32_t,double>> do_search();
 
-    void edit_distance() const;
-
-    void on_within_distance(const std::string &pinyin,const size_t edit_distance,const std::vector<std::string> &fuzzy_tokens);
+    std::vector<std::vector<std::string>> search_term_fuzz(const std::string &field_name,const std::string &term,size_t exact_prefix_len,size_t max_edit_distance) const;
 
 private:
     const Query &_query_info;

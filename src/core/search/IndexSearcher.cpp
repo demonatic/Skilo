@@ -1,4 +1,6 @@
 #include "IndexSearcher.h"
+#include "utility/CodeTiming.h"
+using namespace Skilo::Index;
 
 namespace Skilo {
 namespace Search {
@@ -16,9 +18,24 @@ std::vector<pair<uint32_t,double>> IndexSearcher::do_search()
     //extract and split query terms and fields
     const std::string &query_str=_query_info.get_search_str();
     std::unordered_map<std::string, std::vector<uint32_t>> query_terms=_tokenizer->tokenize(query_str);
-    std::vector<Token> result_tokens; //TODO init it
 
     const vector<std::string> &search_fields=_query_info.get_query_fields();
+
+    std::vector<Token> tokens;
+    for(auto &&[term,offsets]:query_terms){
+        std::cout<<"term="<<term<<std::endl;
+        Token token;
+        token.term=term;
+        token.offsets=offsets;
+        token.fuzzy_terms=search_term_fuzz(search_fields[0],term,0,2);
+        timing_code(token.fuzzy_terms=search_term_fuzz(search_fields[0],term,0,2));
+//        for(auto v:token.fuzzy_terms){
+//            for(auto s:v){
+//                std::cout<<s<<" ";
+//            }
+//            std::cout<<"------"<<std::endl;
+//        }
+    }
 
     //init search criteria and do search
     uint32_t top_k=50;
@@ -43,6 +60,60 @@ std::vector<pair<uint32_t,double>> IndexSearcher::do_search()
     }
     //collect hit documents
     return collector.get_top_k();
+}
+
+std::vector<std::vector<std::string>> IndexSearcher::search_term_fuzz(const std::string &field_name,const string &term,size_t exact_prefix_len,size_t max_edit_distance) const
+{
+    const InvertIndex *invert_index=_indexes.get_invert_index(field_name);
+    if(!invert_index)
+        return{};
+
+    std::vector<std::vector<std::string>> fuzzy_matches(max_edit_distance+1); //index: edit distance, elm: fuzzy matches
+    size_t term_len=term.length();
+    std::string exact_match_prefix=term.substr(term_len-exact_prefix_len);
+
+    std::vector<std::vector<int>> distance_table; //dp, contains an empty row and col
+    int last_row_min_dis=0;
+    std::vector<int> first_row(term_len+1);
+    //init first row
+    for(size_t i=0;i<=term_len;i++){
+        first_row[i]=i;
+    }
+    distance_table.emplace_back(std::move(first_row));
+
+    auto on_fuzzy_match=[&](unsigned char *fuzzy_str, size_t len, PostingList *){
+        if(distance_table.back().back()<=max_edit_distance){
+            std::string match(fuzzy_str,fuzzy_str+len);
+            fuzzy_matches[last_row_min_dis].push_back(match);
+        }
+    };
+    auto early_termination=[&](unsigned char c){
+        std::vector<int> &prev_row=distance_table.back();
+        std::vector<int> curr_row(term_len+1);
+        curr_row[0]=prev_row[0]+1;
+        last_row_min_dis=curr_row[0];
+        for(size_t i=1;i<=term_len;i++){
+            int insert_cost=curr_row[i-1]+1;
+            int delete_cost=prev_row[i]+1;
+            int replace_cost=term[i-1]!=c?prev_row[i-1]+1:prev_row[i-1];
+            curr_row[i]=std::min({insert_cost,delete_cost,replace_cost});
+            last_row_min_dis=std::min(curr_row[i],last_row_min_dis);
+        }
+        //if current row's min distance is greater than max_distance, we stop traversing downwards
+        if(last_row_min_dis>max_edit_distance){
+            return true;
+        }
+        distance_table.emplace_back(std::move(curr_row));
+        return false;
+    };
+    auto on_backtrace=[&](){
+        distance_table.pop_back();
+    };
+
+    //iterate though the whole term dict
+    //it's O(n) operation but incremental calculation along with early termination will save a lot of time
+    invert_index->iterate(exact_match_prefix,on_fuzzy_match,early_termination,on_backtrace);
+    return fuzzy_matches;
 }
 
 } //namespace Search

@@ -35,10 +35,10 @@ struct SortIndex{
 };
 
 
-class Indexes
+class InvertIndex
 {
 public:
-    Indexes();
+    InvertIndex();
     void add_record(const IndexRecord &record);
 
     size_t dict_size() const;
@@ -48,6 +48,9 @@ public:
     void search_field(const std::unordered_map<string, std::vector<uint32_t>> &query_terms,
         const std::string &field_path,Search::HitCollector &collector,uint32_t total_doc_count,
             const std::unordered_map<string, SortIndex> *sort_indexes) const;
+
+    void iterate(const std::string &prefix,std::function<void(unsigned char *,size_t,PostingList*)> on_term,
+                 std::function<bool(unsigned char)> early_termination,std::function<void()> on_backtrace) const;
 
 private:
     PostingList *get_postinglist(const std::string &term) const;
@@ -62,8 +65,8 @@ public:
     CollectionIndexes(const uint32_t collection_id, const Schema::CollectionSchema &schema,
                       const CollectionMeta &collection_meta,const Storage::StorageService *storage_service);
 
-    Indexes *get_invert_index(const std::string &field_path);
-    const Indexes *get_invert_index(const std::string &field_path) const;
+    InvertIndex *get_invert_index(const std::string &field_path);
+    const InvertIndex *get_invert_index(const std::string &field_path) const;
 
     Search::AutoSuggestor *get_suggestor() const;
 
@@ -92,7 +95,7 @@ private:
     const Storage::StorageService *_storage_service;
 
     //!-- <field_path,index>
-    std::unordered_map<std::string,Indexes> _indexes;
+    std::unordered_map<std::string,InvertIndex> _indexes;
     //!-- <field_path,<doc_id,numeric_value>>
     std::unordered_map<std::string,SortIndex> _sort_indexes;
 

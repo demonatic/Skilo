@@ -23,9 +23,12 @@ public:
     void erase(const char *key,size_t key_len);
 
     /// @brief iterate though all elements over the sub tree designated by given prefix
-    /// @param callback will be called when iterating reaches a leaf
+    /// @param on_elm will be called when iterating reaches a leaf
     /// @param early_termination will be called when descend to a lower level, return true would stop current node's dfs process
-    void iterate(const char *prefix,size_t prefix_len,std::function<void(unsigned char *, size_t, T*)> callback,std::function<bool(const unsigned char)> early_termination=[](const unsigned char){return false;});
+    /// @param on_backtrace will be called when backtrace to a higher level
+    void iterate(const char *prefix,size_t prefix_len,std::function<void(unsigned char *, size_t, T*)> on_elm,
+                    std::function<bool(unsigned char)> early_termination=[](unsigned char){return false;},
+                        std::function<void()> on_backtrace=[](){return;}) const;
 
     size_t size() const;
 
@@ -38,7 +41,8 @@ private:
     bool erase_impl(ArtNode *node,ArtNode::Ptr &node_ptr,const unsigned char *child_key,size_t child_key_len,size_t depth);
     void destroy_impl(ArtNode *node);
 
-    void iterate_impl(ArtNode *node,std::function<void(unsigned char *, size_t, T*)> callback, std::function<bool(const unsigned char)> early_termination);
+    void iterate_impl(ArtNode *node,int depth,std::function<void(unsigned char *, size_t, T*)> on_elm,
+        std::function<bool(const unsigned char)> early_termination,std::function<void()> on_backtrace) const;
 
 private:
     ArtNode *_root;
@@ -97,7 +101,8 @@ void ARTree<T>::erase(const char *key, size_t key_len)
 }
 
 template<class T>
-void ARTree<T>::iterate(const char *prefix, size_t prefix_len, std::function<void(unsigned char *, size_t, T*)> callback, std::function<bool(const unsigned char)> early_termination)
+void ARTree<T>::iterate(const char *prefix, size_t prefix_len, std::function<void(unsigned char *, size_t, T*)> on_elm,
+                        std::function<bool(unsigned char)> early_termination,std::function<void()> on_backtrace) const
 {
     ArtNode *node=_root;
     size_t depth=0;
@@ -113,27 +118,47 @@ void ARTree<T>::iterate(const char *prefix, size_t prefix_len, std::function<voi
             depth++;
         }
     }
-    iterate_impl(node,callback,early_termination);
+    iterate_impl(node,depth,on_elm,early_termination,on_backtrace);
 }
 
 template<class T>
-void ARTree<T>::iterate_impl(ArtNode *node,std::function<void(unsigned char *, size_t, T*)> callback, std::function<bool(const unsigned char)> early_termination)
+void ARTree<T>::iterate_impl(ArtNode *node,int depth,std::function<void(unsigned char *, size_t, T*)> on_elm,
+                             std::function<bool(unsigned char)> early_termination,std::function<void()> on_backtrace) const
 {
     if(!node)
         return;
 
     if(is_leaf(node)){
+        int i;
         ArtLeaf<T> *leaf=ArtLeaf<T>::as_leaf_node(node);
-        callback(leaf->get_key(),leaf->key_len,leaf->data);
+        for(i=depth;i<leaf->key_len;i++){
+            if(early_termination(leaf->get_key()[i])){
+                goto backtrace;
+            }
+        }
+        on_elm(leaf->get_key(),leaf->key_len,leaf->data);
+backtrace:
+        for(;i>depth;i--){
+            on_backtrace();
+        }
         return;
     }
     InnerNode *inner_node=as_inner_node(node);
+    for(int i=0;i<inner_node->prefix_len;i++){
+        if(early_termination(inner_node->prefix[i])){
+            for(int j=i-1;j>=0;j--){
+                on_backtrace();
+            }
+            return;
+        }
+    }
     switch(inner_node->type) {
         case InnerNode::Node4:{
             ArtNode4 *node4=as_node4(inner_node);
             for(int i=0;i<node4->num_children;i++){
                 if(!early_termination(node4->keys[i])){
-                    iterate_impl(node4->children[i],callback,early_termination);
+                    iterate_impl(node4->children[i],depth+1,on_elm,early_termination,on_backtrace);
+                    on_backtrace();
                 }
             }
         }
@@ -142,7 +167,8 @@ void ARTree<T>::iterate_impl(ArtNode *node,std::function<void(unsigned char *, s
             ArtNode16 *node16=as_node16(inner_node);
             for(int i=0;i<node16->num_children;i++){
                 if(!early_termination(node16->keys[i])){
-                    iterate_impl(node16->children[i],callback,early_termination);
+                    iterate_impl(node16->children[i],depth+1,on_elm,early_termination,on_backtrace);
+                    on_backtrace();
                 }
             }
         }
@@ -150,8 +176,10 @@ void ARTree<T>::iterate_impl(ArtNode *node,std::function<void(unsigned char *, s
         case InnerNode::Node48:{
             ArtNode48 *node48=as_node48(inner_node);
             for(int i=0;i<256;i++){
-                if(node48->child_indexs[i]!=0&&!early_termination(i)){
-                    iterate_impl(node48->children[i],callback,early_termination);
+                size_t index=node48->child_indexs[i];
+                if(index!=0&&!early_termination(i)){
+                    iterate_impl(node48->children[index-1],depth+1,on_elm,early_termination,on_backtrace);
+                    on_backtrace();
                 }
             }
         }
@@ -160,11 +188,15 @@ void ARTree<T>::iterate_impl(ArtNode *node,std::function<void(unsigned char *, s
             ArtNode256 *node256=as_node256(inner_node);
             for(int i=0;i<256;i++){
                 if(node256->children[i]&&!early_termination(i)){
-                    iterate_impl(node256->children[i],callback,early_termination);
+                    iterate_impl(node256->children[i],depth+1,on_elm,early_termination,on_backtrace);
+                    on_backtrace();
                 }
             }
         }
         break;
+    }
+    for(int i=inner_node->prefix_len-1;i>=0;i--){
+        on_backtrace();
     }
 }
 
