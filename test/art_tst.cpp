@@ -247,7 +247,7 @@ TEST(ART_TEST,SIMPLE_TEST){
     Art::ARTree<std::string> art;
      string *s1=new string("hello");
      string *s2=new string("bye bye");
-     string *s3=new string("hello too");
+     string *s3=new string("hello boo");
      string *s4=new string("hello shit");
      string *s5=new string("hello!");
      string *s6=new string("helloworld!");
@@ -267,9 +267,10 @@ TEST(ART_TEST,SIMPLE_TEST){
      std::vector<std::string*> iterate_res1,iterate_res2;
      const char* prefix="hello";
      art.iterate(prefix,strlen(prefix),[&](unsigned char *key,size_t len,std::string *s){
+         std::cout<<*s<<std::endl;
          iterate_res1.push_back(s);
      },[](auto c){
-         return c=='t'?true:false;
+         return c=='b'?true:false;
      });
      EXPECT_EQ(iterate_res1.size(),3);
      EXPECT_EQ(iterate_res1[0],s1);

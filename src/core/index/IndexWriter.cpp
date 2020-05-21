@@ -28,7 +28,7 @@ void IndexWriter::visit_field_string(const Schema::FieldString *field_string, co
 
     uint32_t doc_len=strlen(content);
     IndexRecord record{_seq_id,doc_len,std::move(word_offsets)};
-    index->add_record(record);
+    index->index_str_record(record);
 
     if(field_string->attribute_val_true("suggest")){
         DefaultTokenizer segment_splitter;
@@ -42,13 +42,13 @@ void IndexWriter::visit_field_string(const Schema::FieldString *field_string, co
 void IndexWriter::visit_field_integer(const Schema::FieldInteger *field_integer, const rapidjson::Value &node)
 {
     number_t integer_number=node.GetInt64();
-    _indexes.add_sort_field(field_integer->path,_seq_id,integer_number);
+    _indexes.index_numeric(field_integer->path,_seq_id,integer_number);
 }
 
 void IndexWriter::visit_field_float(const Schema::FieldFloat *field_float, const rapidjson::Value &node)
 {
     number_t real_number=node.GetDouble();
-    _indexes.add_sort_field(field_float->path,_seq_id,real_number);
+    _indexes.index_numeric(field_float->path,_seq_id,real_number);
 }
 
 void IndexWriter::visit_field_boolean(const Schema::FieldBoolean *field_boolean, const rapidjson::Value &node)

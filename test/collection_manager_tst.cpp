@@ -7,10 +7,11 @@ using namespace std;
 using namespace Skilo;
 
 TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
-    bool init=true;
+    bool init=false;
     static SkiloConfig conf;
     conf.set_db_dir("/tmp/collection_manager_tst");
     CollectionManager collection_manager(conf);
+    collection_manager.init_collections();
     std::string schema_str="{\
                             \"name\":\"recipe\",\
                             \"tokenizer\":\"jieba\",\
@@ -223,23 +224,23 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
 //    cout<<collection_manager.search(query)<<endl;
 
     std::string search_str2="{\
-                           \"query\": \"酸菜鱼\",\
+                           \"query\": \"柔丝\",\
                            \"query by\": [\"recipe_name\",\"ingredients.$items.title\"]\
                            }";
     Query query2("recipe2",search_str2);
-//    cout<<collection_manager.search(query2)<<endl;
+    cout<<collection_manager.search(query2)<<endl;
     cout<<collection_manager.auto_suggest(collection_name,"镇得住")<<endl;
     cout<<collection_manager.auto_suggest(collection_name2,"酸菜")<<endl;
 
     std::string search_str_en="{\
-                           \"query\": \"aiiee\",\
+                           \"query\": \"glass\",\
                            \"query by\": [\"word\"]\
                            }";
     Query query_en("english_dict",search_str_en);
     cout<<"-------start fuzzy--------"<<endl;
 
     timing_code(
-        for(int i=0;i<100;i++){
+        for(int i=0;i<0;i++){
             cout<<collection_manager.search(query_en)<<endl;
         }
     );

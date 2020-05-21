@@ -3,6 +3,8 @@
 
 #include "ArtNode.hpp"
 
+#include <boost/mpl/insert.hpp>
+
 namespace Art{
 
 template <class T>
@@ -16,19 +18,23 @@ public:
     /// @return nullptr if insert success, otherwise return the already existing value
     T* insert(const char *key,size_t key_len,T *val);
 
+    T* insert(const std::string &key,T *val);
+
     /// @param key: can be non-null-terminate string
     /// @return nullptr if not find, otherwise return the pointer to the value
     T *find(const char *key,size_t key_len) const;
+
+    T *find(const std::string &key) const;
 
     void erase(const char *key,size_t key_len);
 
     /// @brief iterate though all elements over the sub tree designated by given prefix
     /// @param on_elm will be called when iterating reaches a leaf
-    /// @param early_termination will be called when descend to a lower level, return true would stop current node's dfs process
-    /// @param on_backtrace will be called when backtrace to a higher level
+    /// @param early_termination will be called when key descend to a lower level, return true would stop current node's dfs process
+    /// @param on_backtrace will be called when key backtrace to a higher level
     void iterate(const char *prefix,size_t prefix_len,std::function<void(unsigned char *, size_t, T*)> on_elm,
                     std::function<bool(unsigned char)> early_termination=[](unsigned char){return false;},
-                        std::function<void()> on_backtrace=[](){return;}) const;
+                        std::function<void(unsigned char)> on_backtrace=[](unsigned char){return;}) const;
 
     size_t size() const;
 
@@ -42,7 +48,7 @@ private:
     void destroy_impl(ArtNode *node);
 
     void iterate_impl(ArtNode *node,int depth,std::function<void(unsigned char *, size_t, T*)> on_elm,
-        std::function<bool(const unsigned char)> early_termination,std::function<void()> on_backtrace) const;
+        std::function<bool(const unsigned char)> early_termination,std::function<void(unsigned char)> on_backtrace) const;
 
 private:
     ArtNode *_root;
@@ -63,6 +69,12 @@ T *ARTree<T>::insert(const char *key, size_t key_len,T *val)
         _size++;
 
     return existed_val;
+}
+
+template<class T>
+T *ARTree<T>::insert(const string &key, T *val)
+{
+    return this->insert(key.data(),key.length(),val);
 }
 
 /// Optimistic Search
@@ -94,6 +106,12 @@ T *ARTree<T>::find(const char *key,size_t key_len) const
 }
 
 template<class T>
+T *ARTree<T>::find(const string &key) const
+{
+    return find(key.data(),key.length());
+}
+
+template<class T>
 void ARTree<T>::erase(const char *key, size_t key_len)
 {
     bool ok=this->erase_impl(_root,_root,reinterpret_cast<const unsigned char*>(key),key_len,0);
@@ -102,19 +120,28 @@ void ARTree<T>::erase(const char *key, size_t key_len)
 
 template<class T>
 void ARTree<T>::iterate(const char *prefix, size_t prefix_len, std::function<void(unsigned char *, size_t, T*)> on_elm,
-                        std::function<bool(unsigned char)> early_termination,std::function<void()> on_backtrace) const
+                        std::function<bool(unsigned char)> early_termination,std::function<void(unsigned char)> on_backtrace) const
 {
-    ArtNode *node=_root;
     size_t depth=0;
-    while(depth<prefix_len){
+    ArtNode *node=_root;
+
+    while(node&&depth<prefix_len){
         if(is_leaf(node)){
             break;
         }
         InnerNode *inner_node=as_inner_node(node);
+        for(int i=depth;i<inner_node->prefix_len;i++){
+            if(early_termination(inner_node->prefix[i])){
+                return;
+            }
+        }
         depth+=inner_node->prefix_len;
         if(depth<prefix_len){
             ArtNode::Ptr *child=this->find_child(inner_node,prefix[depth]);
             node=child?*child:nullptr;
+            if(early_termination(prefix[depth])){
+                return;
+            }
             depth++;
         }
     }
@@ -123,7 +150,7 @@ void ARTree<T>::iterate(const char *prefix, size_t prefix_len, std::function<voi
 
 template<class T>
 void ARTree<T>::iterate_impl(ArtNode *node,int depth,std::function<void(unsigned char *, size_t, T*)> on_elm,
-                             std::function<bool(unsigned char)> early_termination,std::function<void()> on_backtrace) const
+                             std::function<bool(unsigned char)> early_termination,std::function<void(unsigned char)> on_backtrace) const
 {
     if(!node)
         return;
@@ -138,8 +165,8 @@ void ARTree<T>::iterate_impl(ArtNode *node,int depth,std::function<void(unsigned
         }
         on_elm(leaf->get_key(),leaf->key_len,leaf->data);
 backtrace:
-        for(;i>depth;i--){
-            on_backtrace();
+        for(i=i-1;i>=depth;i--){
+            on_backtrace(leaf->get_key()[i]);
         }
         return;
     }
@@ -147,7 +174,7 @@ backtrace:
     for(int i=0;i<inner_node->prefix_len;i++){
         if(early_termination(inner_node->prefix[i])){
             for(int j=i-1;j>=0;j--){
-                on_backtrace();
+                on_backtrace(inner_node->prefix[j]);
             }
             return;
         }
@@ -158,7 +185,7 @@ backtrace:
             for(int i=0;i<node4->num_children;i++){
                 if(!early_termination(node4->keys[i])){
                     iterate_impl(node4->children[i],depth+1,on_elm,early_termination,on_backtrace);
-                    on_backtrace();
+                    on_backtrace(node4->keys[i]);
                 }
             }
         }
@@ -168,7 +195,7 @@ backtrace:
             for(int i=0;i<node16->num_children;i++){
                 if(!early_termination(node16->keys[i])){
                     iterate_impl(node16->children[i],depth+1,on_elm,early_termination,on_backtrace);
-                    on_backtrace();
+                    on_backtrace(node16->keys[i]);
                 }
             }
         }
@@ -179,7 +206,7 @@ backtrace:
                 size_t index=node48->child_indexs[i];
                 if(index!=0&&!early_termination(i)){
                     iterate_impl(node48->children[index-1],depth+1,on_elm,early_termination,on_backtrace);
-                    on_backtrace();
+                    on_backtrace(i);
                 }
             }
         }
@@ -189,14 +216,14 @@ backtrace:
             for(int i=0;i<256;i++){
                 if(node256->children[i]&&!early_termination(i)){
                     iterate_impl(node256->children[i],depth+1,on_elm,early_termination,on_backtrace);
-                    on_backtrace();
+                    on_backtrace(i);
                 }
             }
         }
         break;
     }
     for(int i=inner_node->prefix_len-1;i>=0;i--){
-        on_backtrace();
+        on_backtrace(inner_node->prefix[i]);
     }
 }
 

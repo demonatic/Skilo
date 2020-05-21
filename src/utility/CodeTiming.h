@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <cstdio>
+#include <string>
 
 namespace Skilo {
 
@@ -16,5 +17,19 @@ namespace Skilo {
        printf("function costs %f s\n", double(duration.count()) *  std::chrono::microseconds::period::num /  std::chrono::microseconds::period::den);\
     } while (0)
 }
+
+namespace Util{
+    /// @brief remove all 'c' in str
+    inline void trim(std::string &str,const char c){
+        int j=0;
+        for(int i=0;i<str.size();i++){
+            if(str[i]!=c){
+                str[j++]=str[i];
+            }
+        }
+        str.erase(j);
+    }
+}
+
 
 #endif // FUNCTIONTIMER_H

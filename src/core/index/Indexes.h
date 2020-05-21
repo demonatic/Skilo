@@ -39,25 +39,35 @@ class InvertIndex
 {
 public:
     InvertIndex();
-    void add_record(const IndexRecord &record);
+
+    void index_str_record(const IndexRecord &record);
 
     size_t dict_size() const;
 
+    /// @brief return how many doc contain this term
     uint32_t term_docs_num(const std::string &term) const;
 
     void search_field(const std::unordered_map<string, std::vector<uint32_t>> &query_terms,
         const std::string &field_path,Search::HitCollector &collector,uint32_t total_doc_count,
             const std::unordered_map<string, SortIndex> *sort_indexes) const;
 
-    void iterate(const std::string &prefix,std::function<void(unsigned char *,size_t,PostingList*)> on_term,
-                 std::function<bool(unsigned char)> early_termination,std::function<void()> on_backtrace) const;
+    void iterate_terms(const std::string &prefix,std::function<void(unsigned char *,size_t,PostingList*)> on_term,
+                 std::function<bool(unsigned char)> early_termination,std::function<void(unsigned char)> on_backtrace) const;
+
+    void iterate_pinyin(const std::string &prefix,std::function<void(unsigned char *,size_t,std::unordered_set<std::string>*)> on_pinyin,
+                        std::function<bool(unsigned char)> early_termination,std::function<void(unsigned char)> on_backtrace) const;
 
 private:
     PostingList *get_postinglist(const std::string &term) const;
 
 private:
-    mutable RWLock _index_lock;
-    Art::ARTree<PostingList> _index;
+    //indexed term->posting_list
+    mutable RWLock _term_posting_lock;
+    Art::ARTree<PostingList> _term_postings;
+
+    //pinyin->terms, to support chinese fuzzy search
+    mutable RWLock _pinyin_terms_lock;
+    Art::ARTree<std::unordered_set<std::string>> _pinyin_terms;
 };
 
 class CollectionIndexes:public Schema::FieldVisitor{
@@ -79,7 +89,7 @@ public:
     void search_fields(const std::unordered_map<std::string, std::vector<uint32_t>> &query_terms,
                        const std::vector<std::string> &field_paths,Search::HitCollector &collector) const;
 
-    void add_sort_field(const std::string &field_path,const uint32_t seq_id,const number_t number);
+    void index_numeric(const std::string &field_path,const uint32_t seq_id,const number_t number);
 
 protected:
     virtual void visit_field_string(const Schema::FieldString *field_string) override;

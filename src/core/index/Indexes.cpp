@@ -1,5 +1,7 @@
 #include "Indexes.h"
 #include <unordered_map>
+#include "rocapinyin.h"
+#include "utility/CodeTiming.h"
 
 namespace Skilo {
 namespace Index{
@@ -11,29 +13,43 @@ InvertIndex::InvertIndex()
 
 }
 
-void InvertIndex::add_record(const IndexRecord &record)
+void InvertIndex::index_str_record(const IndexRecord &record)
 {
-    WriterLockGuard lock_guard(this->_index_lock);
     for(const auto &[term,offsets]:record.term_offsets){
-        PostingList *posting_list=this->get_postinglist(term);
-        if(!posting_list){
-            posting_list=new PostingList();
-            _index.insert(term.data(),term.length(),posting_list);
+        {
+            WriterLockGuard lock_guard(this->_term_posting_lock);
+            PostingList *posting_list=this->get_postinglist(term);
+            if(!posting_list){
+                posting_list=new PostingList();
+                _term_postings.insert(term,posting_list);
+            }
+            posting_list->add_doc(record.seq_id,record.doc_len,offsets);
         }
-        posting_list->add_doc(record.seq_id,record.doc_len,offsets);
+        if(term[0]<0){ //if term is not ascii
+            WriterLockGuard lock_guard(this->_pinyin_terms_lock);
+            std::string pinyin=rocapinyin::getpinyin_str(term);
+            Util::trim(pinyin,' ');
+            std::unordered_set<std::string> *term_set=this->_pinyin_terms.find(pinyin);
+            if(!term_set){
+                term_set=new std::unordered_set<std::string>();
+                _pinyin_terms.insert(pinyin,term_set);
+                std::cout<<"art insert pinyin:"<<pinyin<<" size="<<_pinyin_terms.size()<<std::endl;
+            }
+            term_set->emplace(term);
+        }
     }
 }
 
 uint32_t InvertIndex::term_docs_num(const string &term) const
 {
-    ReaderLockGuard lock_guard(this->_index_lock);
+    ReaderLockGuard lock_guard(this->_term_posting_lock);
     PostingList *posting_list=this->get_postinglist(term);
     return posting_list?posting_list->num_docs():0;
 }
 
 PostingList *InvertIndex::get_postinglist(const string &term) const
 {
-    return _index.find(term.data(),term.length());
+    return _term_postings.find(term);
 }
 
 void InvertIndex::search_field(const std::unordered_map<string, std::vector<uint32_t>> &query_terms, const string &field_path,
@@ -50,7 +66,7 @@ void InvertIndex::search_field(const std::unordered_map<string, std::vector<uint
     std::vector<const PostingList*> candidate_postings; //for term AND logic, none duplicate
     std::vector<std::pair<uint32_t,const PostingList*>> query_offset_entry; //<query term offset, term postings>, for phrase match
 
-    ReaderLockGuard lock_guard(this->_index_lock);
+    ReaderLockGuard lock_guard(this->_term_posting_lock);
     for(const auto &[query_term,offsets]:query_terms){
         auto *entry=this->get_postinglist(query_term);
         if(!entry) return;
@@ -153,17 +169,23 @@ END_OF_MATCH:
     }
 }
 
-void InvertIndex::iterate(const string &prefix, std::function<void (unsigned char *, size_t, PostingList *)> on_term,
-    std::function<bool(unsigned char)> early_termination,std::function<void()> on_backtrace) const
+void InvertIndex::iterate_terms(const string &prefix, std::function<void (unsigned char *, size_t, PostingList *)> on_term,
+    std::function<bool(unsigned char)> early_termination,std::function<void(unsigned char)> on_backtrace) const
 {
-    ReaderLockGuard lock_guard(this->_index_lock);
-    _index.iterate(prefix.data(),prefix.length(),on_term,early_termination,on_backtrace);
+    ReaderLockGuard lock_guard(this->_term_posting_lock);
+    _term_postings.iterate(prefix.data(),prefix.length(),on_term,early_termination,on_backtrace);
+}
+
+void InvertIndex::iterate_pinyin(const string &prefix, std::function<void (unsigned char *, size_t, std::unordered_set<string> *)> on_pinyin, std::function<bool (unsigned char)> early_termination, std::function<void(unsigned char)> on_backtrace) const
+{
+    ReaderLockGuard lock_guard(this->_pinyin_terms_lock);
+    _pinyin_terms.iterate(prefix.data(),prefix.length(),on_pinyin,early_termination,on_backtrace);
 }
 
 size_t InvertIndex::dict_size() const
 {
-    ReaderLockGuard lock_guard(this->_index_lock);
-    return _index.size();
+    ReaderLockGuard lock_guard(this->_term_posting_lock);
+    return _term_postings.size();
 }
 
 CollectionIndexes::CollectionIndexes(const uint32_t collection_id, const Schema::CollectionSchema &schema,
@@ -248,7 +270,7 @@ void CollectionIndexes::search_fields(const std::unordered_map<string, std::vect
     }
 }
 
-void CollectionIndexes::add_sort_field(const string &field_path, const uint32_t seq_id, const number_t number)
+void CollectionIndexes::index_numeric(const string &field_path, const uint32_t seq_id, const number_t number)
 {
     SortIndex &sort_index=_sort_indexes[field_path];
     if(sort_index.cache){
