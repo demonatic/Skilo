@@ -24,7 +24,7 @@ void IndexWriter::visit_field_string(const Schema::FieldString *field_string, co
 
     std::unordered_map<std::string, std::vector<uint32_t>> word_offsets;
     auto content=node.GetString();
-    word_offsets=_tokenizer->tokenize(content);
+    word_offsets=_tokenizer->tokenize(content).term_to_offsets();
 
     uint32_t doc_len=strlen(content);
     IndexRecord record{_seq_id,doc_len,std::move(word_offsets)};
@@ -33,7 +33,7 @@ void IndexWriter::visit_field_string(const Schema::FieldString *field_string, co
     if(field_string->attribute_val_true("suggest")){
         DefaultTokenizer segment_splitter;
         auto segments=segment_splitter.tokenize(content);
-        for(auto &&[seg,offsets]:segments){
+        for(auto &&[seg,offsets]:segments.term_to_offsets()){
             _indexes.get_suggestor()->update(seg);
         }
     }

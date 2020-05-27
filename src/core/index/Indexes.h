@@ -6,12 +6,14 @@
 #include "PostingList.h"
 #include "core/Document.h"
 #include "core/schema/Schema.h"
-#include "core/search/HitCollector.h"
+#include "core/index/Tokenizer.h"
+#include "core/search/AutoSuggestion.h"
+#include "core/search/MatchContext.hpp"
 #include "storage/StorageService.h"
 #include "utility/RWLock.hpp"
 #include "utility/Number.h"
 #include "parallel_hashmap/phmap.h"
-#include "../search/AutoSuggestion.h"
+
 
 namespace Skilo {
 
@@ -34,7 +36,6 @@ struct SortIndex{
     void add_number(uint32_t seq_id,const number_t number);
 };
 
-
 class InvertIndex
 {
 public:
@@ -47,9 +48,7 @@ public:
     /// @brief return how many doc contain this term
     uint32_t term_docs_num(const std::string &term) const;
 
-    void search_field(const std::unordered_map<string, std::vector<uint32_t>> &query_terms,
-        const std::string &field_path,Search::HitCollector &collector,uint32_t total_doc_count,
-            const std::unordered_map<string, SortIndex> *sort_indexes) const;
+    void search_field(const std::string &field_path,const TokenSet &token_set,uint32_t total_doc_count,const std::unordered_map<std::string, SortIndex> *sort_indexes,std::function<void(Search::MatchContext&)> on_match) const;
 
     void iterate_terms(const std::string &prefix,std::function<void(unsigned char *,size_t,PostingList*)> on_term,
                  std::function<bool(unsigned char)> early_termination,std::function<void(unsigned char)> on_backtrace) const;
@@ -86,8 +85,7 @@ public:
     void set_doc_num(const uint32_t doc_num);
     uint32_t get_doc_num() const;
 
-    void search_fields(const std::unordered_map<std::string, std::vector<uint32_t>> &query_terms,
-                       const std::vector<std::string> &field_paths,Search::HitCollector &collector) const;
+    void search_fields(const std::string &field_path,const TokenSet &token_set,std::function<void(Search::MatchContext&)> on_match) const;
 
     void index_numeric(const std::string &field_path,const uint32_t seq_id,const number_t number);
 

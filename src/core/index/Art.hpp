@@ -72,7 +72,7 @@ T *ARTree<T>::insert(const char *key, size_t key_len,T *val)
 }
 
 template<class T>
-T *ARTree<T>::insert(const string &key, T *val)
+T *ARTree<T>::insert(const std::string &key, T *val)
 {
     return this->insert(key.data(),key.length(),val);
 }
@@ -106,7 +106,7 @@ T *ARTree<T>::find(const char *key,size_t key_len) const
 }
 
 template<class T>
-T *ARTree<T>::find(const string &key) const
+T *ARTree<T>::find(const std::string &key) const
 {
     return find(key.data(),key.length());
 }

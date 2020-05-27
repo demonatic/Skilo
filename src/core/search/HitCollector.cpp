@@ -1,5 +1,5 @@
 #include "HitCollector.h"
-#include <iostream>
+
 namespace Skilo  {
 namespace Search {
 
@@ -24,7 +24,7 @@ std::vector<pair<uint32_t,double>> HitCollector::get_top_k()
     return top_k_docs;
 }
 
-void HitCollector::collect(const HitContext &context)
+void HitCollector::collect(const MatchContext &context)
 {
     uint32_t doc_id=context.doc_seq_id;
 
@@ -87,8 +87,8 @@ void HitCollector::heap_sift_down(size_t index)
 
 void HitCollector::swap_entry(Hit **hit1,Hit **hit2)
 {
-    swap((*hit1)->heap_index,(*hit2)->heap_index);
-    swap(*hit1,*hit2);
+    std::swap((*hit1)->heap_index,(*hit2)->heap_index);
+    std::swap(*hit1,*hit2);
 }
 
 void HitCollector::push_new_hit(HitCollector::Hit &hit)

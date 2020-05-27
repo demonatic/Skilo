@@ -2,11 +2,48 @@
 #include <fstream>
 #include <regex>
 #include <g3log/g3log.hpp>
+#include "core/search/IndexSearcher.h"
 
 namespace Skilo {
 namespace Index {
 
-TokenizeStrategy::TokenizeStrategy(const std::string &dict_dir)
+bool TokenSet::empty() const
+{
+    return _term_to_offsets.empty();
+}
+
+const std::unordered_map<std::string, std::vector<uint32_t> > &TokenSet::term_to_offsets() const
+{
+     return _term_to_offsets;
+}
+
+const std::vector<string> &TokenSet::get_fuzzies(const std::string &term,const size_t distance,std::function<std::vector<std::vector<string>>(const size_t max_distance)> fuzzy_term_loader) const
+{
+    assert(distance<4);;
+    if(!_fuzzy.count(term)){
+        _fuzzy.emplace(term,fuzzy_item{std::bitset<4>("0000"),{}});
+    }
+    fuzzy_item &item=_fuzzy[term];
+    if(item.distance_calculated.test(distance)){
+        return item.fuzzy_terms[distance];
+    }
+
+    item.fuzzy_terms=fuzzy_term_loader(distance);
+
+    for(size_t i=0;i<=distance;i++){
+        item.distance_calculated.set(i);
+    }
+    return item.fuzzy_terms[distance];
+}
+
+void TokenSet::drop_token(const std::string &term)
+{
+    _term_to_offsets.erase(term);
+    _fuzzy.erase(term);
+}
+
+
+TokenizeStrategy::TokenizeStrategy([[maybe_unused]]const std::string &dict_dir)
 {
 
 }
@@ -17,17 +54,17 @@ JiebaTokenizer::JiebaTokenizer(const std::string &dict_dir):TokenizeStrategy(dic
     this->load_stop_words(dict_dir+STOP_WORD_PATH);
 }
 
-std::unordered_map<std::string, std::vector<uint32_t>> JiebaTokenizer::tokenize(const std::string &text) const
+TokenSet JiebaTokenizer::tokenize(const std::string &text) const
 {
     std::vector<cppjieba::Word> words;
     _jieba.CutForSearch(text,words,true);
-    std::unordered_map<std::string, std::vector<uint32_t>> res;
+    std::unordered_map<std::string, std::vector<uint32_t>> word_to_offsets;
     for(cppjieba::Word &w:words){
         if(!_stop_words.count(w.word)){
-            res[std::move(w.word)].push_back(w.unicode_offset);
+            word_to_offsets[std::move(w.word)].push_back(w.unicode_offset);
         }
     }
-    return res;
+    return TokenSet(word_to_offsets);
 }
 
 size_t JiebaTokenizer::load_stop_words(const std::string &file_path)
@@ -49,18 +86,18 @@ DefaultTokenizer::DefaultTokenizer():TokenizeStrategy()
 
 }
 
-std::unordered_map<std::string, std::vector<uint32_t>> DefaultTokenizer::tokenize(const std::string &text) const
+TokenSet DefaultTokenizer::tokenize(const std::string &text) const
 {
     std::regex reg("[^\\ \\.|,:;&]+");
     std::sregex_iterator first{text.begin(),text.end(),reg},last;
 
-    std::unordered_map<std::string, std::vector<uint32_t>> res;
+    std::unordered_map<std::string, std::vector<uint32_t>> word_to_offsets;
     while(first!=last){
         uint32_t offset=static_cast<uint32_t>(first->position());
-        res[first->str()].push_back(offset);
+        word_to_offsets[first->str()].push_back(offset);
         first++;
     }
-    return res;
+    return TokenSet(word_to_offsets);
 }
 
 } //namespace Index

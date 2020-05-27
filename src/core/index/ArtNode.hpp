@@ -5,8 +5,6 @@
 #include <cstring>
 #include <emmintrin.h>
 #include <assert.h>
-#include <iostream>
-using namespace std;
 
 namespace Art {
 

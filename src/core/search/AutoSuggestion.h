@@ -3,7 +3,7 @@
 
 #include "core/index/Art.hpp"
 #include "parallel_hashmap/phmap.h"
-#include <queue>
+#include "utility/Util.h"
 
 namespace Skilo {
 namespace Search{
@@ -24,7 +24,6 @@ public:
 
 private:
     std::vector<std::string_view> edge_ngram(const std::string_view query);
-    size_t get_character_len(const char c);
 
 private:
 

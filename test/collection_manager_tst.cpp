@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "core/CollectionManager.h"
-#include "utility/CodeTiming.h"
+#include "utility/Util.h"
 
 using namespace testing;
 using namespace std;
@@ -208,7 +208,6 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
                 word=line.substr(0,space);
                 frequency=std::stol(line.substr(space+1));
                 std::string doc_str="{\"id\":"+to_string(count++)+",\"word\":\""+word+"\",\"frequency\":\""+std::to_string(frequency)+"\"}";
-//                std::cout<<doc_str<<std::endl;
                 Document doc(doc_str);
                 collection_manager.add_document(collection_name_en,doc);
             }
@@ -216,31 +215,31 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
          }
      }
 
-     std::string search_str="{\
-                            \"query\": \"镇得住场面\",\
-                            \"query by\": [\"recipe_name\",\"context\"]\
-                            }";
-    Query query("recipe",search_str);
+//    std::string search_str="{\
+//                            \"query\": \"镇得住场面\",\
+//                            \"query by\": [\"recipe_name\",\"context\"]\
+//                            }";
+//    Query query("recipe",search_str);
 //    cout<<collection_manager.search(query)<<endl;
 
-    std::string search_str2="{\
-                           \"query\": \"柔丝\",\
-                           \"query by\": [\"recipe_name\",\"ingredients.$items.title\"]\
-                           }";
-    Query query2("recipe2",search_str2);
-    cout<<collection_manager.search(query2)<<endl;
-    cout<<collection_manager.auto_suggest(collection_name,"镇得住")<<endl;
-    cout<<collection_manager.auto_suggest(collection_name2,"酸菜")<<endl;
+//    std::string search_str2="{\
+//                           \"query\": \"柔丝\",\
+//                           \"query by\": [\"recipe_name\",\"ingredients.$items.title\"]\
+//                           }";
+//    Query query2("recipe2",search_str2);
+//    cout<<collection_manager.search(query2)<<endl;
+//    cout<<collection_manager.auto_suggest(collection_name,"镇得住")<<endl;
+//    cout<<collection_manager.auto_suggest(collection_name2,"酸菜")<<endl;
 
     std::string search_str_en="{\
-                           \"query\": \"glass\",\
+                           \"query\": \"glass world\",\
                            \"query by\": [\"word\"]\
                            }";
     Query query_en("english_dict",search_str_en);
     cout<<"-------start fuzzy--------"<<endl;
 
     timing_code(
-        for(int i=0;i<0;i++){
+        for(int i=0;i<1;i++){
             cout<<collection_manager.search(query_en)<<endl;
         }
     );

@@ -44,7 +44,7 @@ void AutoSuggestor::update(const std::string &query)
             if(pre_index>=0&&sug[pre_index].query==query){ //query entry already in, increase its frequency by 1
                 sug[pre_index].freq++;
                 while(pre_index+1<sug.size()&&sug[pre_index].freq>sug[pre_index+1].freq){ //move it to right position
-                    swap(sug[pre_index],sug[pre_index+1]);
+                    std::swap(sug[pre_index],sug[pre_index+1]);
                     pre_index++;
                 }
             }
@@ -61,7 +61,7 @@ void AutoSuggestor::update(const std::string &query)
                 sug[index].freq=query_freq;
                 sug[index].query=query;
                 while(index+1<sug.size()&&sug[index+1].freq<=query_freq){
-                    swap(sug[index],sug[index+1]);
+                    std::swap(sug[index],sug[index+1]);
                     index++;
                 }
             }
@@ -74,7 +74,7 @@ void AutoSuggestor::update(const std::string &query)
     }
 }
 
-std::vector<std::string_view> AutoSuggestor::auto_suggest(const string &query_prefix)
+std::vector<std::string_view> AutoSuggestor::auto_suggest(const std::string &query_prefix)
 {
     std::vector<std::string_view> suggestions;
     auto it=_suggest_map.find(query_prefix);
@@ -89,29 +89,6 @@ std::vector<std::string_view> AutoSuggestor::auto_suggest(const string &query_pr
     return suggestions;
 }
 
-size_t AutoSuggestor::get_character_len(const char c)
-{
-    size_t len=0;
-    if((c&0x80)==0){ //0xxx xxxx -> ascii
-        len=1;
-    }
-    else if((c&0xf8)==0xf8){ // 111110xx
-        len=5;
-    }
-    else if((c&0xf0)==0xf0){ // 11110xxx
-        len=4;
-    }
-    else if((c&0xe0)==0xe0){ // 1110xxxx
-        len=3;
-    }
-    else if((c&0xc0)==0xc0){ // 11xxxxxx
-        len=2;
-    }
-    else{
-        throw InvalidFormatException("string should be uft-8 or ascii");
-    }
-    return len;
-}
 
 std::vector<std::string_view> AutoSuggestor::edge_ngram(const std::string_view query)
 {
@@ -119,11 +96,11 @@ std::vector<std::string_view> AutoSuggestor::edge_ngram(const std::string_view q
     size_t index=0;
     size_t i=0;
     for(;i<_min_gram&&index<query.length();i++){
-        index+=get_character_len(query[index]);
+        index+=Util::get_utf8_char_len(query[index]);
     }
     while(index<=query.length()&&i<_max_gram){
         ngrams.push_back(query.substr(0,index));
-        index+=get_character_len(query[index]);
+        index+=Util::get_utf8_char_len(query[index]);
         i++;
     }
     return ngrams;

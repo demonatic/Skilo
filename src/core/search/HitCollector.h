@@ -5,25 +5,14 @@
 #include <memory>
 #include "Scorer.h"
 #include "DocRanker.h"
-#include <unordered_map>
+#include "MatchContext.hpp"
 
 namespace Skilo {
 
-namespace Index{
-struct SortIndex;
-}
-
 namespace Search {
 
-struct HitContext{
-    uint32_t doc_seq_id;
-    uint32_t collection_doc_count;
-    const std::string *field_path;
-    const std::vector<const Index::PostingList*> *term_postings;
-    uint32_t phrase_match_count;
-    const std::unordered_map<string, std::vector<uint32_t>> *query_terms;
-    const std::unordered_map<std::string,Index::SortIndex> *sort_indexes;
-};
+using std::string;
+using std::pair;
 
 /// @class HitCollecter collects search candidate from different fields and rank them based on scorer generated score
 ///        It output top-K score's doc seq id
@@ -37,7 +26,7 @@ public:
     /// the collector will be empty after the call
     std::vector<pair<uint32_t,double>> get_top_k();
 
-    void collect(const HitContext &context);
+    void collect(const MatchContext &context);
 
     bool empty() const;
     uint32_t num_docs_collected() const;

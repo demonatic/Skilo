@@ -1,9 +1,10 @@
 #include "Indexes.h"
 #include <unordered_map>
 #include "rocapinyin.h"
-#include "utility/CodeTiming.h"
+#include "utility/Util.h"
 
 namespace Skilo {
+
 namespace Index{
 
 using StorageService=Storage::StorageService;
@@ -33,7 +34,6 @@ void InvertIndex::index_str_record(const IndexRecord &record)
             if(!term_set){
                 term_set=new std::unordered_set<std::string>();
                 _pinyin_terms.insert(pinyin,term_set);
-                std::cout<<"art insert pinyin:"<<pinyin<<" size="<<_pinyin_terms.size()<<std::endl;
             }
             term_set->emplace(term);
         }
@@ -52,9 +52,7 @@ PostingList *InvertIndex::get_postinglist(const string &term) const
     return _term_postings.find(term);
 }
 
-void InvertIndex::search_field(const std::unordered_map<string, std::vector<uint32_t>> &query_terms, const string &field_path,
-                               Search::HitCollector &collector, uint32_t total_doc_count,
-                               const std::unordered_map<string, SortIndex> *sort_indexes) const
+void InvertIndex::search_field(const std::string &field_path,const TokenSet &token_set,uint32_t total_doc_count,const std::unordered_map<std::string, SortIndex> *sort_indexes,std::function<void(Search::MatchContext&)> on_match) const
 {
     /// \brief find the conjuction doc_ids of the query terms
     /// @example:
@@ -67,7 +65,7 @@ void InvertIndex::search_field(const std::unordered_map<string, std::vector<uint
     std::vector<std::pair<uint32_t,const PostingList*>> query_offset_entry; //<query term offset, term postings>, for phrase match
 
     ReaderLockGuard lock_guard(this->_term_posting_lock);
-    for(const auto &[query_term,offsets]:query_terms){
+    for(const auto &[query_term,offsets]:token_set.term_to_offsets()){
         auto *entry=this->get_postinglist(query_term);
         if(!entry) return;
         candidate_postings.push_back(entry);
@@ -160,8 +158,8 @@ void InvertIndex::search_field(const std::unordered_map<string, std::vector<uint
             }
             // collect this hit
             if(phrase_match_count>0){
-                Search::HitContext context{lead_doc,total_doc_count,&field_path,&candidate_postings,phrase_match_count,&query_terms,sort_indexes};
-                collector.collect(context);
+                Search::MatchContext context{lead_doc,total_doc_count,&field_path,&candidate_postings,phrase_match_count,&token_set.term_to_offsets(),sort_indexes};
+                on_match(context);
             }
         }
 END_OF_MATCH:
@@ -249,25 +247,13 @@ bool CollectionIndexes::contains(const string &field_path) const
     return _indexes.find(field_path)!=_indexes.end();
 }
 
-void CollectionIndexes::search_fields(const std::unordered_map<string, std::vector<uint32_t>> &query_terms,
-                                        const std::vector<string> &field_paths, Search::HitCollector &collector) const
+void CollectionIndexes::search_fields(const std::string &field_path,const TokenSet &token_set,std::function<void(Search::MatchContext&)> on_match) const
 {
-    if(query_terms.empty())
+    const InvertIndex *index=this->get_invert_index(field_path);
+    if(!index)
         return;
 
-    for(const std::string &path:field_paths){
-        if(!this->contains(path)){
-            std::string exist_fields;
-            for(const auto &[exist_field_name,index]:_indexes){
-                exist_fields.append("\""+exist_field_name+"\" ");
-            }
-            throw InvalidFormatException("field path \""+path+"\" is not found, existing fields: "+exist_fields);
-        }
-        const InvertIndex *index=this->get_invert_index(path);
-        if(index){
-            index->search_field(query_terms,path,collector,_doc_count,&this->_sort_indexes);
-        }
-    }
+    index->search_field(field_path,token_set,_doc_count,&this->_sort_indexes,on_match);
 }
 
 void CollectionIndexes::index_numeric(const string &field_path, const uint32_t seq_id, const number_t number)

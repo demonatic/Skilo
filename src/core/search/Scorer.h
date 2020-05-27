@@ -4,33 +4,33 @@
 #include <vector>
 #include <string>
 #include "utility/Number.h"
-#include "core/index/PostingList.h"
+#include "core/search/MatchContext.hpp"
 
 namespace Skilo {
+
 namespace Search {
 
-struct HitContext;
 
 class Scorer
 {
 public:
     Scorer()=default;
     virtual ~Scorer();
-    virtual number_t get_score(const HitContext &context) const=0;
+    virtual number_t get_score(const MatchContext &context) const=0;
 };
 
 class TFIDF_Scorer:public Scorer{
 public:
     TFIDF_Scorer()=default;
-    virtual number_t get_score(const HitContext &context) const;
+    virtual number_t get_score(const MatchContext &context) const;
 
-    double calcu_tf_idf(const Index::PostingList* posting,const HitContext &context) const;
+    double calcu_tf_idf(const Index::PostingList* posting,const MatchContext &context) const;
 };
 
 class BM25_Scorer:public Scorer{
 public:
-    virtual number_t get_score(const HitContext &context) const;
-    double calcu_term_score(const Index::PostingList* posting,const HitContext &context) const;
+    virtual number_t get_score(const MatchContext &context) const;
+    double calcu_term_score(const Index::PostingList* posting,const MatchContext &context) const;
 
 private:
     double k1=1.2;
@@ -47,7 +47,7 @@ public:
     {
 
     }
-    virtual number_t get_score(const HitContext &context) const;
+    virtual number_t get_score(const MatchContext &context) const;
 
 private:
     IsAscendOrder _is_ascend;

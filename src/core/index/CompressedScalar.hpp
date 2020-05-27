@@ -5,8 +5,6 @@
 #include <memory>
 #include <for.h>
 
-using namespace std;
-
 namespace Skilo{
 namespace Index{
 

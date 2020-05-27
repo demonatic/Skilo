@@ -3,12 +3,42 @@
 
 #include <string>
 #include <vector>
-#include <unordered_set>
 #include <unordered_map>
+#include <bitset>
 #include "cppjieba/Jieba.hpp"
+
 
 namespace Skilo {
 namespace Index {
+
+using std::string;
+
+
+struct TokenSet{
+    TokenSet(std::unordered_map<string,std::vector<uint32_t>> &word_to_offests):_term_to_offsets(std::move(word_to_offests))
+    {
+
+    }
+
+    bool empty() const;
+
+    const std::unordered_map<string, std::vector<uint32_t>> &term_to_offsets() const;
+
+    const std::vector<string>& get_fuzzies(const std::string &term,const size_t distance,std::function<std::vector<std::vector<string>>(size_t max_distance)> fuzzy_term_loader) const;
+
+    void drop_token(const std::string &term);
+
+private:
+    std::unordered_map<string,std::vector<uint32_t>> _term_to_offsets;
+
+    struct fuzzy_item{
+        //i bit is set to 1 means the fuzzy term with edit distance i has been calculated
+        std::bitset<4> distance_calculated;
+        //index: edit distance, element: fuzzy matches
+        std::vector<std::vector<string>> fuzzy_terms;
+    };
+    mutable std::unordered_map<std::string,fuzzy_item> _fuzzy; //defer fetch until being used
+};
 
 /// @class tokenize the text and apply linguistic processing(e.g remove stop words)
 /// @threadsafe The Tokenizer interfaces must be safe to call from different threads
@@ -19,7 +49,7 @@ public:
     virtual ~TokenizeStrategy()=default;
 
     /// @return word->offsets(offsets could be empty)
-    virtual std::unordered_map<std::string, std::vector<uint32_t>> tokenize(const std::string &text) const=0;
+    virtual TokenSet tokenize(const std::string &text) const=0;
 };
 
 class DefaultTokenizer:public TokenizeStrategy
@@ -29,7 +59,7 @@ public:
     virtual ~DefaultTokenizer() override=default;
 
     /// @return word->offsets
-    virtual std::unordered_map<std::string, std::vector<uint32_t>> tokenize(const std::string &text) const override;
+    virtual TokenSet tokenize(const std::string &text) const override;
 };
 
 class JiebaTokenizer:public TokenizeStrategy{
@@ -38,7 +68,7 @@ public:
     virtual ~JiebaTokenizer() override=default ;
 
     /// @return a set of "unicode word and unicode offsets"
-    virtual std::unordered_map<std::string, std::vector<uint32_t>> tokenize(const std::string &text) const override;
+    virtual TokenSet tokenize(const std::string &text) const override;
 
     /// @brief load stop words from file
     /// @return the num of stop words loaded

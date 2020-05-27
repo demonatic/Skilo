@@ -11,7 +11,7 @@ Scorer::~Scorer()
 
 }
 
-number_t TFIDF_Scorer::get_score(const HitContext &context) const
+number_t TFIDF_Scorer::get_score(const MatchContext &context) const
 {
     double score=0;
     for(const Index::PostingList *posting:*context.term_postings){
@@ -20,14 +20,14 @@ number_t TFIDF_Scorer::get_score(const HitContext &context) const
     return number_t(score);
 }
 
-double TFIDF_Scorer::calcu_tf_idf(const Index::PostingList* posting,const HitContext &context) const
+double TFIDF_Scorer::calcu_tf_idf(const Index::PostingList* posting,const MatchContext &context) const
 {
     double tf=1+log(posting->get_doc_tf(context.doc_seq_id));
     double idf=log(context.collection_doc_count/posting->num_docs());
     return tf*idf;
 }
 
-number_t SortScorer::get_score(const HitContext &context) const
+number_t SortScorer::get_score(const MatchContext &context) const
 {
     const Index::SortIndex &sort_index=context.sort_indexes->at(_rank_field);
     number_t number=sort_index.get_numeric_val(context.doc_seq_id);
@@ -37,7 +37,7 @@ number_t SortScorer::get_score(const HitContext &context) const
     return number;
 }
 
-number_t BM25_Scorer::get_score(const HitContext &context) const
+number_t BM25_Scorer::get_score(const MatchContext &context) const
 {
     double bm25_score=0;
     for(const Index::PostingList *posting:*context.term_postings){
@@ -46,7 +46,7 @@ number_t BM25_Scorer::get_score(const HitContext &context) const
     return number_t(bm25_score);
 }
 
-double BM25_Scorer::calcu_term_score(const Index::PostingList *posting, const HitContext &context) const
+double BM25_Scorer::calcu_term_score(const Index::PostingList *posting, const MatchContext &context) const
 {
     uint32_t tf=posting->get_doc_tf(context.doc_seq_id);
     uint32_t doc_len=posting->get_doc_len(context.doc_seq_id);

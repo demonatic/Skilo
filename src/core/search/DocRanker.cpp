@@ -17,7 +17,7 @@ void DocRanker::push_scorer(std::unique_ptr<Scorer> scorer)
     _scorers[_scorer_num++]=std::move(scorer);
 }
 
-std::vector<number_t> DocRanker::rank(const HitContext &ctx) const
+std::vector<number_t> DocRanker::rank(const MatchContext &ctx) const
 {
     std::vector<number_t> rank_scores;
     for(size_t i=0;i<_scorer_num;i++){

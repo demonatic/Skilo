@@ -2,6 +2,7 @@
 #define DOCRANKER_H
 
 #include <list>
+#include <memory>
 #include "Scorer.h"
 
 namespace Skilo {
@@ -14,7 +15,7 @@ public:
 
     void push_scorer(std::unique_ptr<Scorer> scorer);
 
-    std::vector<number_t> rank(const HitContext &ctx) const;
+    std::vector<number_t> rank(const MatchContext &ctx) const;
 
     size_t rank_criteria_num() const;
 

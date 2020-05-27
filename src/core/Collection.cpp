@@ -60,14 +60,14 @@ void Collection::validate_document(const Document &document)
 SearchResult Collection::search(const Query &query_info) const
 {
     Search::IndexSearcher searcher(query_info,_indexes,_tokenizer.get());
-    std::vector<pair<uint32_t,double>> res_docs=searcher.do_search();
+    std::vector<std::pair<uint32_t,double>> res_docs=searcher.search();
 
     uint32_t hit_count=static_cast<uint32_t>(res_docs.size());
 
     //load hit documents
     SearchResult result(hit_count);
     for(auto [seq_id,score]:res_docs){
-        LOG(DEBUG)<<"@collection search hit: seq_id="<<seq_id<<" score="<<score<<endl;
+        LOG(DEBUG)<<"@collection search hit: seq_id="<<seq_id<<" score="<<score;
         Document doc=_storage_service->get_document(_collection_id,seq_id);
         result.add_hit(doc,score);
     }
@@ -80,7 +80,7 @@ uint32_t Collection::document_num() const
     return _next_seq_id;
 }
 
-std::vector<string_view> Collection::auto_suggest(const string &query_prefix) const
+std::vector<std::string_view> Collection::auto_suggest(const std::string &query_prefix) const
 {
     Search::AutoSuggestor *suggestor=_indexes.get_suggestor();
     if(!suggestor){

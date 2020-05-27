@@ -12,6 +12,7 @@ file(GLOB SOURCES
     core/index/*.hpp
     core/index/*.cpp
     core/search/*.h
+    core/search/*.hpp
     core/search/*.cpp
     core/network/*.h
     core/network/*.cpp
