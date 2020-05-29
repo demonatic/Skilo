@@ -64,7 +64,7 @@ std::vector<std::string> IndexSearcher::get_fuzzy_term(const TokenSet &token_set
     });
 }
 
-void IndexSearcher::do_search_field(const std::string &field_name,TokenSet &token_set,HitCollector &hit_collector)
+void IndexSearcher::do_search_field(const std::string &field_name,TokenSet token_set,HitCollector &hit_collector)
 {
     std::cout<<"!!!!!token set size="<<token_set.size()<<std::endl;
     if(token_set.empty())
