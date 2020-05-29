@@ -19,7 +19,7 @@ public:
 
     std::vector<pair<uint32_t,double>> search();
 
-    std::vector<pair<uint32_t,double>> do_search_field(const std::string &field_name,TokenSet &token_set,HitCollector &hit_collector);
+    void do_search_field(const std::string &field_name,TokenSet &token_set,HitCollector &hit_collector);
 
 
     std::vector<string> get_fuzzy_term(const TokenSet &token_set,const string &term,const string &field_name,const size_t distance) const;

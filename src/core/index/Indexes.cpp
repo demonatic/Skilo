@@ -21,7 +21,7 @@ void InvertIndex::index_str_record(const IndexRecord &record)
             WriterLockGuard lock_guard(this->_term_posting_lock);
             PostingList *posting_list=this->get_postinglist(term);
             if(!posting_list){
-                posting_list=new PostingList();
+                posting_list=new PostingList(term);
                 _term_postings.insert(term,posting_list);
             }
             posting_list->add_doc(record.seq_id,record.doc_len,offsets);
@@ -52,7 +52,7 @@ PostingList *InvertIndex::get_postinglist(const string &term) const
     return _term_postings.find(term);
 }
 
-void InvertIndex::search_field(const std::string &field_path,const TokenSet &token_set,uint32_t total_doc_count,const std::unordered_map<std::string, SortIndex> *sort_indexes,std::function<void(Search::MatchContext&)> on_match) const
+void InvertIndex::search_field(const std::string &field_path,const std::unordered_map<string,std::vector<uint32_t>> &token_to_offsets,uint32_t total_doc_count,const std::unordered_map<std::string, SortIndex> *sort_indexes,std::function<void(Search::MatchContext&)> on_match) const
 {
     /// \brief find the conjuction doc_ids of the query terms
     /// @example:
@@ -65,7 +65,7 @@ void InvertIndex::search_field(const std::string &field_path,const TokenSet &tok
     std::vector<std::pair<uint32_t,const PostingList*>> query_offset_entry; //<query term offset, term postings>, for phrase match
 
     ReaderLockGuard lock_guard(this->_term_posting_lock);
-    for(const auto &[query_term,offsets]:token_set.term_to_offsets()){
+    for(const auto &[query_term,offsets]:token_to_offsets){
         auto *entry=this->get_postinglist(query_term);
         if(!entry) return;
         candidate_postings.push_back(entry);
@@ -158,7 +158,7 @@ void InvertIndex::search_field(const std::string &field_path,const TokenSet &tok
             }
             // collect this hit
             if(phrase_match_count>0){
-                Search::MatchContext context{lead_doc,total_doc_count,&field_path,&candidate_postings,phrase_match_count,&token_set.term_to_offsets(),sort_indexes};
+                Search::MatchContext context{lead_doc,total_doc_count,&field_path,&candidate_postings,phrase_match_count,&token_to_offsets,sort_indexes};
                 on_match(context);
             }
         }
@@ -247,13 +247,13 @@ bool CollectionIndexes::contains(const string &field_path) const
     return _indexes.find(field_path)!=_indexes.end();
 }
 
-void CollectionIndexes::search_fields(const std::string &field_path,const TokenSet &token_set,std::function<void(Search::MatchContext&)> on_match) const
+void CollectionIndexes::search_fields(const std::string &field_path,const std::unordered_map<string,std::vector<uint32_t>> &token_to_offsets,std::function<void(Search::MatchContext&)> on_match) const
 {
     const InvertIndex *index=this->get_invert_index(field_path);
     if(!index)
         return;
 
-    index->search_field(field_path,token_set,_doc_count,&this->_sort_indexes,on_match);
+    index->search_field(field_path,token_to_offsets,_doc_count,&this->_sort_indexes,on_match);
 }
 
 void CollectionIndexes::index_numeric(const string &field_path, const uint32_t seq_id, const number_t number)

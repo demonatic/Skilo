@@ -12,9 +12,10 @@ namespace Index{
 class PostingList
 {
 public:
-    PostingList();
+    PostingList(const std::string &term);
 
     uint32_t num_docs() const;
+
     double avg_doc_len() const;
 
     /// @note offsets must be in ascending order
@@ -23,6 +24,9 @@ public:
     uint32_t get_doc_id(const uint32_t index) const;
     uint32_t get_doc_tf(const uint32_t doc_id) const;
     uint32_t get_doc_len(const uint32_t doc_id) const;
+
+    const std::string& get_term() const;
+
     std::vector<uint32_t> get_doc_term_offsets(const uint32_t doc_id) const;
 
     bool contain_doc(const uint32_t id) const;
@@ -30,6 +34,7 @@ public:
 
 private:
     double _avg_doc_len;
+    const std::string _term;
 
     CompressedScalar<ScalarType::Sorted> _doc_ids;
     CompressedScalar<ScalarType::UnSorted> _doc_term_freqs;

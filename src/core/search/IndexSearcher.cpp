@@ -1,6 +1,7 @@
 #include "IndexSearcher.h"
 #include "utility/Util.h"
 #include "rocapinyin.h"
+#include <string_view>
 
 using namespace Skilo::Index;
 
@@ -63,15 +64,18 @@ std::vector<std::string> IndexSearcher::get_fuzzy_term(const TokenSet &token_set
     });
 }
 
-std::vector<pair<uint32_t,double>> IndexSearcher::do_search_field(const std::string &field_name,TokenSet &token_set,HitCollector &hit_collector)
+void IndexSearcher::do_search_field(const std::string &field_name,TokenSet &token_set,HitCollector &hit_collector)
 {
+    std::cout<<"!!!!!token set size="<<token_set.size()<<std::endl;
     if(token_set.empty())
-        return {};
+        return;
 
-    std::vector<string> tokens;
+    const InvertIndex *index=_indexes.get_invert_index(field_name);
+
+    std::vector<string> token_names;
     std::vector<std::vector<size_t>> token_allowing_costs;
     for(auto &&[term,offsets]:token_set.term_to_offsets()){
-        tokens.push_back(term);
+        token_names.push_back(term);
         size_t max_allow_cost=this->max_edit_distance_allowed(term);
         std::vector<size_t> costs(max_allow_cost+1);
         for(size_t i=0;i<=max_allow_cost;i++){
@@ -80,10 +84,14 @@ std::vector<pair<uint32_t,double>> IndexSearcher::do_search_field(const std::str
         token_allowing_costs.emplace_back(std::move(costs));
     }
 
+    std::unordered_map<std::string,size_t> token_count_sum;
+
+    // when generate a combination of cost(edit distance) for each query token
+    // e.g edit distance [2,0,1] from origin three query token
     auto on_cost_comb=[&](const std::vector<size_t> &costs){
-        std::vector<std::vector<std::string>> candidate_tokens;
+        std::vector<std::vector<std::string>> candidate_tokens; //each token's fuzzy terms with given cost
         for(size_t i=0;i<costs.size();i++){
-            const std::vector<std::string> &fuzzies=this->get_fuzzy_term(token_set,tokens[i],field_name,costs[i]);
+            const std::vector<std::string> &fuzzies=this->get_fuzzy_term(token_set,token_names[i],field_name,costs[i]);
             if(fuzzies.empty()){ //the i'th token doesn't have any match with edit distance costs[i]
                 return;
             }
@@ -91,21 +99,49 @@ std::vector<pair<uint32_t,double>> IndexSearcher::do_search_field(const std::str
         }
         //given each token's cost, generate every possible token
         Util::cartesian(candidate_tokens,[&,this](const std::vector<std::string> &query_term){
-            std::cout<<"-------start------"<<std::endl;
-            for(auto s:query_term){
-                std::cout<<s<<" ";
+            assert(query_term.size()==token_names.size());
+//            std::cout<<"-------start------"<<std::endl;
+//            for(auto s:query_term){
+//                std::cout<<s<<" ";
+//            }
+//            std::cout<<std::endl;
+//            std::cout<<"------end------"<<std::endl;
+
+            //token(exact or fuzzy)->offsets in query string
+            std::unordered_map<string,std::vector<uint32_t>> token_to_offsets;
+            for(size_t i=0;i<query_term.size();i++){
+                std::vector<uint32_t> offsets=token_set.get_offsets(token_names[i]);
+                token_to_offsets.emplace(query_term[i],std::move(offsets));
             }
-            std::cout<<std::endl;
-            std::cout<<"------end------"<<std::endl;
-            _indexes.search_fields(field_name,token_set,[&](Search::MatchContext &match_ctx){
+            _indexes.search_fields(field_name,token_to_offsets,[&](Search::MatchContext &match_ctx){
                 hit_collector.collect(match_ctx);
             });
         },_max_term_comb);
     };
     Util::cartesian(token_allowing_costs,on_cost_comb,_max_cost_comb);
+
     //check if num of result collected is too small, if so, drop the least occuring token and search again
-    token_set.drop_token(tokens[0]); //TODO
-    return do_search_field(field_name,token_set,hit_collector);
+    if(hit_collector.num_docs_collected()<hit_collector.get_k()/2){
+        for(size_t i=0;i<token_allowing_costs.size();i++){
+            for(int cost:token_allowing_costs[i]){
+                for(auto &fuzzy_term:get_fuzzy_term(token_set,token_names[i],field_name,cost)){
+                    token_count_sum[token_names[i]]+=index->term_docs_num(fuzzy_term);
+                        std::cout<<"origin="<<token_names[i]<<" query term="<<fuzzy_term<<std::endl;
+                }
+            }
+        }
+        std::cout<<"****"<<std::endl;
+        for(auto &&[term,sum]:token_count_sum){
+            std::cout<<term<<" sum="<<sum<<std::endl;
+        }
+
+        std::sort(token_names.begin(),token_names.end(),[&](const std::string &termA,const std::string &termB){
+            return token_count_sum[termA]<token_count_sum[termB];
+        });
+
+        token_set.drop_token(token_names[0]);
+        do_search_field(field_name,token_set,hit_collector);
+    }
 }
 
 std::vector<std::vector<std::string>> IndexSearcher::search_en_fuzz_term(const std::string &field_name, const std::string &term, size_t exact_prefix_len, size_t max_edit_distance) const

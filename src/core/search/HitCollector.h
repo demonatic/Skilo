@@ -29,7 +29,10 @@ public:
     void collect(const MatchContext &context);
 
     bool empty() const;
+
     uint32_t num_docs_collected() const;
+    uint32_t get_k() const;
+
     DocRanker& get_ranker();
 
 private:

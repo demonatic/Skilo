@@ -21,7 +21,11 @@ struct TokenSet{
     }
 
     bool empty() const;
+    bool contain_token(const std::string &token) const;
 
+    size_t size() const;
+
+    std::vector<uint32_t> get_offsets(const std::string &term) const;
     const std::unordered_map<string, std::vector<uint32_t>> &term_to_offsets() const;
 
     const std::vector<string>& get_fuzzies(const std::string &term,const size_t distance,std::function<std::vector<std::vector<string>>(size_t max_distance)> fuzzy_term_loader) const;

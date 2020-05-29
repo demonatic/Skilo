@@ -113,6 +113,11 @@ uint32_t HitCollector::num_docs_collected() const
     return static_cast<uint32_t>(_heap_index);
 }
 
+uint32_t HitCollector::get_k() const
+{
+    return _K;
+}
+
 DocRanker& HitCollector::get_ranker()
 {
     return _ranker;

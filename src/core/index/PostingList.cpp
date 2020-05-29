@@ -3,7 +3,7 @@
 namespace Skilo {
 namespace Index{
 
-PostingList::PostingList():_avg_doc_len(0)
+PostingList::PostingList(const std::string &term):_avg_doc_len(0),_term(term)
 {
 
 }
@@ -49,6 +49,11 @@ uint32_t PostingList::get_doc_len(const uint32_t doc_id) const
 {
     uint32_t index=_doc_ids.index_of(doc_id);
     return _doc_len[index];
+}
+
+const std::string &PostingList::get_term() const
+{
+    return _term;
 }
 
 std::vector<uint32_t> PostingList::get_doc_term_offsets(const uint32_t doc_id) const

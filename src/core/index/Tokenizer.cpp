@@ -12,6 +12,22 @@ bool TokenSet::empty() const
     return _term_to_offsets.empty();
 }
 
+bool TokenSet::contain_token(const std::string &token) const
+{
+    return _term_to_offsets.count(token);
+}
+
+size_t TokenSet::size() const
+{
+    return _term_to_offsets.size();
+}
+
+std::vector<uint32_t> TokenSet::get_offsets(const std::string &term) const
+{
+    auto offset_it=_term_to_offsets.find(term);
+    return offset_it!=_term_to_offsets.end()?offset_it->second:std::vector<uint32_t>{};
+}
+
 const std::unordered_map<std::string, std::vector<uint32_t> > &TokenSet::term_to_offsets() const
 {
      return _term_to_offsets;
