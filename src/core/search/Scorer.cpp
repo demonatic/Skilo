@@ -15,7 +15,7 @@ number_t TFIDF_Scorer::get_score(const MatchContext &context) const
 {
     double score=0;
     for(const Index::PostingList *posting:*context.term_postings){
-        score+=context.phrase_match_count*this->calcu_tf_idf(posting,context);
+        score+=(1+context.phrase_match_count*3)*this->calcu_tf_idf(posting,context);
     }
     return number_t(score);
 }

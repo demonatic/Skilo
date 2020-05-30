@@ -66,15 +66,18 @@ std::vector<std::string> IndexSearcher::get_fuzzy_term(const TokenSet &token_set
 
 void IndexSearcher::do_search_field(const std::string &field_name,TokenSet token_set,HitCollector &hit_collector)
 {
-    std::cout<<"!!!!!token set size="<<token_set.size()<<std::endl;
     if(token_set.empty())
         return;
 
     const InvertIndex *index=_indexes.get_invert_index(field_name);
 
+    size_t slop=0;
+    size_t query_len_total=0;
     std::vector<string> token_names;
     std::vector<std::vector<size_t>> token_allowing_costs;
+
     for(auto &&[term,offsets]:token_set.term_to_offsets()){
+        query_len_total+=term.length();
         token_names.push_back(term);
         size_t max_allow_cost=this->max_edit_distance_allowed(term);
         std::vector<size_t> costs(max_allow_cost+1);
@@ -83,6 +86,7 @@ void IndexSearcher::do_search_field(const std::string &field_name,TokenSet token
         }
         token_allowing_costs.emplace_back(std::move(costs));
     }
+    slop=2*query_len_total/token_set.term_to_offsets().size();
 
     std::unordered_map<std::string,size_t> token_count_sum;
 
@@ -100,12 +104,6 @@ void IndexSearcher::do_search_field(const std::string &field_name,TokenSet token
         //given each token's cost, generate every possible token
         Util::cartesian(candidate_tokens,[&,this](const std::vector<std::string> &query_term){
             assert(query_term.size()==token_names.size());
-//            std::cout<<"-------start------"<<std::endl;
-//            for(auto s:query_term){
-//                std::cout<<s<<" ";
-//            }
-//            std::cout<<std::endl;
-//            std::cout<<"------end------"<<std::endl;
 
             //token(exact or fuzzy)->offsets in query string
             std::unordered_map<string,std::vector<uint32_t>> token_to_offsets;
@@ -113,7 +111,8 @@ void IndexSearcher::do_search_field(const std::string &field_name,TokenSet token
                 std::vector<uint32_t> offsets=token_set.get_offsets(token_names[i]);
                 token_to_offsets.emplace(query_term[i],std::move(offsets));
             }
-            _indexes.search_fields(field_name,token_to_offsets,[&](Search::MatchContext &match_ctx){
+
+            _indexes.search_fields(field_name,token_to_offsets,slop,[&](Search::MatchContext &match_ctx){
                 hit_collector.collect(match_ctx);
             });
         },_max_term_comb);
@@ -122,17 +121,15 @@ void IndexSearcher::do_search_field(const std::string &field_name,TokenSet token
 
     //check if num of result collected is too small, if so, drop the least occuring token and search again
     if(hit_collector.num_docs_collected()<hit_collector.get_k()/2){
+        for(const auto &token_name:token_names){
+            token_count_sum[token_name]=0;
+        }
         for(size_t i=0;i<token_allowing_costs.size();i++){
             for(int cost:token_allowing_costs[i]){
                 for(auto &fuzzy_term:get_fuzzy_term(token_set,token_names[i],field_name,cost)){
                     token_count_sum[token_names[i]]+=index->term_docs_num(fuzzy_term);
-                        std::cout<<"origin="<<token_names[i]<<" query term="<<fuzzy_term<<std::endl;
                 }
             }
-        }
-        std::cout<<"****"<<std::endl;
-        for(auto &&[term,sum]:token_count_sum){
-            std::cout<<term<<" sum="<<sum<<std::endl;
         }
 
         std::sort(token_names.begin(),token_names.end(),[&](const std::string &termA,const std::string &termB){
@@ -160,7 +157,6 @@ std::vector<std::vector<std::string>> IndexSearcher::search_ch_fuzz_term(const s
 {
     std::string term_pinyin=rocapinyin::getpinyin_str(term);
     Util::trim(term_pinyin,' ');
-    std::cout<<"search term pinyin="<<term_pinyin<<std::endl;
     auto ch_fuzzy_term_collector=[](std::vector<std::string> &terms,unsigned char *, size_t,std::unordered_set<std::string> *term_set){
         for(auto &&term:*term_set){
             terms.push_back(term);

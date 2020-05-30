@@ -7,7 +7,7 @@ using namespace std;
 using namespace Skilo;
 
 TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
-    bool init=false;
+    bool init=true;
     static SkiloConfig conf;
     conf.set_db_dir("/tmp/collection_manager_tst");
     CollectionManager collection_manager(conf);
@@ -203,31 +203,31 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
             std::string word;
             long frequency;
             size_t count=0;
-//            while(std::getline(dict_file,line)){
-//                size_t space=line.find(' ');
-//                word=line.substr(0,space);
-//                frequency=std::stol(line.substr(space+1));
-//                std::string doc_str="{\"id\":"+to_string(count++)+",\"word\":\""+word+"\",\"frequency\":\""+std::to_string(frequency)+"\"}";
-//                Document doc(doc_str);
-//                collection_manager.add_document(collection_name_en,doc);
-//            }
-//            std::cout<<"add english dict doc count="<<count<<std::endl;
+            while(std::getline(dict_file,line)){
+                size_t space=line.find(' ');
+                word=line.substr(0,space);
+                frequency=std::stol(line.substr(space+1));
+                std::string doc_str="{\"id\":"+to_string(count++)+",\"word\":\""+word+"\",\"frequency\":\""+std::to_string(frequency)+"\"}";
+                Document doc(doc_str);
+                collection_manager.add_document(collection_name_en,doc);
+            }
+            std::cout<<"add english dict doc count="<<count<<std::endl;
          }
      }
 
     std::string search_str="{\
-                            \"query\": \"镇得住场面\",\
+                            \"query\": \"经典大众菜式\",\
                             \"query by\": [\"recipe_name\",\"context\"]\
                             }";
     Query query("recipe",search_str);
     cout<<collection_manager.search(query)<<endl;
 
     std::string search_str2="{\
-                           \"query\": \"柔丝\",\
+                           \"query\": \"鱼香柔丝盖浇饭\",\
                            \"query by\": [\"recipe_name\",\"ingredients.$items.title\"]\
                            }";
     Query query2("recipe2",search_str2);
-//    cout<<collection_manager.search(query2)<<endl;
+    cout<<collection_manager.search(query2)<<endl;
     cout<<collection_manager.auto_suggest(collection_name,"镇得住")<<endl;
     cout<<collection_manager.auto_suggest(collection_name2,"酸菜")<<endl;
 
@@ -240,7 +240,7 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
 
     timing_code(
         for(int i=0;i<1;i++){
-//            cout<<collection_manager.search(query_en)<<endl;
+            cout<<collection_manager.search(query_en)<<endl;
         }
     );
 

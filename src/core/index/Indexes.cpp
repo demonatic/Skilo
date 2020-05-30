@@ -26,7 +26,7 @@ void InvertIndex::index_str_record(const IndexRecord &record)
             }
             posting_list->add_doc(record.seq_id,record.doc_len,offsets);
         }
-        if(term[0]<0){ //if term is not ascii
+        if(Util::is_chinese(term)){
             WriterLockGuard lock_guard(this->_pinyin_terms_lock);
             std::string pinyin=rocapinyin::getpinyin_str(term);
             Util::trim(pinyin,' ');
@@ -52,7 +52,8 @@ PostingList *InvertIndex::get_postinglist(const string &term) const
     return _term_postings.find(term);
 }
 
-void InvertIndex::search_field(const std::string &field_path,const std::unordered_map<string,std::vector<uint32_t>> &token_to_offsets,uint32_t total_doc_count,const std::unordered_map<std::string, SortIndex> *sort_indexes,std::function<void(Search::MatchContext&)> on_match) const
+void InvertIndex::search_field(const std::string &field_path,const std::unordered_map<string,std::vector<uint32_t>> &token_to_offsets,
+                               size_t slop,uint32_t total_doc_count,const std::unordered_map<std::string, SortIndex> *sort_indexes,std::function<void(Search::MatchContext&)> on_match) const
 {
     /// \brief find the conjuction doc_ids of the query terms
     /// @example:
@@ -75,7 +76,6 @@ void InvertIndex::search_field(const std::string &field_path,const std::unordere
     }
 
     size_t query_term_count=query_offset_entry.size();
-
     //sort the posting list based on length in ascending order reduces the number of comparisons
     std::sort(candidate_postings.begin(),candidate_postings.end(),[](const auto &e1,const auto &e2){
         return e1->num_docs()<e2->num_docs();
@@ -143,7 +143,7 @@ void InvertIndex::search_field(const std::string &field_path,const std::unordere
                     }
                 }
 
-                if(next_rel_pos>rel_pos){ //handle mismatch
+                if(next_rel_pos>rel_pos+slop){ //handle mismatch
                     uint32_t leading_cur=term_cursors[0].first;
                     // move leading cursor A to next candidate position
                     while(leading_cur<leading_term_offsets.size()&&leading_term_offsets[leading_cur]-leading_qt_offset<next_rel_pos){
@@ -157,10 +157,8 @@ void InvertIndex::search_field(const std::string &field_path,const std::unordere
                 }
             }
             // collect this hit
-            if(phrase_match_count>0){
-                Search::MatchContext context{lead_doc,total_doc_count,&field_path,&candidate_postings,phrase_match_count,&token_to_offsets,sort_indexes};
-                on_match(context);
-            }
+            Search::MatchContext context{lead_doc,total_doc_count,&field_path,&candidate_postings,phrase_match_count,&token_to_offsets,sort_indexes};
+            on_match(context);
         }
 END_OF_MATCH:
         void(0);
@@ -184,6 +182,15 @@ size_t InvertIndex::dict_size() const
 {
     ReaderLockGuard lock_guard(this->_term_posting_lock);
     return _term_postings.size();
+}
+
+void InvertIndex::debug_print_term_dict() const
+{
+    std::cout<<">>>>>>>term dict start:"<<std::endl;
+    this->iterate_terms("",[](unsigned char *data,size_t len,PostingList *){
+        std::cout<<data<<std::endl;
+    },[](unsigned char){return false;},[](unsigned char){return;});
+    std::cout<<"<<<<<<<<term dict end"<<std::endl;
 }
 
 CollectionIndexes::CollectionIndexes(const uint32_t collection_id, const Schema::CollectionSchema &schema,
@@ -247,13 +254,13 @@ bool CollectionIndexes::contains(const string &field_path) const
     return _indexes.find(field_path)!=_indexes.end();
 }
 
-void CollectionIndexes::search_fields(const std::string &field_path,const std::unordered_map<string,std::vector<uint32_t>> &token_to_offsets,std::function<void(Search::MatchContext&)> on_match) const
+void CollectionIndexes::search_fields(const std::string &field_path,const std::unordered_map<string,std::vector<uint32_t>> &token_to_offsets,size_t slop,std::function<void(Search::MatchContext&)> on_match) const
 {
     const InvertIndex *index=this->get_invert_index(field_path);
     if(!index)
         return;
 
-    index->search_field(field_path,token_to_offsets,_doc_count,&this->_sort_indexes,on_match);
+    index->search_field(field_path,token_to_offsets,slop,_doc_count,&this->_sort_indexes,on_match);
 }
 
 void CollectionIndexes::index_numeric(const string &field_path, const uint32_t seq_id, const number_t number)

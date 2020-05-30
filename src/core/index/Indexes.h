@@ -44,11 +44,12 @@ public:
     void index_str_record(const IndexRecord &record);
 
     size_t dict_size() const;
+    void debug_print_term_dict() const;
 
     /// @brief return how many doc contain this term
     uint32_t term_docs_num(const std::string &term) const;
 
-    void search_field(const std::string &field_path,const std::unordered_map<string,std::vector<uint32_t>> &token_to_offsets,uint32_t total_doc_count,const std::unordered_map<std::string, SortIndex> *sort_indexes,std::function<void(Search::MatchContext&)> on_match) const;
+    void search_field(const std::string &field_path,const std::unordered_map<string,std::vector<uint32_t>> &token_to_offsets,size_t slop,uint32_t total_doc_count,const std::unordered_map<std::string, SortIndex> *sort_indexes,std::function<void(Search::MatchContext&)> on_match) const;
 
     void iterate_terms(const std::string &prefix,std::function<void(unsigned char *,size_t,PostingList*)> on_term,
                  std::function<bool(unsigned char)> early_termination,std::function<void(unsigned char)> on_backtrace) const;
@@ -85,7 +86,7 @@ public:
     void set_doc_num(const uint32_t doc_num);
     uint32_t get_doc_num() const;
 
-    void search_fields(const std::string &field_path,const std::unordered_map<string,std::vector<uint32_t>> &token_to_offsets,std::function<void(Search::MatchContext&)> on_match) const;
+    void search_fields(const std::string &field_path,const std::unordered_map<string,std::vector<uint32_t>> &token_to_offsets,size_t slop,std::function<void(Search::MatchContext&)> on_match) const;
 
     void index_numeric(const std::string &field_path,const uint32_t seq_id,const number_t number);
 
