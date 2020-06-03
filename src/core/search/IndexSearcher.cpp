@@ -1,6 +1,7 @@
 #include "IndexSearcher.h"
 #include "utility/Util.h"
 #include "rocapinyin.h"
+#include "g3log/g3log.hpp"
 #include <string_view>
 
 using namespace Skilo::Index;
@@ -27,12 +28,14 @@ std::vector<pair<uint32_t,double>> IndexSearcher::search()
     Search::DocRanker ranker;
     auto &sort_fields=_query_info.get_sort_fields();
     if(sort_fields.empty()){
-        ranker.push_scorer(std::make_unique<Search::BM25_Scorer>());
+        ranker.add_scorer(std::make_unique<Search::BM25_Scorer>());
     }
     else{
         for(auto &&[sort_field,ascend_order]:sort_fields){
-            //TODO test field exists
-            ranker.push_scorer(std::make_unique<Search::SortScorer>(sort_field,ascend_order));
+            if(!_indexes.contains(sort_field)){
+                throw InvalidFormatException("sort field \""+sort_field+"\" not exists");
+            }
+            ranker.add_scorer(std::make_unique<Search::SortScorer>(sort_field,ascend_order));
         }
     }
 
@@ -42,7 +45,7 @@ std::vector<pair<uint32_t,double>> IndexSearcher::search()
 
     for(const std::string &field:search_fields){
         if(!_indexes.contains(field)){
-            throw InvalidFormatException("field path \""+field+"\" is not found");
+            throw InvalidFormatException("query field \""+field+"\" not exists");
         }
         do_search_field(field,token_set,collector);
     }
@@ -51,16 +54,17 @@ std::vector<pair<uint32_t,double>> IndexSearcher::search()
     if(suggestor){
         suggestor->update(query_str);
     }
+
     //collect hit documents
     return collector.get_top_k();
 }
 
-std::vector<std::string> IndexSearcher::get_fuzzy_term(const TokenSet &token_set, const std::string &term, const std::string &field_name, const size_t distance) const
+std::vector<std::string>& IndexSearcher::get_fuzzy_term(const TokenSet &token_set, const std::string &term, const std::string &field_name, const size_t distance) const
 {
     return token_set.get_fuzzies(term,distance,[&,this](const size_t distance){
         return Util::is_chinese(term)?
-                this->search_ch_fuzz_term(field_name,term,0,distance):
-                this->search_en_fuzz_term(field_name,term,1,distance);
+            this->search_ch_fuzz_term(field_name,term,0,distance):
+            this->search_en_fuzz_term(field_name,term,1,distance);
     });
 }
 
@@ -69,6 +73,7 @@ void IndexSearcher::do_search_field(const std::string &field_name,TokenSet token
     if(token_set.empty())
         return;
 
+    LOG(INFO)<<"search field:\""<<field_name<<"\" token:\""<<token_set.to_string()<<"\"";
     const InvertIndex *index=_indexes.get_invert_index(field_name);
 
     size_t slop=0;
@@ -86,6 +91,7 @@ void IndexSearcher::do_search_field(const std::string &field_name,TokenSet token
         }
         token_allowing_costs.emplace_back(std::move(costs));
     }
+
     slop=2*query_len_total/token_set.term_to_offsets().size();
 
     std::unordered_map<std::string,size_t> token_count_sum;
@@ -95,10 +101,14 @@ void IndexSearcher::do_search_field(const std::string &field_name,TokenSet token
     auto on_cost_comb=[&](const std::vector<size_t> &costs){
         std::vector<std::vector<std::string>> candidate_tokens; //each token's fuzzy terms with given cost
         for(size_t i=0;i<costs.size();i++){
-            const std::vector<std::string> &fuzzies=this->get_fuzzy_term(token_set,token_names[i],field_name,costs[i]);
+            std::vector<std::string> &fuzzies=this->get_fuzzy_term(token_set,token_names[i],field_name,costs[i]);
             if(fuzzies.empty()){ //the i'th token doesn't have any match with edit distance costs[i]
                 return;
             }
+            //sort fuzzy terms according to term frequency
+            std::sort(fuzzies.begin(),fuzzies.end(),[=](const std::string &fuzzy_termA,const std::string &fuzzy_termB){
+                return index->term_docs_num(fuzzy_termA)>index->term_docs_num(fuzzy_termB);
+            });
             candidate_tokens.push_back(fuzzies);
         }
         //given each token's cost, generate every possible token
@@ -112,14 +122,15 @@ void IndexSearcher::do_search_field(const std::string &field_name,TokenSet token
                 token_to_offsets.emplace(query_term[i],std::move(offsets));
             }
 
-            _indexes.search_fields(field_name,token_to_offsets,slop,[&](Search::MatchContext &match_ctx){
+            _indexes.search_fields(field_name,token_to_offsets,costs,slop,[&](Search::MatchContext &match_ctx){
                 hit_collector.collect(match_ctx);
             });
         },_max_term_comb);
     };
     Util::cartesian(token_allowing_costs,on_cost_comb,_max_cost_comb);
 
-    //check if num of result collected is too small, if so, drop the least occuring token and search again
+    // check if num of result collected is too small, if so, calculate the token(along with it's fuzzy terms) frequency,
+    // drop the least occuring token and search again
     if(hit_collector.num_docs_collected()<hit_collector.get_k()/2){
         for(const auto &token_name:token_names){
             token_count_sum[token_name]=0;
@@ -136,6 +147,7 @@ void IndexSearcher::do_search_field(const std::string &field_name,TokenSet token
             return token_count_sum[termA]<token_count_sum[termB];
         });
 
+        LOG(DEBUG)<<"drop token "<<token_names[0];
         token_set.drop_token(token_names[0]);
         do_search_field(field_name,token_set,hit_collector);
     }
@@ -204,7 +216,7 @@ std::vector<std::vector<std::string>> IndexSearcher::search_fuzz_term(const std:
     for(size_t i=0;i<=term_len;i++){
         first_row[i]=i;
     }
-    std::string test;
+
     distance_table.emplace_back(std::move(first_row));
 
     auto on_fuzzy_match=[&](unsigned char *str, size_t len, T* t){
@@ -218,7 +230,6 @@ std::vector<std::vector<std::string>> IndexSearcher::search_fuzz_term(const std:
         if(c=='\0'){
             return false;
         }
-
         std::vector<int> &prev_row=distance_table.back();
         std::vector<int> curr_row(term_len+1);
         curr_row[0]=prev_row[0]+1;
@@ -235,13 +246,11 @@ std::vector<std::vector<std::string>> IndexSearcher::search_fuzz_term(const std:
             return true;
         }
         distance_table.emplace_back(std::move(curr_row));
-        test.push_back(c);
         return false;
     };
     auto on_backtrace=[&](unsigned char c){
         if(c!='\0'){
              distance_table.pop_back();
-             test.pop_back();
         }
     };
 

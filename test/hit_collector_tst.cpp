@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <unordered_set>
 #include "utility/Number.h"
+#include "core/index/Indexes.h"
 #include "core/search/HitCollector.h"
 
 using namespace testing;
@@ -10,7 +11,7 @@ using namespace Skilo;
 
 struct TestScorer:public Scorer{
 public:
-    virtual number_t get_score(const HitContext &context) const override{
+    virtual number_t get_score(const MatchContext &context) const override{
         float score=(float)(rand()%10000)/(rand()%100+1);
         if(scores.count(context.doc_seq_id)){
             float pre_score=scores[context.doc_seq_id];
@@ -26,14 +27,14 @@ public:
 
 TEST(HIT_COLLECTOR_TEST,COLLECT_TEST) {
     size_t n=100;
-    std::vector<HitContext> contexts(n);
+    std::vector<MatchContext> contexts(n,MatchContext{0,0,0,{},{},{},{},{}});
     for(int i=0;i<n;i++){
         contexts[i].doc_seq_id=rand()%(n/2);
     }
     DocRanker ranker;
     std::unique_ptr<TestScorer> p_scorer=std::make_unique<TestScorer>();
     TestScorer *scorer=p_scorer.get();
-    ranker.push_scorer(std::move(p_scorer));
+    ranker.add_scorer(std::move(p_scorer));
     HitCollector collector(n/3,ranker);
 
     for(int i=0;i<n;i++){

@@ -9,7 +9,7 @@ DocRanker::DocRanker():_scorer_num(0)
 
 }
 
-void DocRanker::push_scorer(std::unique_ptr<Scorer> scorer)
+void DocRanker::add_scorer(std::unique_ptr<Scorer> scorer)
 {
     if(_scorer_num==MaxRankCriteriaCount){
         return;

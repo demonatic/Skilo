@@ -172,9 +172,11 @@ backtrace:
     }
     InnerNode *inner_node=as_inner_node(node);
     for(int i=0;i<inner_node->prefix_len;i++){
+        depth++;
         if(early_termination(inner_node->prefix[i])){
             for(int j=i-1;j>=0;j--){
                 on_backtrace(inner_node->prefix[j]);
+                depth--;
             }
             return;
         }

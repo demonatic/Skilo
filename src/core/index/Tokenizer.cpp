@@ -33,7 +33,7 @@ const std::unordered_map<std::string, std::vector<uint32_t> > &TokenSet::term_to
      return _term_to_offsets;
 }
 
-const std::vector<string> &TokenSet::get_fuzzies(const std::string &term,const size_t distance,std::function<std::vector<std::vector<string>>(const size_t max_distance)> fuzzy_term_loader) const
+std::vector<string> &TokenSet::get_fuzzies(const std::string &term,const size_t distance,std::function<std::vector<std::vector<string>>(const size_t max_distance)> fuzzy_term_loader) const
 {
     assert(distance<4);;
     if(!_fuzzy.count(term)){
@@ -56,6 +56,15 @@ void TokenSet::drop_token(const std::string &term)
 {
     _term_to_offsets.erase(term);
     _fuzzy.erase(term);
+}
+
+string TokenSet::to_string() const
+{
+    std::string str;
+    for(auto &&[term,_]:_term_to_offsets){
+        str+=term+" ";
+    }
+    return str;
 }
 
 

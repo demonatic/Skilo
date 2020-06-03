@@ -10,7 +10,7 @@ TEST(TOKENIZER_TEST,JIEBA_TEST) {
 
     JiebaTokenizer tokenizer("../3rd/dict/");
     string s1="我是手扶拖拉机专业的,21世纪是拖拉机的世纪";
-    std::unordered_map<std::string, std::vector<uint32_t>> r1=tokenizer.tokenize(s1);
+    std::unordered_map<std::string, std::vector<uint32_t>> r1=tokenizer.tokenize(s1).term_to_offsets();
     cout<<"<---sentence="<<s1<<"--->"<<endl;
     for(const auto &[word,offsets]:r1){
 
@@ -26,7 +26,7 @@ TEST(TOKENIZER_TEST,JIEBA_TEST) {
     EXPECT_TRUE(r1.count("拖拉机")!=0);
 
     string s2="牛肉含有丰富的蛋白质，氨基酸组成等比猪肉更接近人体需要，能提高机体抗病能力";
-    std::unordered_map<std::string, std::vector<uint32_t>> r2=tokenizer.tokenize(s2);
+    std::unordered_map<std::string, std::vector<uint32_t>> r2=tokenizer.tokenize(s2).term_to_offsets();
     cout<<"<---sentence="<<s2<<"--->"<<endl;
     for(const auto &[word,offsets]:r2){
 

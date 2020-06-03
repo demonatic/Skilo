@@ -24,9 +24,10 @@ using namespace Skilo;
 
 void send_request_to_server(bool init_collection,bool search);
 
+
 void init_collection_client(){
     sleep(2);
-    send_request_to_server(true,true);
+    send_request_to_server(true,false);
 }
 void search_client(){
     sleep(3);
@@ -148,7 +149,6 @@ void send_request_to_server(bool init_collection,bool search){
             string req_body(size,'\0');
             file.read(req_body.data(),size);
             file.close();
-
             string body_len_str=to_string(req_body.size());
             std::string req= "POST /collections/recipe HTTP/1.1\r\n"
                              "Content-Length: "+body_len_str+"\r\n\r\n"+req_body;
@@ -161,7 +161,7 @@ void send_request_to_server(bool init_collection,bool search){
 
     if(search){
         string req_body= "{\
-                         \"query\": \"酸菜鱼\",\
+                         \"query\": \"酸菜\",\
                          \"query by\": [\"recipe_name\",\"context\"]\
                          }";
 
@@ -179,15 +179,15 @@ void send_request_to_server(bool init_collection,bool search){
         }
         cout<<endl;
 
-        string sug_req="GET /collections/recipe/auto_suggestion?q=%e9%85%b8 HTTP/1.1\r\n"
-                       "Host: Chrome\r\n\r\n";
-        memcpy(sendbuff,sug_req.data(),sug_req.length());
-        send_len=send(sockfd,sendbuff,req.length(),0);
-        recv_len=recv(sockfd, recvbuff, sizeof(recvbuff), 0);
-        for(int i=0;i<recv_len;i++){
-            cout<<recvbuff[i];
-        }
-        cout<<endl;
+//        string sug_req="GET /collections/recipe/auto_suggestion?q=%e9%85%b8 HTTP/1.1\r\n"
+//                       "Host: Chrome\r\n\r\n";
+//        memcpy(sendbuff,sug_req.data(),sug_req.length());
+//        send_len=send(sockfd,sendbuff,req.length(),0);
+//        recv_len=recv(sockfd, recvbuff, sizeof(recvbuff), 0);
+//        for(int i=0;i<recv_len;i++){
+//            cout<<recvbuff[i];
+//        }
+//        cout<<endl;
     }
     close(sockfd);
 }

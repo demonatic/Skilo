@@ -19,18 +19,28 @@ public:
     virtual number_t get_score(const MatchContext &context) const=0;
 };
 
-class TFIDF_Scorer:public Scorer{
+class TextScorer:public Scorer{
 public:
-    TFIDF_Scorer()=default;
-    virtual number_t get_score(const MatchContext &context) const;
+    virtual number_t get_score(const MatchContext &context) const override;
+    virtual double calcu_term_score(const Index::PostingList* posting,const MatchContext &context) const=0;
 
-    double calcu_tf_idf(const Index::PostingList* posting,const MatchContext &context) const;
+    double apply_term_cost_penalty(double score,const size_t cost) const;
+    double apply_total_cost_penalty(double score,const std::vector<size_t> &costs) const;
+
+    double apply_phrase_match_boost(double score,const MatchContext &context) const;
+
+private:
+    static constexpr size_t _max_term_cost=4;
 };
 
-class BM25_Scorer:public Scorer{
+class TFIDF_Scorer:public TextScorer{
 public:
-    virtual number_t get_score(const MatchContext &context) const;
-    double calcu_term_score(const Index::PostingList* posting,const MatchContext &context) const;
+    virtual double calcu_term_score(const Index::PostingList* posting,const MatchContext &context) const override;
+};
+
+class BM25_Scorer:public TextScorer{
+public:
+    virtual double calcu_term_score(const Index::PostingList* posting,const MatchContext &context) const override;
 
 private:
     double k1=1.2;

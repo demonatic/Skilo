@@ -52,7 +52,7 @@ PostingList *InvertIndex::get_postinglist(const string &term) const
     return _term_postings.find(term);
 }
 
-void InvertIndex::search_field(const std::string &field_path,const std::unordered_map<string,std::vector<uint32_t>> &token_to_offsets,
+void InvertIndex::search_field(const std::string &field_path,const std::unordered_map<string,std::vector<uint32_t>> &token_to_offsets,const std::vector<size_t> &costs,
                                size_t slop,uint32_t total_doc_count,const std::unordered_map<std::string, SortIndex> *sort_indexes,std::function<void(Search::MatchContext&)> on_match) const
 {
     /// \brief find the conjuction doc_ids of the query terms
@@ -157,7 +157,7 @@ void InvertIndex::search_field(const std::string &field_path,const std::unordere
                 }
             }
             // collect this hit
-            Search::MatchContext context{lead_doc,total_doc_count,&field_path,&candidate_postings,phrase_match_count,&token_to_offsets,sort_indexes};
+            Search::MatchContext context{lead_doc,total_doc_count,phrase_match_count,field_path,candidate_postings,costs,token_to_offsets,*sort_indexes};
             on_match(context);
         }
 END_OF_MATCH:
@@ -184,10 +184,13 @@ size_t InvertIndex::dict_size() const
     return _term_postings.size();
 }
 
-void InvertIndex::debug_print_term_dict() const
+void InvertIndex::debug_print_dict() const
 {
     std::cout<<">>>>>>>term dict start:"<<std::endl;
     this->iterate_terms("",[](unsigned char *data,size_t len,PostingList *){
+        std::cout<<data<<std::endl;
+    },[](unsigned char){return false;},[](unsigned char){return;});
+    this->iterate_pinyin("",[](unsigned char *data,size_t len,std::unordered_set<std::string>*){
         std::cout<<data<<std::endl;
     },[](unsigned char){return false;},[](unsigned char){return;});
     std::cout<<"<<<<<<<<term dict end"<<std::endl;
@@ -254,13 +257,13 @@ bool CollectionIndexes::contains(const string &field_path) const
     return _indexes.find(field_path)!=_indexes.end();
 }
 
-void CollectionIndexes::search_fields(const std::string &field_path,const std::unordered_map<string,std::vector<uint32_t>> &token_to_offsets,size_t slop,std::function<void(Search::MatchContext&)> on_match) const
+void CollectionIndexes::search_fields(const std::string &field_path,const std::unordered_map<string,std::vector<uint32_t>> &token_to_offsets,const std::vector<size_t> &costs,size_t slop,std::function<void(Search::MatchContext&)> on_match) const
 {
     const InvertIndex *index=this->get_invert_index(field_path);
     if(!index)
         return;
 
-    index->search_field(field_path,token_to_offsets,slop,_doc_count,&this->_sort_indexes,on_match);
+    index->search_field(field_path,token_to_offsets,costs,slop,_doc_count,&this->_sort_indexes,on_match);
 }
 
 void CollectionIndexes::index_numeric(const string &field_path, const uint32_t seq_id, const number_t number)

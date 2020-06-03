@@ -7,7 +7,7 @@ using namespace std;
 using namespace Skilo;
 
 TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
-    bool init=true;
+    bool init=false;
     static SkiloConfig conf;
     conf.set_db_dir("/tmp/collection_manager_tst");
     CollectionManager collection_manager(conf);
@@ -29,7 +29,8 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
                                       },\
                                       \"recipe_name\":{\
                                           \"type\":\"string\",\
-                                          \"index\":true\
+                                          \"index\":true,\
+                                          \"suggest\":true\
                                       },\
                                       \"difficulty\":{\
                                           \"type\":\"integer\",\
@@ -89,7 +90,8 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
                                        },\
                                        \"recipe_name\":{\
                                            \"type\":\"string\",\
-                                           \"index\":true\
+                                           \"index\":true,\
+                                           \"suggest\":true\
                                        },\
                                        \"difficulty\":{\
                                            \"type\":\"integer\",\
@@ -216,7 +218,7 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
      }
 
     std::string search_str="{\
-                            \"query\": \"经典大众菜式\",\
+                            \"query\": \"酸菜\",\
                             \"query by\": [\"recipe_name\",\"context\"]\
                             }";
     Query query("recipe",search_str);
@@ -228,7 +230,7 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
                            }";
     Query query2("recipe2",search_str2);
     cout<<collection_manager.search(query2)<<endl;
-    cout<<collection_manager.auto_suggest(collection_name,"镇得住")<<endl;
+    cout<<collection_manager.auto_suggest(collection_name,"经典")<<endl;
     cout<<collection_manager.auto_suggest(collection_name2,"酸菜")<<endl;
 
     std::string search_str_en="{\

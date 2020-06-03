@@ -16,11 +16,12 @@ namespace Search {
 struct MatchContext{
     uint32_t doc_seq_id;
     uint32_t collection_doc_count;
-    const std::string *field_path;
-    const std::vector<const Index::PostingList*> *term_postings;
     uint32_t phrase_match_count;
-    const std::unordered_map<std::string,std::vector<uint32_t>> *query_terms;
-    const std::unordered_map<std::string,Index::SortIndex> *sort_indexes;
+    const std::string &field_path;
+    const std::vector<const Index::PostingList*> &term_postings;
+    const std::vector<size_t> &token_costs;
+    const std::unordered_map<std::string,std::vector<uint32_t>> &query_terms;
+    const std::unordered_map<std::string,Index::SortIndex> &sort_indexes;
 };
 
 }

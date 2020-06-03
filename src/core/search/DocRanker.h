@@ -13,7 +13,7 @@ class DocRanker
 public:
     DocRanker();
 
-    void push_scorer(std::unique_ptr<Scorer> scorer);
+    void add_scorer(std::unique_ptr<Scorer> scorer);
 
     std::vector<number_t> rank(const MatchContext &ctx) const;
 
