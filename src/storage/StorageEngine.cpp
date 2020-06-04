@@ -43,6 +43,12 @@ bool StorageEngine::insert(const std::string &key, const std::string &value)
     return status.ok();
 }
 
+bool StorageEngine::remove(const std::string &key) const
+{
+    rocksdb::Status status=_db->Delete(rocksdb::WriteOptions(),key);
+    return status.ok();
+}
+
 bool StorageEngine::batch_write(StorageEngine::Batch &batch)
 {
     rocksdb::Status status=_db->Write(rocksdb::WriteOptions(),&batch);
@@ -67,6 +73,23 @@ void StorageEngine::scan_for_each(const std::string &prefix, std::function<void(
     delete it;
 }
 
+bool StorageEngine::delete_range(const std::string &start,const std::string &end)
+{
+    rocksdb::Status status=_db->DeleteRange(rocksdb::WriteOptions(),nullptr,start,end);
+    return status.ok();
+}
+
+bool StorageEngine::remove_prefix(const std::string &prefix)
+{
+    bool all_success=true;
+    rocksdb::Iterator* it = _db->NewIterator(rocksdb::ReadOptions());
+    for(it->Seek(prefix);it->Valid()&&it->key().starts_with(prefix);it->Next()){
+        if(!this->remove(it->key().ToString())){
+            all_success=false;
+        }
+    }
+    return all_success;
+}
 
 bool StorageEngine::remove(const std::string &key)
 {

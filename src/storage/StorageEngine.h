@@ -45,6 +45,8 @@ public:
     ///        If "key" already exists, it will be overwritten.
     bool insert(const std::string &key,const std::string &value);
 
+    bool remove(const std::string &key) const;
+
     /// @brief all data in this batch will be atomically written into db
     bool batch_write(Batch &batch);
 
@@ -53,6 +55,12 @@ public:
 
     /// @brief scan the database and call 'callback' for any value whose key starts with 'prefix'
     void scan_for_each(const std::string &prefix,std::function<void(const std::string_view value)> callback) const;
+
+    /// @brief delete all key starts with given prefix
+    bool delete_range(const std::string &start,const std::string &end);
+
+    /// @return true if all keys start with prefix has been removed
+    bool remove_prefix(const std::string &prefix);
 
     /// @return true if key is not exist or been removed successfully
     bool remove(const std::string &key);

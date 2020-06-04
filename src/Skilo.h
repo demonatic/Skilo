@@ -31,6 +31,9 @@ private:
     ///Route: POST /collections
     void skilo_create_collection(QueryContext &context,std::string &response);
 
+    ///Route: DELETE /collections/<collection_name>
+    void skilo_drop_collection(QueryContext &context,std::string &response);
+
     ///Route: POST /collections/<collection_name>
     void skilo_add_document(QueryContext &context,std::string &response);
 
@@ -39,6 +42,7 @@ private:
 
     ///Route: GET /collections/<collection_name>/auto_suggestion?q=<query_prefix>
     void skilo_auto_suggest(QueryContext &context,std::string &response);
+
     
 private:
     std::string extract_collection_name(std::string_view uri) const;

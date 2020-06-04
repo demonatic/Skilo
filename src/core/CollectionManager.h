@@ -7,23 +7,27 @@
 
 namespace Skilo {
 
-struct Status;
+using ResultStr=std::string;
+
 class CollectionManager
 {
 public:
     CollectionManager(const SkiloConfig &config);
 
     void init_collections();
-    std::string create_collection(CollectionMeta &collection_meta);
 
-    std::string add_document(const std::string &collection_name,Document &document);
-    std::string add_document_batch(const std::string &collection_name,DocumentBatch &doc_batch);
+    ResultStr create_collection(CollectionMeta &collection_meta);
 
-    std::string search(const Query &query_info) const;
+    ResultStr add_document(const std::string &collection_name,Document &document);
+    ResultStr add_document_batch(const std::string &collection_name,DocumentBatch &doc_batch);
+
+    ResultStr drop_collection(const std::string &collection_name);
+
+    ResultStr search(const Query &query_info) const;
     
-    std::string auto_suggest(const std::string &collection_name,const std::string &query_prefix) const;
+    ResultStr auto_suggest(const std::string &collection_name,const std::string &query_prefix) const;
 
-    Collection *get_collection(const std::string &collection_name) const;
+    std::shared_ptr<Collection> get_collection(const std::string &collection_name) const;
 
 private:
     uint32_t get_next_collection_id();
@@ -31,12 +35,13 @@ private:
 private:
     const SkiloConfig &_config;
 
+    std::atomic_uint32_t _next_collection_id;
+
     cuckoohash_map<std::string,uint32_t> _collection_name_id_map;
-    cuckoohash_map<uint32_t,std::unique_ptr<Collection>> _collection_map;
+    cuckoohash_map<uint32_t,std::shared_ptr<Collection>> _collection_map;
 
     std::unique_ptr<StorageService> _storage_service;
 
-    std::atomic_uint32_t _next_collection_id;
 };
 
 } //namespace Skilo

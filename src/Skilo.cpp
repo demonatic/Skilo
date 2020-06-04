@@ -58,6 +58,13 @@ void SkiloServer::skilo_create_collection(QueryContext &context,std::string &res
     response=_collection_manager->create_collection(collection_meta);
 }
 
+void SkiloServer::skilo_drop_collection(SkiloServer::QueryContext &context, std::string &response)
+{
+    LOG(INFO)<<"@skilo_drop_collection";
+    std::string collection_name=this->extract_collection_name(context.req->uri());
+    response=_collection_manager->drop_collection(collection_name);
+}
+
 void SkiloServer::skilo_add_document(QueryContext &context,std::string &response)
 {
     DocumentBase base(context.req->body().get_data());
@@ -113,7 +120,7 @@ void SkiloServer::init_http_route(Rinx::RxProtocolHttp1Factory &http1)
     //in case some clients doesn't support GET with body
     http1.POST(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*\/documents$)",BIND_SKILO_CALLBACK(SkiloServer::skilo_query_collection);
     http1.GET(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*\/auto_suggestion\?q=[\w\W]*$)",BIND_SKILO_CALLBACK(SkiloServer::skilo_auto_suggest);
-
+    http1.DELETE(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*$)",MakeAsync(BIND_SKILO_CALLBACK(SkiloServer::skilo_drop_collection));
     if(_debug){
         http1.head_filter(R"([\s\S]*)",[](HttpRequest &req,Rinx::HttpResponseHead &head,Rinx::Next next){
             head.header_fields.add("Access-Control-Allow-Origin","*");
@@ -153,25 +160,5 @@ void SkiloServer::handle_request(HttpRequest &req, HttpResponse &resp, const Ski
     resp.status_code(HttpStatusCode(status.code)).headers("Content-Length",std::move(body_length));
     resp.body()<<status.description;
 }
-
-struct CustomSink {
-  enum FG_Color {YELLOW = 33, RED = 31, GREEN=32, WHITE = 97};
-
-  FG_Color GetColor(const LEVELS level) const {
-     if (level.value == WARNING.value) { return YELLOW; }
-     if (level.value == DEBUG.value) { return GREEN; }
-     if (g3::internal::wasFatal(level)) { return RED; }
-
-     return WHITE;
-  }
-
-  void ReceiveLogMessage(g3::LogMessageMover logEntry) {
-     auto level = logEntry.get()._level;
-     auto color = GetColor(level);
-
-     std::cout << "\033[" << color << "m"
-       << logEntry.get().toString() << "\033[m" << std::endl;
-  }
-};
 
 } //namespace Skilo

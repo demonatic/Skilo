@@ -19,6 +19,16 @@ Collection::Collection(const CollectionMeta &collection_meta,StorageService *sto
     this->build_index();
 }
 
+uint32_t Collection::get_id() const
+{
+    return this->_collection_id;
+}
+
+const std::string &Collection::get_name() const
+{
+    return this->_collection_name;
+}
+
 void Collection::build_index()
 {
     size_t load_doc_count=0;
@@ -30,6 +40,11 @@ void Collection::build_index()
         load_doc_count++;
     });
     LOG(INFO)<<"Collection \""<<_collection_name<<"\" load finished. total "<<load_doc_count<<" documents";
+}
+
+void Collection::drop_all()
+{
+    _storage_service->drop_collection(_collection_id,_collection_name);
 }
 
 void Collection::add_new_document(Document &document)

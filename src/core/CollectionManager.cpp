@@ -15,11 +15,11 @@ void CollectionManager::init_collections()
     this->_next_collection_id=_storage_service->get_next_collection_id();
     std::vector<CollectionMeta> collection_meta=_storage_service->get_all_collection_meta();
 
-    std::vector<std::future<std::unique_ptr<Collection>>> init_futures;
+    std::vector<std::future<std::shared_ptr<Collection>>> init_futures;
     for(CollectionMeta &meta:collection_meta){
         init_futures.emplace_back(std::async(std::launch::async,[this,&meta](){
             LOG(INFO)<<"Loading collection \""<<meta.get_collection_name()<<"\"";
-            return std::make_unique<Collection>(meta,_storage_service.get(),_config);
+            return std::make_shared<Collection>(meta,_storage_service.get(),_config);
         }));
     }
 
@@ -33,7 +33,7 @@ void CollectionManager::init_collections()
     LOG(INFO)<<"Loading all collections finished";
 }
 
-std::string CollectionManager::create_collection(CollectionMeta &collection_meta)
+ResultStr CollectionManager::create_collection(CollectionMeta &collection_meta)
 {
     const std::string &collection_name=collection_meta.get_collection_name();
     LOG(INFO)<<"Attemping to create collection \""<<collection_name<<"\"";
@@ -54,12 +54,12 @@ std::string CollectionManager::create_collection(CollectionMeta &collection_meta
     _collection_name_id_map.insert(collection_name,collection_id);
     LOG(INFO)<<"Collection \""<<collection_name<<"\" id="<<collection_id<<" has created";
 
-    return "Create Collection with name \'"+collection_name+"\' OK";
+    return "create collection with name \'"+collection_name+"\' ok";
 }
 
-std::string Skilo::CollectionManager::add_document(const std::string &collection_name,Document &document)
+ResultStr CollectionManager::add_document(const std::string &collection_name,Document &document)
 {
-    Collection *collection=this->get_collection(collection_name);
+    std::shared_ptr<Collection> collection=this->get_collection(collection_name);
     if(!collection){
         throw NotFoundException("collection \""+collection_name+"\" not exist");
     }
@@ -68,10 +68,10 @@ std::string Skilo::CollectionManager::add_document(const std::string &collection
         throw ConflictException("The collection with name `"+collection_name+"` has already contained doc "+std::to_string(doc_id));
     }
     collection->add_new_document(document);
-    return "Add Document "+std::to_string(doc_id)+" Success";
+    return "add document "+std::to_string(doc_id)+" success";
 }
 
-std::string CollectionManager::add_document_batch(const string &collection_name, DocumentBatch &doc_batch)
+ResultStr CollectionManager::add_document_batch(const string &collection_name, DocumentBatch &doc_batch)
 {
     string err_reason;
     std::vector<Document> &docs=doc_batch.get_docs();
@@ -82,10 +82,24 @@ std::string CollectionManager::add_document_batch(const string &collection_name,
     return std::to_string(docs.size())+" docs added";
 }
 
-std::string CollectionManager::search(const Query &query_info) const
+ResultStr CollectionManager::drop_collection(const std::string &collection_name)
+{
+    LOG(INFO)<<"Attemping to drop collection \""<<collection_name<<"\"";
+    std::shared_ptr<Collection> target_collection=get_collection(collection_name);
+    if(!target_collection){
+        throw NotFoundException("The collection with name `"+collection_name+"` not exists");
+    }
+    _collection_name_id_map.erase(collection_name);
+    target_collection->drop_all();
+    _collection_map.erase(target_collection->get_id());
+    LOG(INFO)<<"collection \""<<collection_name<<"\" has been dropped";
+    return "drop collection \""+collection_name+"\" success";
+}
+
+ResultStr CollectionManager::search(const Query &query_info) const
 {
      const std::string &collection_name=query_info.get_collection_name();
-     Collection *collection=get_collection(collection_name);
+     std::shared_ptr<Collection> collection=get_collection(collection_name);
      if(!collection){
          throw NotFoundException("collection \'"+collection_name+"\" not exist");
      }
@@ -93,9 +107,9 @@ std::string CollectionManager::search(const Query &query_info) const
      return result.dump();
 }
 
-std::string CollectionManager::auto_suggest(const string &collection_name, const string &query_prefix) const
+ResultStr CollectionManager::auto_suggest(const string &collection_name, const string &query_prefix) const
 {
-    Collection *collection=get_collection(collection_name);
+    std::shared_ptr<Collection> collection=get_collection(collection_name);
     if(!collection){
         throw NotFoundException("collection \'"+collection_name+"\" not exist");
     }
@@ -107,17 +121,15 @@ std::string CollectionManager::auto_suggest(const string &collection_name, const
     return auto_sugg.dump();
 }
 
-Collection *CollectionManager::get_collection(const string &collection_name) const
+std::shared_ptr<Collection> CollectionManager::get_collection(const string &collection_name) const
 {
     uint32_t cid;
     if(!_collection_name_id_map.find(collection_name,cid)){
         return nullptr;
     }
 
-    Collection *coll=nullptr;
-    _collection_map.find_fn(cid,[&](const std::unique_ptr<Collection> &ptr) mutable {
-        coll=ptr.get();
-    });
+    std::shared_ptr<Collection> coll;
+    _collection_map.find(cid,coll);
     return coll;
 }
 

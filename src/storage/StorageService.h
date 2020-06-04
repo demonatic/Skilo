@@ -12,7 +12,9 @@ class StorageService
 public:
     StorageService(const std::string &db_path);
 
+    /// @note use collection_name to conveniently check existance when trying creating new collection
     bool contain_collection(const std::string &collection_name) const;
+
     bool contain_document(const uint32_t collection_id,uint32_t doc_id) const;
 
     /// @throw InternalServerException
@@ -32,6 +34,10 @@ public:
     StorageEngine &get_storage_engine();
 
     void scan_for_each_doc(const uint32_t collection_id,std::function<void(const std::string_view value)> callback) const;
+
+    /// @brief delete all data about the give collection
+    void drop_collection(const uint32_t collection_id,const std::string &collection_name);
+
 public:
     /// @brief write <doc_id,seq_id>,<seq_id,doc>,<collection_next_seq_id_key,collection_next_seq_id_value> to storage
     bool write_document(uint32_t collection_id,const Document &document);

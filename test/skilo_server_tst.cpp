@@ -30,7 +30,7 @@ void init_collection_client(){
     send_request_to_server(true,false);
 }
 void search_client(){
-    sleep(3);
+    sleep(5);
     send_request_to_server(false,true);
 }
 
@@ -50,7 +50,7 @@ TEST(SKILO_SERVER_TEST,CRUD_TEST){
         }
     }
     client_threads.push_back(std::thread([&](){
-        sleep(5);
+        sleep(8);
         server.stop();
     }));
     EXPECT_TRUE(server.listen());
@@ -80,6 +80,14 @@ void send_request_to_server(bool init_collection,bool search){
 
 
     if(init_collection){
+        string req_drop="DELETE /collections/recipe HTTP/1.1\r\n"
+                       "Host: Chrome\r\n\r\n";
+
+        memcpy(sendbuff,req_drop.data(),req_drop.length());
+        send(sockfd,sendbuff,req_drop.length(),0);
+        recv(sockfd, recvbuff, sizeof(recvbuff), 0);
+        fputs(recvbuff,stdout);
+
         string req_body= "{\
                          \"name\":\"recipe\",\
                          \"tokenizer\":\"jieba\",\
@@ -133,11 +141,11 @@ void send_request_to_server(bool init_collection,bool search){
                              }\
                           }";
         string body_len_str=to_string(req_body.size());
-        std::string req= "POST /collections HTTP/1.1\r\n"
+        std::string req_create= "POST /collections HTTP/1.1\r\n"
                          "Content-Length: "+body_len_str+"\r\n\r\n"+req_body;
 
-        memcpy(sendbuff,req.data(),req.length());
-        send(sockfd,sendbuff,req.length(),0);
+        memcpy(sendbuff,req_create.data(),req_create.length());
+        send(sockfd,sendbuff,req_create.length(),0);
         recv(sockfd, recvbuff, sizeof(recvbuff), 0);
         fputs(recvbuff,stdout);
     }
@@ -179,15 +187,15 @@ void send_request_to_server(bool init_collection,bool search){
         }
         cout<<endl;
 
-//        string sug_req="GET /collections/recipe/auto_suggestion?q=%e9%85%b8 HTTP/1.1\r\n"
-//                       "Host: Chrome\r\n\r\n";
-//        memcpy(sendbuff,sug_req.data(),sug_req.length());
-//        send_len=send(sockfd,sendbuff,req.length(),0);
-//        recv_len=recv(sockfd, recvbuff, sizeof(recvbuff), 0);
-//        for(int i=0;i<recv_len;i++){
-//            cout<<recvbuff[i];
-//        }
-//        cout<<endl;
+        string sug_req="GET /collections/recipe/auto_suggestion?q=%e9%85%b8 HTTP/1.1\r\n"
+                       "Host: Chrome\r\n\r\n";
+        memcpy(sendbuff,sug_req.data(),sug_req.length());
+        send_len=send(sockfd,sendbuff,req.length(),0);
+        recv_len=recv(sockfd, recvbuff, sizeof(recvbuff), 0);
+        for(int i=0;i<recv_len;i++){
+            cout<<recvbuff[i];
+        }
+        cout<<endl;
     }
     close(sockfd);
 }

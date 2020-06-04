@@ -19,8 +19,14 @@ class Collection
 public:
     Collection(const CollectionMeta &collection_meta,StorageService *storage_service,const SkiloConfig &config);
 
+    uint32_t get_id() const;
+    const std::string& get_name() const;
+
     /// @brief read collection's documents from storage and index them
     void build_index();
+
+    /// @brief destroy all info about this collection including memory indexes and in storage
+    void drop_all();
 
     /// @brief validate the document and then index the required field
     /// @throw InvalidFormatException, InternalServerException

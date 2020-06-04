@@ -1,17 +1,30 @@
 #include <gtest/gtest.h>
 #include "core/CollectionManager.h"
 #include "utility/Util.h"
+#include "g3log/g3log.hpp"
+#include "g3log/filesink.hpp"
+#include "g3log/logworker.hpp"
+#include "utility/LogSink.h"
+#include <memory>
 
 using namespace testing;
 using namespace std;
 using namespace Skilo;
 
 TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
-    bool init=false;
+    bool init=true;
     static SkiloConfig conf;
+    std::unique_ptr<g3::LogWorker> log_worker;
+    std::unique_ptr<g3::FileSinkHandle> log_file_handle;
+    log_worker = g3::LogWorker::createLogWorker();
+
+    log_worker->addSink(std::make_unique<CustomLogSink>(),&CustomLogSink::ReceiveLogMessage);
+    g3::initializeLogging(log_worker.get());
+
     conf.set_db_dir("/tmp/collection_manager_tst");
     CollectionManager collection_manager(conf);
     collection_manager.init_collections();
+
     std::string schema_str="{\
                             \"name\":\"recipe\",\
                             \"tokenizer\":\"jieba\",\
@@ -159,7 +172,11 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
      //collection1
      CollectionMeta collection_meta(schema_str);
      string collection_name=collection_meta.get_collection_name();
+
      if(init){
+         if(collection_manager.get_collection(collection_name)){
+             collection_manager.drop_collection(collection_name);
+         }
          cout<<collection_manager.create_collection(collection_meta)<<endl;
      }
 
@@ -167,6 +184,9 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
      CollectionMeta collection_meta2(schema_str2);
      string collection_name2=collection_meta2.get_collection_name();
      if(init){
+         if(collection_manager.get_collection(collection_name2)){
+             collection_manager.drop_collection(collection_name2);
+         }
          cout<<collection_manager.create_collection(collection_meta2)<<endl;
      }
 
@@ -174,6 +194,9 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
      CollectionMeta collection_meta_en(schema_str_en);
      string collection_name_en=collection_meta_en.get_collection_name();
      if(init){
+         if(collection_manager.get_collection(collection_name_en)){
+             collection_manager.drop_collection(collection_name_en);
+         }
          cout<<collection_manager.create_collection(collection_meta_en)<<endl;
      }
 

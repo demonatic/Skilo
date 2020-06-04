@@ -73,7 +73,7 @@ void IndexSearcher::do_search_field(const std::string &field_name,TokenSet token
     if(token_set.empty())
         return;
 
-    LOG(INFO)<<"search field:\""<<field_name<<"\" token:\""<<token_set.to_string()<<"\"";
+    LOG(DEBUG)<<"search field:\""<<field_name<<"\" token:\""<<token_set.to_string()<<"\"";
     const InvertIndex *index=_indexes.get_invert_index(field_name);
 
     size_t slop=0;

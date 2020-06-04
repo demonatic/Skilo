@@ -29,7 +29,7 @@ uint32_t StorageService::get_next_collection_id() const
     std::string next_collection_val="0";
     StorageEngine::Status status=_storage_engine.get(KeyConverter::next_collection_id_key(),next_collection_val);
     if(status==StorageEngine::ERROR){
-        std::string err="Error when getting collection manager's next collection id from disk";
+        std::string err="Error when getting collection manager's next collection id from storage";
         LOG(FATAL)<<err;
         throw InternalServerException(err);
     }
@@ -42,7 +42,7 @@ uint32_t StorageService::get_collection_next_seq_id(uint32_t collection_id) cons
     std::string next_seq_val;
     StorageEngine::Status next_seq_status=_storage_engine.get(KeyConverter::collection_next_seq_key(collection_id),next_seq_val);
     if(next_seq_status!=StorageEngine::FOUND){
-        std::string err="Can not get collection next sequence id of collection id=\""+std::to_string(collection_id)+"\"";
+        std::string err="Can not get collection next sequence id of collection id=\""+std::to_string(collection_id)+"\" from storage";
         LOG(WARNING)<<err;
         throw InternalServerException(err);
     }
@@ -56,7 +56,7 @@ Document StorageService::get_document(const uint32_t collection_id,const uint32_
     std::string doc_json_str;
     StorageEngine::Status status=_storage_engine.get(seq_key,doc_json_str);
     if(status!=StorageEngine::FOUND){
-        std::string err="Can not fetch document of sequence id \""+std::to_string(seq_id)+"\"";
+        std::string err="Can not fetch document of sequence id \""+std::to_string(seq_id)+"\" from storage";
         LOG(WARNING)<<err;
         throw InternalServerException(err);
     }
@@ -84,6 +84,19 @@ void StorageService::scan_for_each_doc(const uint32_t collection_id, std::functi
 {
     std::string seq_key_prefix=KeyConverter::doc_seq_key_prefix(collection_id);
     this->_storage_engine.scan_for_each(seq_key_prefix,callback);
+}
+
+void StorageService::drop_collection(const uint32_t collection_id,const std::string &collection_name)
+{
+     if(!_storage_engine.remove_prefix(KeyConverter::doc_seq_key_prefix(collection_id))
+        ||!_storage_engine.remove_prefix(KeyConverter::doc_id_key_prefix(collection_id))
+          ||!_storage_engine.remove(KeyConverter::collection_meta_key(collection_name))
+            ||!_storage_engine.remove(KeyConverter::collection_next_seq_key(collection_id)))
+     {
+         std::string err="Error when drop collection \""+collection_name+" \": fail to delete collection from storage";
+         LOG(WARNING)<<err;
+         throw InternalServerException(err);
+     }
 }
 
 bool StorageService::write_document(uint32_t collection_id,const Document &document)
