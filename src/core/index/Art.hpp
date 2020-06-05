@@ -2,8 +2,7 @@
 #define ART_HPP
 
 #include "ArtNode.hpp"
-
-#include <boost/mpl/insert.hpp>
+#include <string>
 
 namespace Art{
 

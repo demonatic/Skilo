@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstring>
 #include <emmintrin.h>
+#include <cstdint>
 #include <assert.h>
 
 namespace Art {

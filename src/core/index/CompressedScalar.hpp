@@ -3,6 +3,8 @@
 
 #include <cstdlib>
 #include <memory>
+#include <limits>
+#include <stdexcept>
 #include <for.h>
 
 namespace Skilo{
