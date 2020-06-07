@@ -10,17 +10,17 @@ AutoSuggestor::AutoSuggestor(const size_t suggestion_num,const size_t min_gram,c
 
 }
 
-void AutoSuggestor::update(const std::string &query)
+void AutoSuggestor::update(const std::string &content)
 {
-    if(query.length()>_max_query_len){
+    if(content.length()>_max_query_len){
         return;
     }
 
     //increase query frequency
-    size_t query_freq=_query_freq_map[query];
-    _query_freq_map[query]=++query_freq;
+    size_t query_freq=_query_freq_map[content];
+    _query_freq_map[content]=++query_freq;
 
-    std::vector<std::string_view> edge_ngrams=this->edge_ngram(query);
+    std::vector<std::string_view> edge_ngrams=this->edge_ngram(content);
 
     for(auto &&gram:edge_ngrams){
         auto list_it=_suggest_map.find(gram);
@@ -31,17 +31,17 @@ void AutoSuggestor::update(const std::string &query)
             if(sug.size()>=_suggestion_num&&query_freq<sug_min_freq){
                 continue;
             }
-            SuggestNode node{query,query_freq};
+            SuggestNode node{content,query_freq};
             size_t node_index=lower_bound(sug.begin(),sug.end(),node)-sug.begin();
 
             int pre_index=node_index-1;
             while(pre_index>=0&&sug[pre_index].freq==query_freq-1){ //find if query entry already exist
-                if(sug[pre_index].query==query){
+                if(sug[pre_index].query==content){
                     break;
                 }
                 --pre_index;
             }
-            if(pre_index>=0&&sug[pre_index].query==query){ //query entry already in, increase its frequency by 1
+            if(pre_index>=0&&sug[pre_index].query==content){ //query entry already in, increase its frequency by 1
                 sug[pre_index].freq++;
                 while(pre_index+1<sug.size()&&sug[pre_index].freq>sug[pre_index+1].freq){ //move it to right position
                     std::swap(sug[pre_index],sug[pre_index+1]);
@@ -59,7 +59,7 @@ void AutoSuggestor::update(const std::string &query)
             else{ //replace the first suggestion node and move it to right position
                 size_t index=0;
                 sug[index].freq=query_freq;
-                sug[index].query=query;
+                sug[index].query=content;
                 while(index+1<sug.size()&&sug[index+1].freq<=query_freq){
                     std::swap(sug[index],sug[index+1]);
                     index++;
@@ -68,10 +68,15 @@ void AutoSuggestor::update(const std::string &query)
         }
         else{ //make a new SuggestionList for this prefix
             SuggestionList sug;
-            sug.push_back({query,query_freq});
+            sug.push_back({content,query_freq});
             _suggest_map.emplace(gram,std::move(sug));
         }
     }
+}
+
+void AutoSuggestor::de_update(const std::string &content)
+{
+
 }
 
 std::vector<std::string_view> AutoSuggestor::auto_suggest(const std::string &query_prefix)

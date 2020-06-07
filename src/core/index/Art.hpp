@@ -27,6 +27,8 @@ public:
 
     void erase(const char *key,size_t key_len);
 
+    void erase(const std::string &key);
+
     /// @brief iterate though all elements over the sub tree designated by given prefix
     /// @param on_elm will be called when iterating reaches a leaf
     /// @param early_termination will be called when key descend to a lower level, return true would stop current node's dfs process
@@ -115,6 +117,12 @@ void ARTree<T>::erase(const char *key, size_t key_len)
 {
     bool ok=this->erase_impl(_root,_root,reinterpret_cast<const unsigned char*>(key),key_len,0);
     if(ok) _size--;
+}
+
+template<class T>
+void ARTree<T>::erase(const std::string &key)
+{
+    this->erase(key.data(),key.length());
 }
 
 template<class T>

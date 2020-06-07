@@ -14,7 +14,7 @@ InvertIndex::InvertIndex()
 
 }
 
-void InvertIndex::index_str_record(const IndexRecord &record)
+void InvertIndex::index_str_record(const StrRecord &record)
 {
     for(const auto &[term,offsets]:record.term_offsets){
         {
@@ -38,6 +38,36 @@ void InvertIndex::index_str_record(const IndexRecord &record)
             term_set->emplace(term);
         }
     }
+}
+
+void InvertIndex::remove_str_record(const StrRecord &record)
+{
+     for(const auto &[term,offsets]:record.term_offsets){
+         bool erase_term=false;
+         {
+            WriterLockGuard lock_guard(this->_term_posting_lock);
+            PostingList *posting_list=this->get_postinglist(term);
+            assert(posting_list);
+            posting_list->remove_doc(record.seq_id,record.doc_len);
+            if(posting_list->empty()){
+                erase_term=true;
+                this->_term_postings.erase(term);
+            }
+         }
+         if(Util::is_chinese(term)){
+              WriterLockGuard lock_guard(this->_pinyin_terms_lock);
+              std::string pinyin=rocapinyin::getpinyin_str(term);
+              Util::trim(pinyin,' ');
+              std::unordered_set<std::string> *term_set=this->_pinyin_terms.find(pinyin);
+              assert(term_set);
+              if(erase_term){
+                  term_set->erase(term);
+              }
+              if(term_set->empty()){
+                  this->_pinyin_terms.erase(pinyin);
+              }
+         }
+     }
 }
 
 uint32_t InvertIndex::term_docs_num(const string &term) const
@@ -263,7 +293,7 @@ void CollectionIndexes::search_fields(const std::string &field_path,const std::u
     if(!index)
         return;
 
-    index->search_field(field_path,token_to_offsets,costs,slop,_doc_count,&this->_sort_indexes,on_match);
+    index->search_field(field_path,token_to_offsets,costs,slop,_doc_num,&this->_sort_indexes,on_match);
 }
 
 void CollectionIndexes::index_numeric(const string &field_path, const uint32_t seq_id, const number_t number)
@@ -272,6 +302,12 @@ void CollectionIndexes::index_numeric(const string &field_path, const uint32_t s
     if(sort_index.cache){
         sort_index.add_number(seq_id,number);
     }
+}
+
+void CollectionIndexes::remove_numeric(const std::string &field_path, const uint32_t seq_id)
+{
+    SortIndex &sort_index=_sort_indexes[field_path];
+    sort_index.remove_number(seq_id);
 }
 
 uint32_t CollectionIndexes::field_term_doc_num(const string &field_path, const string &term) const
@@ -286,12 +322,12 @@ uint32_t CollectionIndexes::field_term_doc_num(const string &field_path, const s
 
 void CollectionIndexes::set_doc_num(const uint32_t doc_num)
 {
-    _doc_count=doc_num;
+    _doc_num=doc_num;
 }
 
 uint32_t CollectionIndexes::get_doc_num() const
 {
-    return this->_doc_count;
+    return this->_doc_num;
 }
 
 number_t SortIndex::get_numeric_val(const uint32_t doc_seq_id) const
@@ -311,6 +347,11 @@ number_t SortIndex::get_numeric_val(const uint32_t doc_seq_id) const
 void SortIndex::add_number(uint32_t seq_id,const number_t number)
 {
     index[seq_id]=number;
+}
+
+void SortIndex::remove_number(uint32_t seq_id)
+{
+    index.erase(seq_id);
 }
 
 

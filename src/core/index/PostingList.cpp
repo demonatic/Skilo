@@ -1,11 +1,17 @@
 #include "PostingList.h"
-#include <iostream>
+#include "g3log/g3log.hpp"
+
 namespace Skilo {
 namespace Index{
 
 PostingList::PostingList(const std::string &term):_avg_doc_len(0),_term(term)
 {
 
+}
+
+bool PostingList::empty() const
+{
+    return this->num_docs()==0;
 }
 
 uint32_t PostingList::num_docs() const
@@ -32,6 +38,28 @@ void PostingList::add_doc(const uint32_t seq_id,const uint32_t doc_len,const std
     for(uint32_t off:offsets){
         _offsets.append(off);
     }
+}
+
+void PostingList::remove_doc(const uint32_t seq_id,const uint32_t doc_len)
+{
+    _avg_doc_len=(_avg_doc_len*num_docs()-doc_len)/(num_docs()-1);
+
+    size_t doc_index=_doc_ids.index_of(seq_id);
+    if(doc_index==_doc_ids.length()){
+        LOG(WARNING)<<"fail to find seq id:\""<<seq_id<<"\" in posting list";
+        return;
+    }
+    _doc_ids.remove(doc_index);
+    _doc_term_freqs.remove(doc_index);
+    _doc_len.remove(doc_index);
+
+    size_t offset_begin=_offset_index[doc_index];
+    size_t offset_end=(doc_index==_offset_index.length()-1)?_offsets.length():_offset_index[doc_index+1];
+    _offsets.remove_range(offset_begin,offset_end);
+    _offset_index.remove(doc_index);
+    _offset_index.apply(doc_index,_offset_index.length(),[=](const uint32_t index){
+        return index-(offset_end-offset_begin);
+    });
 }
 
 uint32_t PostingList::get_doc_id(const uint32_t index) const

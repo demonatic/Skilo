@@ -50,6 +50,13 @@ uint32_t StorageService::get_collection_next_seq_id(uint32_t collection_id) cons
     return next_seq_id;
 }
 
+uint32_t StorageService::get_doc_seq_id(const uint32_t collection_id, const uint32_t doc_id)
+{
+    std::string seq_id_str;
+    _storage_engine.get(KeyConverter::doc_id_key(collection_id,doc_id),seq_id_str);
+    return KeyConverter::deserialize_to_uint32_t(seq_id_str);
+}
+
 Document StorageService::get_document(const uint32_t collection_id,const uint32_t seq_id) const
 {
     const std::string &seq_key=KeyConverter::doc_seq_key(collection_id,seq_id);
@@ -105,15 +112,22 @@ bool StorageService::write_document(uint32_t collection_id,const Document &docum
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     document.get_raw().Accept(writer);
 
+    const uint32_t seq_id=document.get_seq_id().value();
     StorageEngine::Batch batch;
     const std::string &doc_key=KeyConverter::doc_id_key(collection_id,document.get_doc_id());
-    const std::string &seq_key=KeyConverter::doc_seq_key(collection_id,document.get_seq_id().value());
+    const std::string &seq_key=KeyConverter::doc_seq_key(collection_id,seq_id);
     const std::string &next_seq_key=KeyConverter::collection_next_seq_key(collection_id);
 
-    batch.Put(doc_key,seq_key);
+    batch.Put(doc_key,KeyConverter::serialize_uint32_t(seq_id));
     batch.Put(seq_key,buffer.GetString());
     batch.Put(next_seq_key,std::to_string(document.get_seq_id().value()+1));
     return _storage_engine.batch_write(batch);
+}
+
+bool StorageService::remove_document(uint32_t collection_id, const Document &document)
+{
+    return _storage_engine.remove(KeyConverter::doc_id_key(collection_id,document.get_doc_id()))
+            &&_storage_engine.remove(KeyConverter::doc_seq_key(collection_id,document.get_seq_id().value()));
 }
 
 bool StorageService::write_new_collection(uint32_t colletion_id, const CollectionMeta &collection_meta)

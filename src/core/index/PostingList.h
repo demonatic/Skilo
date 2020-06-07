@@ -14,12 +14,15 @@ class PostingList
 public:
     PostingList(const std::string &term);
 
+    bool empty() const;
     uint32_t num_docs() const;
 
     double avg_doc_len() const;
 
     /// @note offsets must be in ascending order
     void add_doc(const uint32_t seq_id,const uint32_t doc_len,const std::vector<uint32_t> &offsets);
+
+    void remove_doc(const uint32_t seq_id,const uint32_t doc_len);
 
     uint32_t get_doc_id(const uint32_t index) const;
     uint32_t get_doc_tf(const uint32_t doc_id) const;

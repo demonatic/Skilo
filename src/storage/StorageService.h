@@ -23,6 +23,8 @@ public:
     /// @throw InternalServerException
     uint32_t get_collection_next_seq_id(uint32_t collection_id) const;
 
+    uint32_t get_doc_seq_id(const uint32_t collection_id,const uint32_t doc_id);
+
     /// @brief read storage, fecth the document in the given collection and parse it
     /// @throw InternalServerException,InvalidFormatException
     Document get_document(const uint32_t collection_id,const uint32_t seq_id) const;
@@ -38,9 +40,10 @@ public:
     /// @brief delete all data about the give collection
     void drop_collection(const uint32_t collection_id,const std::string &collection_name);
 
-public:
     /// @brief write <doc_id,seq_id>,<seq_id,doc>,<collection_next_seq_id_key,collection_next_seq_id_value> to storage
     bool write_document(uint32_t collection_id,const Document &document);
+
+    bool remove_document(uint32_t collection_id,const Document &document);
 
     bool write_new_collection(uint32_t colletion_id,const CollectionMeta &collection_meta);
 

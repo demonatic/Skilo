@@ -19,7 +19,7 @@ namespace Skilo {
 
 namespace Index{
 
-struct IndexRecord{
+struct StrRecord{
     uint32_t seq_id;
     uint32_t doc_len;
     std::unordered_map<std::string, std::vector<uint32_t>> term_offsets;
@@ -33,7 +33,10 @@ struct SortIndex{
     Storage::StorageService *storage;
 
     number_t get_numeric_val(const uint32_t doc_seq_id) const;
+
     void add_number(uint32_t seq_id,const number_t number);
+
+    void remove_number(uint32_t seq_id);
 };
 
 class InvertIndex
@@ -41,9 +44,11 @@ class InvertIndex
 public:
     InvertIndex();
 
-    void index_str_record(const IndexRecord &record);
+    void index_str_record(const StrRecord &record);
+    void remove_str_record(const StrRecord &record);
 
     size_t dict_size() const;
+
     void debug_print_dict() const;
 
     /// @brief return how many doc contain this term
@@ -81,14 +86,17 @@ public:
     Search::AutoSuggestor *get_suggestor() const;
 
     bool contains(const std::string &field_path) const;
-    uint32_t field_term_doc_num(const std::string &field_path,const std::string &term) const;
 
     void set_doc_num(const uint32_t doc_num);
+
     uint32_t get_doc_num() const;
 
-    void search_fields(const std::string &field_path,const std::unordered_map<string,std::vector<uint32_t>> &token_to_offsets,const std::vector<size_t> &costs,size_t slop,std::function<void(Search::MatchContext&)> on_match) const;
+    uint32_t field_term_doc_num(const std::string &field_path,const std::string &term) const;
 
     void index_numeric(const std::string &field_path,const uint32_t seq_id,const number_t number);
+    void remove_numeric(const std::string &field_path,const uint32_t seq_id);
+
+    void search_fields(const std::string &field_path,const std::unordered_map<string,std::vector<uint32_t>> &token_to_offsets,const std::vector<size_t> &costs,size_t slop,std::function<void(Search::MatchContext&)> on_match) const;
 
 protected:
     virtual void visit_field_string(const Schema::FieldString *field_string) override;
@@ -99,8 +107,8 @@ private:
     void init_sort_field(const Schema::Field *field_numeric);
 
 private:
-    uint32_t _doc_count;
     uint32_t _collection_id;
+    std::atomic_uint32_t _doc_num;
     const Storage::StorageService *_storage_service;
 
     //!-- <field_path,index>

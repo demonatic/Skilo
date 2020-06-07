@@ -246,6 +246,16 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
                             }";
     Query query("recipe",search_str);
     cout<<collection_manager.search(query)<<endl;
+    std::cout<<"remove doc 4234324"<<std::endl;
+    cout<<collection_manager.remove_document(collection_name,4234324)<<endl;
+    std::cout<<"remove doc 543432"<<std::endl;
+    cout<<collection_manager.remove_document(collection_name,543432)<<endl;
+    std::cout<<"remove doc 8534571"<<std::endl;
+    cout<<collection_manager.remove_document(collection_name,8534571)<<endl;
+
+    EXPECT_FALSE(collection_manager.get_collection(collection_name)->contain_document(4234324));
+    EXPECT_FALSE(collection_manager.get_collection(collection_name)->contain_document(543432));
+    cout<<collection_manager.search(query)<<endl;
 
     std::string search_str2="{\
                            \"query\": \"鱼香柔丝盖浇饭\",\

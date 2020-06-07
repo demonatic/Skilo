@@ -17,7 +17,9 @@ public:
     AutoSuggestor(const size_t suggestion_num=5,const size_t min_gram=2,const size_t max_gram=15,const size_t max_query_len=45);
 
     /// @brief update the most hot search content of query's each prefix using edge-ngram
-    void update(const std::string &query);
+    void update(const std::string &content);
+
+    void de_update(const std::string &content);
 
     /// @brief get top k hot queries with given prefix
     std::vector<std::string_view> auto_suggest(const std::string &query_prefix);

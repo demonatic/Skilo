@@ -21,6 +21,10 @@ std::string serialize_uint32_t(const uint32_t num){
     return std::string(encoded,encoded+4);
 }
 
+uint32_t deserialize_to_uint32_t(const std::string &str){
+    return (((str[0]&0xff)<<24)|((str[1]&0xff)<<16)|((str[2]&0xff)<<8)|(str[3]&0xff));
+}
+
 /// @brief key prefix for a collection's each documents
 std::string doc_seq_key_prefix(const uint32_t collection_id){
     return serialize_uint32_t(collection_id)+'_'+DOC_SEQ_KEY_PREFIX+'_';

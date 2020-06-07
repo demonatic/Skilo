@@ -60,7 +60,6 @@ void SkiloServer::skilo_create_collection(QueryContext &context,std::string &res
 
 void SkiloServer::skilo_drop_collection(SkiloServer::QueryContext &context, std::string &response)
 {
-    LOG(INFO)<<"@skilo_drop_collection";
     std::string collection_name=this->extract_collection_name(context.req->uri());
     response=_collection_manager->drop_collection(collection_name);
 }
@@ -77,6 +76,13 @@ void SkiloServer::skilo_add_document(QueryContext &context,std::string &response
         Document new_doc(base);
         response=_collection_manager->add_document(collection_name,new_doc);
     }
+}
+
+void SkiloServer::skilo_remove_document(SkiloServer::QueryContext &context, std::string &response)
+{
+    std::string collection_name=extract_collection_name(context.req->uri());
+    uint32_t doc_id=extract_document_id(context.req->uri());
+    response=_collection_manager->remove_document(collection_name,doc_id);
 }
 
 void SkiloServer::skilo_query_collection(QueryContext &context,std::string &response)
@@ -104,23 +110,42 @@ void SkiloServer::skilo_auto_suggest(SkiloServer::QueryContext &context,std::str
 std::string SkiloServer::extract_collection_name(std::string_view uri) const
 {
     uri.remove_prefix(1);
-    size_t name_start=1+uri.find_first_of('/');
-    size_t name_end=uri.find_last_of('/');
-    if(name_start==uri.npos||name_end==uri.npos){
-        throw InvalidFormatException("missing \"collection name\" in uri");
+    size_t name_begin=uri.find_first_of('/')+1; //since uri match regex, this '/' must exists
+    size_t name_end=uri.find_first_of('/',name_begin);
+    if(name_end==std::string_view::npos){
+        name_end=uri.length();
     }
-    return std::string(uri.substr(name_start,name_end-name_start));
+    if(name_begin==name_end){
+        throw InvalidFormatException("bad uri: collection name is empty");
+    }
+    return std::string(uri.substr(name_begin,name_end-name_begin));
+}
+
+uint32_t SkiloServer::extract_document_id(std::string_view uri) const
+{
+    auto doc_id_str=uri.substr(uri.find_last_of('/')+1);
+    uint32_t doc_id;
+    try {
+        doc_id=std::stoul(std::string(doc_id_str));
+    }  catch (std::exception &e) {
+        throw InvalidFormatException("bad uri: invalid document id");
+    }
+    return doc_id;
 }
 
 void SkiloServer::init_http_route(Rinx::RxProtocolHttp1Factory &http1)
 {
     http1.POST(R"(^\/collections$)",MakeAsync(BIND_SKILO_CALLBACK(SkiloServer::skilo_create_collection));
-    http1.POST(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*$)",MakeAsync(BIND_SKILO_CALLBACK(SkiloServer::skilo_add_document));
-    http1.GET(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*\/documents$)",BIND_SKILO_CALLBACK(SkiloServer::skilo_query_collection);
-    //in case some clients doesn't support GET with body
-    http1.POST(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*\/documents$)",BIND_SKILO_CALLBACK(SkiloServer::skilo_query_collection);
-    http1.GET(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*\/auto_suggestion\?q=[\w\W]*$)",BIND_SKILO_CALLBACK(SkiloServer::skilo_auto_suggest);
     http1.DELETE(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*$)",MakeAsync(BIND_SKILO_CALLBACK(SkiloServer::skilo_drop_collection));
+
+    http1.POST(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*$)",MakeAsync(BIND_SKILO_CALLBACK(SkiloServer::skilo_add_document));        
+    http1.DELETE(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*\/[0-9]*$)",MakeAsync(BIND_SKILO_CALLBACK(SkiloServer::skilo_remove_document));
+
+    http1.GET(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*\/documents$)",BIND_SKILO_CALLBACK(SkiloServer::skilo_query_collection);
+    http1.POST(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*\/documents$)",BIND_SKILO_CALLBACK(SkiloServer::skilo_query_collection);  //in case some clients doesn't support GET with body
+
+    http1.GET(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*\/auto_suggestion\?q=[\w\W]*$)",BIND_SKILO_CALLBACK(SkiloServer::skilo_auto_suggest);
+
     if(_debug){
         http1.head_filter(R"([\s\S]*)",[](HttpRequest &req,Rinx::HttpResponseHead &head,Rinx::Next next){
             head.header_fields.add("Access-Control-Allow-Origin","*");

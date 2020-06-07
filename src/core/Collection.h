@@ -32,6 +32,8 @@ public:
     /// @throw InvalidFormatException, InternalServerException
     void add_new_document(Document &document);
 
+    void remove_document(const uint32_t doc_id);
+
     bool contain_document(const uint32_t doc_id) const;
 
     /// @brief check whether document adhere to the schema
@@ -50,9 +52,11 @@ private:
     std::unique_ptr<Index::TokenizeStrategy> get_tokenize_strategy(const std::string &tokenizer_name) const;
 
 private:
-    std::atomic_uint32_t _collection_id;
+    const uint32_t _collection_id;
+    const std::string _collection_name;
+
     std::atomic_uint32_t _next_seq_id;
-    std::string _collection_name;
+    std::atomic_uint32_t _doc_num;
 
     StorageService *_storage_service;
 

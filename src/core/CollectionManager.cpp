@@ -54,7 +54,7 @@ ResultStr CollectionManager::create_collection(CollectionMeta &collection_meta)
     _collection_name_id_map.insert(collection_name,collection_id);
     LOG(INFO)<<"Collection \""<<collection_name<<"\" id="<<collection_id<<" has created";
 
-    return "create collection with name \'"+collection_name+"\' ok";
+    return "create collection with name \""+collection_name+"\" ok";
 }
 
 ResultStr CollectionManager::add_document(const std::string &collection_name,Document &document)
@@ -65,10 +65,24 @@ ResultStr CollectionManager::add_document(const std::string &collection_name,Doc
     }
     uint32_t doc_id=document.get_doc_id();
     if(collection->contain_document(doc_id)){
-        throw ConflictException("The collection with name `"+collection_name+"` has already contained doc "+std::to_string(doc_id));
+        throw ConflictException("The collection with name `"+collection_name+"` has already contained document with id=\""+std::to_string(doc_id)+"\"");
     }
     collection->add_new_document(document);
-    return "add document "+std::to_string(doc_id)+" success";
+    return "add document id=\""+std::to_string(doc_id)+"\" success";
+}
+
+ResultStr CollectionManager::remove_document(const std::string &collection_name, const uint32_t doc_id)
+{
+    LOG(INFO)<<"removing document id=\""<<doc_id<<"\" from collection \""<<collection_name<<"\"";
+    std::shared_ptr<Collection> collection=this->get_collection(collection_name);
+    if(!collection){
+        throw NotFoundException("collection \""+collection_name+"\" not exist");
+    }
+    if(!collection->contain_document(doc_id)){
+        throw ConflictException("The collection with name `"+collection_name+"` does not contained document with id=\""+std::to_string(doc_id)+"\"");
+    }
+    collection->remove_document(doc_id);
+    return "remove document id=\""+std::to_string(doc_id)+"\" success";
 }
 
 ResultStr CollectionManager::add_document_batch(const string &collection_name, DocumentBatch &doc_batch)

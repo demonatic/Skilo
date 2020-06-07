@@ -28,7 +28,7 @@ std::vector<uint32_t> TokenSet::get_offsets(const std::string &term) const
     return offset_it!=_term_to_offsets.end()?offset_it->second:std::vector<uint32_t>{};
 }
 
-const std::unordered_map<std::string, std::vector<uint32_t> > &TokenSet::term_to_offsets() const
+std::unordered_map<std::string, std::vector<uint32_t>> &TokenSet::term_to_offsets()
 {
      return _term_to_offsets;
 }

@@ -19,6 +19,9 @@ public:
     ResultStr create_collection(CollectionMeta &collection_meta);
 
     ResultStr add_document(const std::string &collection_name,Document &document);
+
+    ResultStr remove_document(const std::string &collection_name,const uint32_t doc_id);
+
     ResultStr add_document_batch(const std::string &collection_name,DocumentBatch &doc_batch);
 
     ResultStr drop_collection(const std::string &collection_name);

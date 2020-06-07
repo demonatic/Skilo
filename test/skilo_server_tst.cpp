@@ -165,6 +165,13 @@ void send_request_to_server(bool init_collection,bool search){
             send(sockfd,sendbuff,req.length(),0);
             recv(sockfd, recvbuff, sizeof(recvbuff), 0);
             fputs(recvbuff,stdout);
+
+            string req_delete="DELETE /collections/recipe/543432 HTTP/1.1\r\n"
+                           "Host: Chrome\r\n\r\n";
+            memcpy(sendbuff,req_delete.data(),req_delete.length());
+            send(sockfd,sendbuff,req_delete.length(),0);
+            recv(sockfd, recvbuff, sizeof(recvbuff), 0);
+            fputs(recvbuff,stdout);
     }
 
     if(search){

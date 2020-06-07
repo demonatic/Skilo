@@ -165,7 +165,7 @@ std::vector<std::vector<std::string>> IndexSearcher::search_en_fuzz_term(const s
     return search_fuzz_term<PostingList>(field_name,term,term_iterator,en_fuzzy_term_collector,exact_prefix_len,max_edit_distance);
 }
 
-std::vector<std::vector<std::string>> IndexSearcher::search_ch_fuzz_term(const std::string &field_name, const std::string &term, size_t exact_prefix_len, size_t max_edit_distance) const
+std::vector<std::vector<string>> IndexSearcher::search_ch_fuzz_term(const std::string &field_name, const std::string &term, size_t exact_prefix_len, size_t max_edit_distance) const
 {
     std::string term_pinyin=rocapinyin::getpinyin_str(term);
     Util::trim(term_pinyin,' ');
@@ -219,7 +219,7 @@ std::vector<std::vector<std::string>> IndexSearcher::search_fuzz_term(const std:
 
     distance_table.emplace_back(std::move(first_row));
 
-    auto on_fuzzy_match=[&](unsigned char *str, size_t len, T* t){
+    auto on_fuzzy_node=[&](unsigned char *str, size_t len, T* t){
         std::string match=std::string(str,str+len);
         size_t distance=static_cast<size_t>(distance_table.back().back());
         if(distance<=max_edit_distance){
@@ -256,7 +256,7 @@ std::vector<std::vector<std::string>> IndexSearcher::search_fuzz_term(const std:
 
     //iterate though the whole term dict
     //it's O(n) operation but incremental calculation along with early termination will save a lot of time
-    iterator(invert_index)(exact_match_prefix,on_fuzzy_match,early_termination,on_backtrace);
+    iterator(invert_index)(exact_match_prefix,on_fuzzy_node,early_termination,on_backtrace);
     return fuzzy_matches;
 }
 

@@ -5,8 +5,10 @@
 #include <memory>
 #include <limits>
 #include <stdexcept>
+#include <cassert>
+#include <functional>
 #include <for.h>
-
+#include <iostream>
 namespace Skilo{
 namespace Index{
 
@@ -108,6 +110,99 @@ public:
         }
     }
 
+    /// @brief remove all elements between [begin,end)
+    void remove_range(const size_t begin,const size_t end){
+        assert(begin<=end&&end<=this->length());
+        if(begin==end)
+            return;
+
+        size_t new_length=this->length()-(end-begin);
+
+        _max_val=std::numeric_limits<uint32_t>::min();
+        _min_val=std::numeric_limits<uint32_t>::max();
+
+        std::unique_ptr<uint32_t[]> new_elms=std::make_unique<uint32_t[]>(new_length);
+        std::unique_ptr<uint32_t[]> origin_elms=this->uncompress();
+
+        for(size_t i=0,j=0;i<this->length();i++){
+            if(i<begin||i>=end){
+                uint32_t val=origin_elms[i];
+                _min_val=std::min(_min_val,val);
+                _max_val=std::max(_max_val,val);
+                new_elms[j++]=val;
+            }
+        }
+
+        _byte_capacity=this->get_append_size_required(_max_val,new_length)*GrowthFactor;
+        uint8_t *new_addr=static_cast<uint8_t*>(std::realloc(_data,_byte_capacity));
+        if(!new_addr){
+           throw std::bad_alloc();
+        }
+        _data=new_addr;
+
+        if constexpr(type==ScalarType::Sorted){
+            _byte_length=for_compress_sorted(new_elms.get(),_data,new_length);
+        }
+        else{
+            _byte_length=for_compress_unsorted(new_elms.get(),_data,new_length);
+        }
+        _elm_count=new_length;
+    }
+
+    void remove(const size_t index){
+        this->remove_range(index,index+1);
+    }
+
+    void remove_value(const uint32_t val){
+        uint32_t index=this->index_of(val);
+        if(index==this->length()){
+            return;
+        }
+        this->remove(index);
+    }
+
+    /// @brief apply each element between [begin,end) with given transformer
+    void apply(const size_t begin,const size_t end,std::function<uint32_t(uint32_t)> transformer){
+        assert(begin<=end&&end<=this->length());
+        if(begin==end)
+            return;
+
+        _max_val=std::numeric_limits<uint32_t>::min();
+        _min_val=std::numeric_limits<uint32_t>::max();
+
+        std::unique_ptr<uint32_t[]> elms=this->uncompress();
+        for(size_t i=0;i<begin;i++){
+            _min_val=std::min(_min_val,elms[i]);
+            _max_val=std::max(_max_val,elms[i]);
+        }
+        for(size_t i=begin;i<end;i++){
+            uint32_t new_val=transformer(elms[i]);
+            elms[i]=new_val;
+            _min_val=std::min(_min_val,new_val);
+            _max_val=std::max(_max_val,new_val);
+        }
+
+        _byte_capacity=this->get_append_size_required(_max_val,_elm_count)*GrowthFactor;
+        uint8_t *new_addr=static_cast<uint8_t*>(std::realloc(_data,_byte_capacity));
+        if(!new_addr){
+           throw std::bad_alloc();
+        }
+        _data=new_addr;
+        if constexpr(type==ScalarType::Sorted){
+             _byte_length=for_compress_sorted(elms.get(),_data,_elm_count);
+#ifndef NDEBUG
+    for(int i=1;i<_elm_count;i++){
+        if(elms[i]<elms[i-1]){
+            throw std::runtime_error("the scalar is not sorted after transformed");
+        }
+    }
+#endif
+        }
+        else{
+            _byte_length=for_compress_unsorted(elms.get(),_data,_elm_count);
+        }
+    }
+
     /// @return num of elements
     uint32_t length() const{
         return _elm_count;
@@ -123,6 +218,7 @@ public:
     }
 
 private:
+    /// @brief get the least bytes needed to append the 'value'
     uint32_t get_append_size_required(uint32_t value,uint32_t new_length){
         uint32_t new_min=std::min(_min_val,value);
         uint32_t new_max=std::max(_max_val,value);

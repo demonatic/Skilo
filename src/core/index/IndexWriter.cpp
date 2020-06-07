@@ -22,12 +22,12 @@ void IndexWriter::visit_field_string(const Schema::FieldString *field_string, co
     InvertIndex *index=_indexes.get_invert_index(field_string->path);
     if(!index) return; //schema says we needn't index this field
 
-    std::unordered_map<std::string, std::vector<uint32_t>> word_offsets;
+
     auto content=node.GetString();
-    word_offsets=_tokenizer->tokenize(content).term_to_offsets();
+    TokenSet token_set=_tokenizer->tokenize(content);
 
     uint32_t doc_len=strlen(content);
-    IndexRecord record{_seq_id,doc_len,std::move(word_offsets)};
+    StrRecord record{_seq_id,doc_len,std::move(token_set.term_to_offsets())};
     index->index_str_record(record);
 
     if(field_string->attribute_val_true("suggest")){
@@ -57,6 +57,60 @@ void IndexWriter::visit_field_boolean(const Schema::FieldBoolean *field_boolean,
 }
 
 void IndexWriter::visit_field_array(const Schema::FieldArray *field_array, const rapidjson::Value &node)
+{
+
+}
+
+IndexEraser::IndexEraser(CollectionIndexes &indexes, TokenizeStrategy *tokenizer):_indexes(indexes),_tokenizer(tokenizer)
+{
+
+}
+
+void IndexEraser::remove_from_memory_index(const Schema::CollectionSchema &schema, const Document &document)
+{
+    std::optional<uint32_t> seq_id=document.get_seq_id();
+    assert(seq_id.has_value());
+    _seq_id=seq_id.value();
+    schema.accept(*this,document.get_raw());
+}
+
+void IndexEraser::visit_field_string(const Schema::FieldString *field_string, const rapidjson::Value &node)
+{
+    InvertIndex *index=_indexes.get_invert_index(field_string->path);
+    if(!index) return; //schema says this field doesn't contain in index
+
+    auto content=node.GetString();
+    TokenSet token_set=_tokenizer->tokenize(content);
+
+    uint32_t doc_len=strlen(content);
+    StrRecord record{_seq_id,doc_len,std::move(token_set.term_to_offsets())};
+    index->remove_str_record(record);
+
+    if(field_string->attribute_val_true("suggest")){
+        DefaultTokenizer segment_splitter;
+        auto segments=segment_splitter.tokenize(content);
+        for(auto &&[seg,offsets]:segments.term_to_offsets()){
+            _indexes.get_suggestor()->de_update(seg);
+        }
+    }
+}
+
+void IndexEraser::visit_field_integer(const Schema::FieldInteger *field_integer, const rapidjson::Value &node)
+{
+    _indexes.remove_numeric(field_integer->path,_seq_id);
+}
+
+void IndexEraser::visit_field_float(const Schema::FieldFloat *field_float, const rapidjson::Value &node)
+{
+    _indexes.remove_numeric(field_float->path,_seq_id);
+}
+
+void IndexEraser::visit_field_boolean(const Schema::FieldBoolean *field_boolean, const rapidjson::Value &node)
+{
+
+}
+
+void IndexEraser::visit_field_array(const Schema::FieldArray *field_array, const rapidjson::Value &node)
 {
 
 }
