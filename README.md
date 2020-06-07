@@ -18,7 +18,7 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
 *   Query by/Sort by
 *   Chinese Support
 *   Auto Suggestion
-*   Typo tolerant(TODO)
+*   Typo tolerant
 
 ## Build
 
