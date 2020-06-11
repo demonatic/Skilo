@@ -2,6 +2,7 @@
 #include <unordered_map>
 #include "rocapinyin.h"
 #include "utility/Util.h"
+#include "g3log/g3log.hpp"
 
 namespace Skilo {
 
@@ -121,7 +122,6 @@ void InvertIndex::search_field(const std::string &field_path,const std::unordere
     for(uint32_t leading_cur=0;leading_cur<leading_doc_num;leading_cur++){
         bool exists_in_all_entry=true;
         uint32_t lead_doc=leading_docs[leading_cur];
-
         for(size_t i=1;i<candidate_postings.size();i++){
             if(!candidate_postings[i]->contain_doc(lead_doc)){ //couldn't find lead_doc in this entey
                 exists_in_all_entry=false;
@@ -151,7 +151,7 @@ void InvertIndex::search_field(const std::string &field_path,const std::unordere
             uint32_t phrase_match_count=0;
             while(term_cursors[0].first<leading_term_offsets.size()){
                 long rel_pos,next_rel_pos; //relative position
-                rel_pos=next_rel_pos=leading_term_offsets[0]-leading_qt_offset; // equivalent to "11-0" in above example
+                rel_pos=next_rel_pos=leading_term_offsets[term_cursors[0].first]-leading_qt_offset; // equivalent to "11-0" in above example
 
                 //move each term's cursor except the leading one to where the relative offset is no smaller than rel_pos
                 for(size_t i=1;i<query_term_count;i++){
@@ -179,7 +179,7 @@ void InvertIndex::search_field(const std::string &field_path,const std::unordere
                     while(leading_cur<leading_term_offsets.size()&&leading_term_offsets[leading_cur]-leading_qt_offset<next_rel_pos){
                         leading_cur++;
                     }
-                    term_cursors[0].first=leading_cur;
+                    term_cursors[0].first=std::max(leading_cur,term_cursors[0].first+1);
                 }
                 else{ //all term's offset match, move cursor A to the right next position
                     phrase_match_count++;

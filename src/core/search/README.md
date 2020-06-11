@@ -65,7 +65,49 @@ Skilo搜索流程分为如下几步：
   假设搜索字符串为”我们都是宝宝“，被分词为三个词元[”我们“，"都是"，”宝宝“]，那么三个词元在搜索字符串中的偏移量可以作为每个词元倒排列表中offsets的基数，整体思路和倒排列表求交集的方式一相似，计算词元”我们“所属cursor的元素与它的基数之间的相对偏移量relative_pos，然后线性搜索后续每个词元与它们各自的基数是否相等即可，如果每个词元的cursor都找到了一个位置使它们拥有共同的relative_pos，则此时能构成一个短语。如果至少能构成一个短语，则collect此文档。
   
   ```c++
-     /// \brief check whether the doc contains the query phrase and if contains, how many
+      /// \brief find the conjuction doc_ids of the query terms
+      /// @example:
+      /// query_term_A -> doc_id_1, doc_id_5, ...
+      /// query_term_B -> doc_id_2, doc_id_4, doc_id_5...
+      /// query_term_C -> doc_id_5, doc_id_7, doc_id_15, doc_id 29...
+      /// conjuction result: doc_id_5 ...
+  
+      std::vector<const PostingList*> candidate_postings; //for term AND logic, none duplicate
+      std::vector<std::pair<uint32_t,const PostingList*>> query_offset_entry; //<query term offset, term postings>, for phrase match
+  
+      ReaderLockGuard lock_guard(this->_term_posting_lock);
+      for(const auto &[query_term,offsets]:token_to_offsets){
+          auto *entry=this->get_postinglist(query_term);
+          if(!entry) return;
+          candidate_postings.push_back(entry);
+          for(const uint32_t &off:offsets){
+              query_offset_entry.push_back({off,entry});
+          }
+      }
+  
+      size_t query_term_count=query_offset_entry.size();
+      //sort the posting list based on length in ascending order reduces the number of comparisons
+      std::sort(candidate_postings.begin(),candidate_postings.end(),[](const auto &e1,const auto &e2){
+          return e1->num_docs()<e2->num_docs();
+      });
+      //sort query term according to offset in ascending order
+      std::sort(query_offset_entry.begin(),query_offset_entry.end(),[](auto &p1,auto &p2){
+          return p1.first<p2.first;
+      });
+  
+      uint32_t leading_doc_num=candidate_postings[0]->num_docs();
+      std::unique_ptr<uint32_t[]> leading_docs=candidate_postings[0]->get_all_doc_ids();
+  
+      for(uint32_t leading_cur=0;leading_cur<leading_doc_num;leading_cur++){
+          bool exists_in_all_entry=true;
+          uint32_t lead_doc=leading_docs[leading_cur];
+          for(size_t i=1;i<candidate_postings.size();i++){
+              if(!candidate_postings[i]->contain_doc(lead_doc)){ //couldn't find lead_doc in this entey
+                  exists_in_all_entry=false;
+                  break;
+              }
+          }
+          /// \brief check whether the doc contains the query phrase and if contains, how many
           /// @example:
           /// query phrase including three term "A","B","C" and term offsets are: 0, 2, 4
           /// a doc's offsets of:
@@ -75,8 +117,8 @@ Skilo搜索流程分为如下几步：
           ///
           /// @details: since 11-0=13-2=15-4, we got a phrase match the query phrase
           ///           since 26-0=28-2=30-4, we got another match...
-          std::vector<std::pair<uint32_t,const PostingList*>> query_offset_entry; //<query term offset, term postings>
-          if(exists_in_all_entry){ //the doc contain all searching terms 
+  
+          if(exists_in_all_entry){
               std::vector<std::pair<uint32_t,std::vector<uint32_t>>> term_cursors; //<posting cur, doc term offsets>
               for(std::pair<uint32_t,const PostingList*> pair:query_offset_entry){
                   std::vector<uint32_t> doc_term_offsets=pair.second->get_doc_term_offsets(lead_doc);
@@ -88,15 +130,17 @@ Skilo搜索流程分为如下几步：
               uint32_t phrase_match_count=0;
               while(term_cursors[0].first<leading_term_offsets.size()){
                   long rel_pos,next_rel_pos; //relative position
-                  rel_pos=next_rel_pos=leading_term_offsets[0]-leading_qt_offset; // equivalent to "11-0" in above example
+                  // equivalent to "11-0" in above example
+                  rel_pos=next_rel_pos=leading_term_offsets[term_cursors[0].first]-leading_qt_offset; 
   
-                  //move each term's cursor except the leading one to where the relative offset is no smaller than rel_pos
+                  //move each term's cursor except the leading one 
+                  //to where the relative offset is no smaller than rel_pos
                   for(size_t i=1;i<query_term_count;i++){
                       uint32_t cur_pos=term_cursors[i].first;
                       uint32_t following_qt_offset=query_offset_entry[i].first;
                       std::vector<uint32_t> &term_offs=term_cursors[i].second;
   
-                      while(cur_pos<term_offs.size()&&term_offs[cur_pos]-following_qt_offset<rel_pos){ //skip '7' in term_B since 7-2<11-0 until reaching 13
+                      while(cur_pos<term_offs.size()&&term_offs[cur_pos]-following_qt_offset<rel_pos){ 							//skip '7' in term_B since 7-2<11-0 until reaching 13
                           cur_pos++;
                       }
                       if(cur_pos==term_offs.size()){ //one of the cursor go to the end
@@ -110,13 +154,13 @@ Skilo搜索流程分为如下几步：
                       }
                   }
   
-                  if(next_rel_pos>rel_pos){ //handle mismatch
+                  if(next_rel_pos>rel_pos+slop){ //handle mismatch
                       uint32_t leading_cur=term_cursors[0].first;
                       // move leading cursor A to next candidate position
                       while(leading_cur<leading_term_offsets.size()&&leading_term_offsets[leading_cur]-leading_qt_offset<next_rel_pos){
                           leading_cur++;
                       }
-                      term_cursors[0].first=leading_cur;
+                      term_cursors[0].first=std::max(leading_cur,term_cursors[0].first+1);
                   }
                   else{ //all term's offset match, move cursor A to the right next position
                       phrase_match_count++;
@@ -124,11 +168,12 @@ Skilo搜索流程分为如下几步：
                   }
               }
               // collect this hit
-              if(phrase_match_count>0){
-                  Search::HitContext context{lead_doc,total_doc_count,&field_path,&candidate_postings};
-                  collector.collect(context);
-              }
+              Search::MatchContext context{lead_doc,total_doc_count,phrase_match_count,field_path,candidate_postings,costs,token_to_offsets,*sort_indexes};
+              on_match(context);
           }
+  END_OF_MATCH:
+          void(0);
+      }
   ```
   
 * ### 文档评分与TopK搜集
