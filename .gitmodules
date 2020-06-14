@@ -1,4 +1,4 @@
 [submodule "Rinx"]
-	path = src/network/Rinx/Rinx
+	path = src/network/Rinx
 	url = https://github.com/demonatic/Rinx
 	branch = master
