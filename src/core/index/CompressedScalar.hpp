@@ -192,9 +192,7 @@ public:
              _byte_length=for_compress_sorted(elms.get(),_data,_elm_count);
 #ifndef NDEBUG
     for(int i=1;i<_elm_count;i++){
-        if(elms[i]<elms[i-1]){
-            throw std::runtime_error("the scalar is not sorted after transformed");
-        }
+        assert(elms[i]>=elms[i-1]);
     }
 #endif
         }

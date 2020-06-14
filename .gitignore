@@ -43,3 +43,5 @@ src/CMakeFiles/*
 *build*
 test/skilo_test
 *callgrind*
+test/CMakeFiles/*
+*.log
