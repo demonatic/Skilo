@@ -40,7 +40,9 @@ bool SkiloServer::listen()
 
     uint16_t port=_config.get_listen_port();
     const std::string &addr=_config.get_listen_address();
-
+    _server.on_signal(SIGINT,[this](int){
+        this->stop();
+    });
     LOG(INFO)<<"Start listening on address "<<addr<<":"<<port;
     return _server.listen(addr,port,http1);
 }

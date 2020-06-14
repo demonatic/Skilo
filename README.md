@@ -20,7 +20,18 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
 *   Auto Suggestion
 *   Typo tolerant
 
-## Build
+## Build & Run
+
+```bash
+git clone https://github.com/demonatic/Skilo --recursive
+cd ./Skilo
+cmake .
+make
+cd ./src
+./Skilo
+```
+
+edit the file "skilo.conf" in project root directory to change database/log directory, listen port and etc.
 
 ## Usage Example
 
