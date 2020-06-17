@@ -284,7 +284,7 @@ InvertIndex *CollectionIndexes::get_invert_index(const string &field_path)
 
 bool CollectionIndexes::contains(const string &field_path) const
 {
-    return _indexes.find(field_path)!=_indexes.end();
+    return _indexes.count(field_path)||_sort_indexes.count(field_path);
 }
 
 void CollectionIndexes::search_fields(const std::string &field_path,const std::unordered_map<string,std::vector<uint32_t>> &token_to_offsets,const std::vector<size_t> &costs,size_t slop,std::function<void(Search::MatchContext&)> on_match) const

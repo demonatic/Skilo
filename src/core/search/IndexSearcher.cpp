@@ -42,7 +42,7 @@ std::vector<pair<uint32_t,double>> IndexSearcher::search()
     for(size_t i=0;i<query_fields.size();i++){
         const std::string &field=query_fields[i];
         if(!_indexes.contains(field)){
-            throw InvalidFormatException("query field \""+field+"\" not exists");
+            throw InvalidFormatException("query field \""+field+"\" not exists or not indexed");
         }
         do_search_field(field,token_set,_query_info.get_field_boosts()[i],collector);
     }
