@@ -1,6 +1,8 @@
 #include "Skilo.h"
 #include "Rinx/Protocol/HTTP/HttpResponse.h"
 #include "Rinx/Protocol/HTTP/ProtocolHttp1.h"
+#include "g3log/loglevels.hpp"
+#include "g3log/g3log.hpp"
 
 namespace Skilo {
 
@@ -24,7 +26,9 @@ SkiloServer::SkiloServer(const SkiloConfig &config,const bool debug)
         _log_worker->addSink(std::make_unique<CustomLogSink>(),&CustomLogSink::ReceiveLogMessage);
     }
     else{
+        g3::log_levels::setHighest(INFO);
         _log_file_handle =_log_worker->addDefaultLogger("skilo_log", config.get_log_dir());
+        _log_worker->addSink(std::make_unique<CustomLogSink>(),&CustomLogSink::ReceiveLogMessage);
     }
     g3::initializeLogging(_log_worker.get());
     _collection_manager=std::make_unique<CollectionManager>(config);
@@ -38,11 +42,12 @@ bool SkiloServer::listen()
     LOG(INFO)<<"Initiating server Http route";
     this->init_http_route(http1);
 
-    uint16_t port=_config.get_listen_port();
     const std::string &addr=_config.get_listen_address();
     _server.on_signal(SIGINT,[this](int){
         this->stop();
     });
+
+    uint16_t port=_config.get_listen_port();
     LOG(INFO)<<"Start listening on address "<<addr<<":"<<port;
     return _server.listen(addr,port,http1);
 }
@@ -148,8 +153,13 @@ void SkiloServer::init_http_route(Rinx::RxProtocolHttp1Factory &http1)
 
     http1.GET(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*\/auto_suggestion\?q=[\w\W]*$)",BIND_SKILO_CALLBACK(SkiloServer::skilo_auto_suggest);
 
+    http1.default_handler([](HttpRequest &req,HttpResponse &resp){
+          resp.send_status(HttpStatusCode::FORBIDDEN);
+          req.close_connection();
+    });
+
     if(_debug){
-        http1.head_filter(R"([\s\S]*)",[](HttpRequest &req,Rinx::HttpResponseHead &head,Rinx::Next next){
+        http1.head_filter(R"([\s\S]*)",[](HttpRequest &,Rinx::HttpResponseHead &head,Rinx::Next next){
             head.header_fields.add("Access-Control-Allow-Origin","*");
             next();
         });

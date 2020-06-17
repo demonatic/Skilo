@@ -240,10 +240,13 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
          }
      }
 
-    std::string search_str="{\
-                            \"query\": \"酸菜\",\
-                            \"query by\": [\"recipe_name\",\"context\"]\
-                            }";
+    std::string search_str=R"(
+                           {
+                               "query": "酸菜",
+                               "query by": ["recipe_name","context"],
+                               "boost": [5,1]
+                           }
+                           )";
     Query query("recipe",search_str);
     cout<<collection_manager.search(query)<<endl;
     std::cout<<"remove doc 4234324"<<std::endl;

@@ -19,7 +19,7 @@ number_t TextScorer::get_score(const MatchContext &context) const
         term_score=apply_phrase_match_boost(term_score,context);
         score+=apply_term_cost_penalty(term_score,context.token_costs[i]);
     }
-    return number_t(apply_total_cost_penalty(score,context.token_costs));
+    return number_t(apply_total_cost_penalty(score,context.token_costs)*context.boost);
 }
 
 double TextScorer::apply_term_cost_penalty(double score, const size_t cost) const

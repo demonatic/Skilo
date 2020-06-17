@@ -14,24 +14,23 @@ Skilo is a simple Search Engine implemented in C++. It provides Restful API to c
 
 * Simple and easy to use RESTful API
 *   Nested schema field support
-*   Word/Phrase Search
+*   Word Search/ Phrase Search / Fuzzy search & Typo tolerant
 *   Query by/Sort by
 *   Chinese Support
 *   Auto Suggestion
-*   Typo tolerant
 
 ## Build & Run
 
 ```bash
 git clone https://github.com/demonatic/Skilo --recursive
 cd ./Skilo
-cmake .
+cmake .  #build dependencies will take a while
 make
-cd ./src
-./Skilo
+make install
+Skilo
 ```
 
-edit the file "skilo.conf" in project root directory to change database/log directory, listen port and etc.
+edit the file "/etc/skilo/skilo.conf" in project root directory to change database/log directory, listen port and etc.
 
 ## Usage Example
 
@@ -153,6 +152,7 @@ edit the file "skilo.conf" in project root directory to change database/log dire
   {
       "query": "豆腐",
       "query by": ["recipe_name","ingredients.$items.title"],
+      "boost": [2.5,1],
       "sort by":["difficulty:asc","rank:desc"]
   }
   ```
@@ -178,7 +178,7 @@ edit the file "skilo.conf" in project root directory to change database/log dire
           ....
       }
     ],
-    "scores":[4.86,5.32]
+    "scores":[14.86,5.32]
   }
   ```
 

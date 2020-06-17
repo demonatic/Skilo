@@ -22,11 +22,10 @@ void IndexWriter::visit_field_string(const Schema::FieldString *field_string, co
     InvertIndex *index=_indexes.get_invert_index(field_string->path);
     if(!index) return; //schema says we needn't index this field
 
-
     auto content=node.GetString();
     TokenSet token_set=_tokenizer->tokenize(content);
 
-    uint32_t doc_len=strlen(content);
+    uint32_t doc_len=node.GetStringLength();
     StrRecord record{_seq_id,doc_len,std::move(token_set.term_to_offsets())};
     index->index_str_record(record);
 

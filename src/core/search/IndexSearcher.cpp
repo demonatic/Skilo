@@ -23,39 +23,31 @@ std::vector<pair<uint32_t,double>> IndexSearcher::search()
     const std::string &query_str=_query_info.get_search_str();
     TokenSet token_set=_tokenizer->tokenize(query_str);
 
-    //init search criteria and do search
+    //init rank criteria
     uint32_t top_k=50;
     Search::DocRanker ranker;
-    auto &sort_fields=_query_info.get_sort_fields();
-    if(sort_fields.empty()){
-        ranker.add_scorer(std::make_unique<Search::BM25_Scorer>());
-    }
-    else{
-        for(auto &&[sort_field,ascend_order]:sort_fields){
-            if(!_indexes.contains(sort_field)){
-                throw InvalidFormatException("sort field \""+sort_field+"\" not exists");
-            }
-            ranker.add_scorer(std::make_unique<Search::SortScorer>(sort_field,ascend_order));
+
+    for(auto &&[sort_field,ascend_order]:_query_info.get_sort_fields()){
+        if(!_indexes.contains(sort_field)){
+            throw InvalidFormatException("sort field \""+sort_field+"\" not exists");
         }
+        ranker.add_scorer(std::make_unique<Search::SortScorer>(sort_field,ascend_order));
     }
+    ranker.add_scorer(std::make_unique<Search::BM25_Scorer>());
 
     Search::HitCollector collector(top_k,ranker);
 
-    const std::vector<std::string> &search_fields=_query_info.get_query_fields();
-
-    for(const std::string &field:search_fields){
+    //search each field
+    const std::vector<std::string> &query_fields=_query_info.get_query_fields();
+    for(size_t i=0;i<query_fields.size();i++){
+        const std::string &field=query_fields[i];
         if(!_indexes.contains(field)){
             throw InvalidFormatException("query field \""+field+"\" not exists");
         }
-        do_search_field(field,token_set,collector);
+        do_search_field(field,token_set,_query_info.get_field_boosts()[i],collector);
     }
 
-    AutoSuggestor *suggestor=_indexes.get_suggestor();
-    if(suggestor){
-        suggestor->update(query_str);
-    }
-
-    //collect hit documents
+    //get top K
     return collector.get_top_k();
 }
 
@@ -68,7 +60,7 @@ std::vector<std::string>& IndexSearcher::get_fuzzy_term(const TokenSet &token_se
     });
 }
 
-void IndexSearcher::do_search_field(const std::string &field_name,TokenSet token_set,HitCollector &hit_collector)
+void IndexSearcher::do_search_field(const std::string &field_name,TokenSet token_set,float boost,HitCollector &hit_collector)
 {
     if(token_set.empty())
         return;
@@ -100,6 +92,7 @@ void IndexSearcher::do_search_field(const std::string &field_name,TokenSet token
     // e.g edit distance [2,0,1] from origin three query token
     auto on_cost_comb=[&](const std::vector<size_t> &costs){
         std::vector<std::vector<std::string>> candidate_tokens; //each token's fuzzy terms with given cost
+        LOG(DEBUG)<<"generate costs="<<costs;
         for(size_t i=0;i<costs.size();i++){
             std::vector<std::string> &fuzzies=this->get_fuzzy_term(token_set,token_names[i],field_name,costs[i]);
             if(fuzzies.empty()){ //the i'th token doesn't have any match with edit distance costs[i]
@@ -110,6 +103,7 @@ void IndexSearcher::do_search_field(const std::string &field_name,TokenSet token
                 return index->term_docs_num(fuzzy_termA)>index->term_docs_num(fuzzy_termB);
             });
             candidate_tokens.push_back(fuzzies);
+            LOG(DEBUG)<<"cost combination="<<costs<<" fuzzies="<<fuzzies;
         }
         //given each token's cost, generate every possible token
         Util::cartesian(candidate_tokens,[&,this](const std::vector<std::string> &query_term){
@@ -121,12 +115,14 @@ void IndexSearcher::do_search_field(const std::string &field_name,TokenSet token
                 std::vector<uint32_t> offsets=token_set.get_offsets(token_names[i]);
                 token_to_offsets.emplace(query_term[i],std::move(offsets));
             }
-
+            LOG(DEBUG)<<"query term="<<query_term<<" costs="<<costs;
             _indexes.search_fields(field_name,token_to_offsets,costs,slop,[&](Search::MatchContext &match_ctx){
+                match_ctx.boost=boost;
                 hit_collector.collect(match_ctx);
             });
         },_max_term_comb);
     };
+
     Util::cartesian(token_allowing_costs,on_cost_comb,_max_cost_comb);
 
     // check if num of result collected is too small, if so, calculate the token(along with it's fuzzy terms) frequency,
@@ -149,7 +145,7 @@ void IndexSearcher::do_search_field(const std::string &field_name,TokenSet token
 
         LOG(DEBUG)<<"drop token "<<token_names[0];
         token_set.drop_token(token_names[0]);
-        do_search_field(field_name,token_set,hit_collector);
+        do_search_field(field_name,token_set,boost,hit_collector);
     }
 }
 

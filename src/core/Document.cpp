@@ -279,6 +279,11 @@ const std::vector<std::pair<std::string,Query::SortInAscend>> &Query::get_sort_f
     return _sort_fields;
 }
 
+const std::vector<float>& Query::get_field_boosts() const
+{
+    return _field_boosts;
+}
+
 void Query::extract_variables()
 {
     rapidjson::Value::ConstMemberIterator query_it=_document.FindMember("query");
@@ -295,6 +300,28 @@ void Query::extract_variables()
             throw InvalidFormatException("\"query by\" must be string array");
         }
         _query_fields.emplace_back(query_field.GetString());
+    }
+    rapidjson::Value::ConstMemberIterator boost_it=_document.FindMember("boost");
+    if(boost_it==_document.MemberEnd()){
+        _field_boosts=std::vector<float>(_query_fields.size(),1);
+    }
+    else{
+        if(!boost_it->value.IsArray()){
+            throw InvalidFormatException("\"boost\" is not float array");
+        }
+        for(const auto &field_boost:boost_it->value.GetArray()){
+            if(!field_boost.IsNumber()){
+                throw InvalidFormatException("\"boost\" must be a number array");
+            }
+            float boost=field_boost.GetFloat();
+            if(boost<0){
+                throw InvalidFormatException("boost value should be greater than 0");
+            }
+            _field_boosts.push_back(boost);
+        }
+        if(_field_boosts.size()!=_query_fields.size()){
+            throw InvalidFormatException(R"(the length of "boost" field is not equal to the length of "query by" field)");
+        }
     }
 
     rapidjson::Value::ConstMemberIterator sort_by_it=_document.FindMember("sort by");
@@ -316,10 +343,10 @@ void Query::extract_variables()
         std::string_view sort_order=sort_str.substr(delimiter_index+1);
 
         SortInAscend is_ascend;
-        if(sort_order=="desc"){
+        if(sort_order=="desc"||sort_order=="descend"){
             is_ascend=false;
         }
-        else if(sort_order=="asc"){
+        else if(sort_order=="asc"||sort_order=="ascend"){
             is_ascend=true;
         }
         else{

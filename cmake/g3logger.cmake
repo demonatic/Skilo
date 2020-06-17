@@ -21,6 +21,7 @@ if(NOT EXISTS ${DEP_ROOT_DIR}/${G3LOG_NAME}/build)
     message("Configuring G3log...")
     file(MAKE_DIRECTORY ${DEP_ROOT_DIR}/${G3LOG_NAME}/build)
     execute_process(COMMAND ${CMAKE_COMMAND}
+            "-DUSE_DYNAMIC_LOGGING_LEVELS=ON"
             "-DCMAKE_BUILD_TYPE=Release"
             "-DG3_SHARED_LIB=OFF"
             "-H${DEP_ROOT_DIR}/${G3LOG_NAME}"

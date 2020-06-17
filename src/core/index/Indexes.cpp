@@ -187,7 +187,7 @@ void InvertIndex::search_field(const std::string &field_path,const std::unordere
                 }
             }
             // collect this hit
-            Search::MatchContext context{lead_doc,total_doc_count,phrase_match_count,field_path,candidate_postings,costs,token_to_offsets,*sort_indexes};
+            Search::MatchContext context{lead_doc,total_doc_count,phrase_match_count,1,field_path,candidate_postings,costs,token_to_offsets,*sort_indexes};
             on_match(context);
         }
 END_OF_MATCH:

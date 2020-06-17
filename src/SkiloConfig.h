@@ -37,7 +37,7 @@ private:
 
     std::string _tokenizer_dict_dir;
 
-    static constexpr const char *_config_path="../skilo.conf";
+    static constexpr const char *_config_path="/etc/skilo/skilo.conf";
 };
 
 

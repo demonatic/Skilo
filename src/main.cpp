@@ -6,7 +6,7 @@ using namespace Skilo;
 int main()
 {
     SkiloConfig config;
-    SkiloServer server(config,true);
+    SkiloServer server(config,false);
     server.listen();
     return 0;
 }

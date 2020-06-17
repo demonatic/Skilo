@@ -27,7 +27,7 @@ public:
 
 TEST(HIT_COLLECTOR_TEST,COLLECT_TEST) {
     size_t n=100;
-    std::vector<MatchContext> contexts(n,MatchContext{0,0,0,{},{},{},{},{}});
+    std::vector<MatchContext> contexts(n,MatchContext{0,0,0,1,{},{},{},{},{}});
     for(int i=0;i<n;i++){
         contexts[i].doc_seq_id=rand()%(n/2);
     }

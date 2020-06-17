@@ -17,6 +17,7 @@ struct MatchContext{
     uint32_t doc_seq_id;
     uint32_t collection_doc_count;
     uint32_t phrase_match_count;
+    float boost;
     const std::string &field_path;
     const std::vector<const Index::PostingList*> &term_postings;
     const std::vector<size_t> &token_costs;

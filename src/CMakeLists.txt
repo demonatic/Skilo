@@ -31,5 +31,9 @@ file(GLOB SOURCES
 MESSAGE("src core libs=" ${CORE_LIBS})
 set(ALL_SRCS ${ALL_SRCS} ${SOURCES} CACHE INTERNAL "")
 
-add_executable(Skilo main.cpp ${SOURCES})
+add_executable(Skilo main.cpp ${SOURCES} skilo.conf)
 target_link_libraries(Skilo ${CORE_LIBS})
+
+install(TARGETS Skilo DESTINATION /usr/bin COMPONENT binaries)
+install(FILES skilo.conf DESTINATION /etc/skilo COMPONENT config)
+install(DIRECTORY dict DESTINATION /usr/share/skilo COMPONENT dep_files)

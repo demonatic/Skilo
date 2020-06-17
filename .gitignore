@@ -45,3 +45,7 @@ test/skilo_test
 *callgrind*
 test/CMakeFiles/*
 *.log
+cmake_install.cmake
+CMakeCache.txt
+src/Skilo
+install_manifest.txt

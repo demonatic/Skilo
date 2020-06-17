@@ -168,12 +168,13 @@ private:
 };
 
 /// SearchInfo example:
-/// @note "query by" format is xxx.xxx... if sechema is nested
+/// @note "query by" format is field path like: 'xxx.xxx...' if sechema is nested
 /****************************************************
 {
     "query": "iphone",
     "query by": ["product name","price"],
-    "sort by":["price:asc","sales:desc"]
+    "boost":[1.5,1],
+    "sort by":["price:asc","sales:desc"],
 }
 ***************************************************/
 
@@ -185,10 +186,15 @@ public:
     Query(const std::string &collection_name,const SegmentBuf &json_str);
 
     const std::string &get_collection_name() const;
+
     const std::string &get_search_str() const;
 
     const std::vector<std::string>& get_query_fields() const;
+
     const std::vector<std::pair<std::string,SortInAscend>>& get_sort_fields() const;
+
+    /// @return default to all '1' array if query doesn't specify this field
+    const std::vector<float>& get_field_boosts() const;
 
 private:
     void extract_variables();
@@ -197,6 +203,7 @@ private:
     std::string _collection_name;
     std::string _search_str;
     std::vector<std::string> _query_fields;
+    std::vector<float> _field_boosts;
     std::vector<std::pair<std::string,SortInAscend>> _sort_fields;
 };
 

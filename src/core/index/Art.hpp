@@ -3,6 +3,7 @@
 
 #include "ArtNode.hpp"
 #include <string>
+#include <functional>
 
 namespace Art{
 
