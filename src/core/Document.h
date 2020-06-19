@@ -6,6 +6,7 @@
 #include "utility/Exception.h"
 #include <vector>
 #include <optional>
+#include <ctime>
 
 namespace Skilo {
 
@@ -147,12 +148,19 @@ public:
 
     bool enable_auto_suggestion() const;
 
-    void add_create_time(uint64_t created_time);
-    void add_collection_id(uint32_t collection_id);
+    void add_create_time(const std::time_t created_time);
+
+    void add_collection_id(const uint32_t collection_id);
+
+    /// @note document num will not be persistent into storage
+    void add_doc_num(const uint32_t collection_num);
 
     uint32_t get_min_gram(const uint32_t default_min_gram) const;
     uint32_t get_max_gram(const uint32_t default_max_gram) const;
     uint32_t get_suggest_entry_num(const uint32_t default_suggest_entry_num) const;
+
+    uint32_t get_doc_num() const;
+    std::string get_created_time() const;
 
 private:
     void extract_variables();
@@ -211,7 +219,7 @@ private:
 /******************************************************
 {
   "found": 1,
-  "took ms": 1,
+  "took secs": 1,
   "hits": [
     {
         "id": "124",
@@ -227,7 +235,7 @@ class SearchResult:public DocumentBase{
 public:
     SearchResult(uint32_t num_found);
     void add_hit(Document &doc,double score);
-    void add_took_ms(float ms);
+    void add_took_secs(float seconds);
 };
 
 ///AutoSuggestion result example with query prefix="I love":
@@ -245,6 +253,21 @@ class AutoSuggestion:public DocumentBase{
 public:
     AutoSuggestion();
     void add_suggestion(std::string_view suggestion);
+};
+
+/// @brief summary info for all collections
+/******************************************************
+{
+  "collections": [
+    {"name":"recipe","created at":"Mon Oct 2 00:59:08 2019","doc num":5652},
+    {"name":"order","created at":"Thu Jun 18 15:48:19 2020","doc num":84231}
+  ]
+}
+******************************************************/
+class OverallSummary:public DocumentBase{
+public:
+    OverallSummary();
+    void add_collection(const CollectionMeta &collection_meta);
 };
 
 namespace detail{

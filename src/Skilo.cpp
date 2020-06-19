@@ -59,13 +59,24 @@ void SkiloServer::stop()
     LOG(INFO)<<"Server has stopped";
 }
 
+void SkiloServer::skilo_collection_summary(SkiloServer::QueryContext &context, std::string &response)
+{
+    std::string collection_name=this->extract_collection_name(context.req->uri());
+    response=_collection_manager->collection_summary(collection_name);
+}
+
+void SkiloServer::skilo_overall_summary([[maybe_unused]]SkiloServer::QueryContext &context,std::string &response)
+{
+    response=_collection_manager->overall_summary();
+}
+
 void SkiloServer::skilo_create_collection(QueryContext &context,std::string &response)
 {
     CollectionMeta collection_meta(context.req->body().get_data());
     response=_collection_manager->create_collection(collection_meta);
 }
 
-void SkiloServer::skilo_drop_collection(SkiloServer::QueryContext &context, std::string &response)
+void SkiloServer::skilo_drop_collection(SkiloServer::QueryContext &context,std::string &response)
 {
     std::string collection_name=this->extract_collection_name(context.req->uri());
     response=_collection_manager->drop_collection(collection_name);
@@ -142,6 +153,9 @@ uint32_t SkiloServer::extract_document_id(std::string_view uri) const
 
 void SkiloServer::init_http_route(Rinx::RxProtocolHttp1Factory &http1)
 {
+    http1.GET(R"(^\/collections$)",BIND_SKILO_CALLBACK(SkiloServer::skilo_overall_summary);
+
+    http1.GET(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*$)",BIND_SKILO_CALLBACK(SkiloServer::skilo_collection_summary);
     http1.POST(R"(^\/collections$)",MakeAsync(BIND_SKILO_CALLBACK(SkiloServer::skilo_create_collection));
     http1.DELETE(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*$)",MakeAsync(BIND_SKILO_CALLBACK(SkiloServer::skilo_drop_collection));
 

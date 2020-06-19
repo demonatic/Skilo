@@ -44,7 +44,7 @@ public:
     /// @throw InternalServerException
     SearchResult search(const Query &query_info) const;
 
-    uint32_t document_num() const;
+    uint32_t get_doc_num() const;
     
     std::vector<std::string_view> auto_suggest(const std::string &query_prefix) const;
     

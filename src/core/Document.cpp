@@ -1,7 +1,8 @@
 #include "Document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
-#include <iostream>
+#include "g3log/g3log.hpp"
+
 namespace Skilo {
 
 DocumentBase::DocumentBase():_document(rapidjson::kObjectType)
@@ -209,19 +210,28 @@ const std::string& CollectionMeta::get_collection_name() const
     return _collection_name;
 }
 
-void CollectionMeta::add_create_time(uint64_t created_time)
+void CollectionMeta::add_create_time(const std::time_t created_time)
 {
-    rapidjson::Value create_time(rapidjson::kNumberType);
-    create_time.SetUint64(created_time);
-    _document.AddMember("created_at",created_time,_document.GetAllocator());
+    auto &allocator=_document.GetAllocator();
+    const std::string time_formated=created_time!=0?std::ctime(&created_time):"unknown\n";
+    rapidjson::Value v_time(rapidjson::kStringType);
+    v_time.SetString(time_formated.data(),time_formated.length()-1,allocator);
+    _document.AddMember("created at",v_time,allocator);
 }
 
-void CollectionMeta::add_collection_id(uint32_t collection_id)
+void CollectionMeta::add_collection_id(const uint32_t collection_id)
 {
     rapidjson::Value collec_id(rapidjson::kNumberType);
     collec_id.SetUint(collection_id);
     _document.AddMember("id",collec_id,_document.GetAllocator());
     _collection_id.emplace(collection_id);
+}
+
+void CollectionMeta::add_doc_num(const uint32_t collection_num)
+{
+    rapidjson::Value collec_num(rapidjson::kNumberType);
+    collec_num.SetUint64(collection_num);
+    _document.AddMember("doc num",collec_num,_document.GetAllocator());
 }
 
 uint32_t CollectionMeta::get_min_gram(const uint32_t default_min_gram) const
@@ -237,6 +247,23 @@ uint32_t CollectionMeta::get_max_gram(const uint32_t default_max_gram) const
 uint32_t CollectionMeta::get_suggest_entry_num(const uint32_t default_suggest_entry_num) const
 {
     return _suggest_entry_num.value_or(default_suggest_entry_num);
+}
+
+uint32_t CollectionMeta::get_doc_num() const
+{
+    rapidjson::Value::ConstMemberIterator doc_num_it=_document.FindMember("doc num");
+    assert(doc_num_it!=_document.MemberEnd()&&doc_num_it->value.IsNumber());
+    return doc_num_it->value.GetUint();
+}
+
+std::string CollectionMeta::get_created_time() const
+{
+    rapidjson::Value::ConstMemberIterator create_it=_document.FindMember("created at");
+    if(create_it==_document.MemberEnd()||!create_it->value.IsString()){
+        LOG(WARNING)<<"fail to find created time of collection \""<<_collection_name<<"\"";
+        return "unknown ";
+    }
+    return create_it->value.GetString();
 }
 
 const std::string& CollectionMeta::get_tokenizer() const
@@ -374,11 +401,11 @@ void SearchResult::add_hit(Document &doc,double score)
     _document["scores"].GetArray().PushBack(score,_document.GetAllocator());
 }
 
-void SearchResult::add_took_ms(float ms)
+void SearchResult::add_took_secs(float seconds)
 {
-    rapidjson::Value took_ms(rapidjson::kNumberType);
-    took_ms.SetFloat(ms);
-    _document.AddMember("took ms",took_ms,_document.GetAllocator());
+    rapidjson::Value took_secs(rapidjson::kNumberType);
+    took_secs.SetFloat(seconds);
+    _document.AddMember("took secs",took_secs,_document.GetAllocator());
 }
 
 DocumentBatch::DocumentBatch(DocumentBase &base)
@@ -430,6 +457,36 @@ void AutoSuggestion::add_suggestion(std::string_view suggestion)
 {
     rapidjson::GenericStringRef<char> sug(suggestion.data(),suggestion.length());
     _document["suggestions"].GetArray().PushBack(sug,_document.GetAllocator());
+}
+
+OverallSummary::OverallSummary()
+{
+    rapidjson::Value collections(rapidjson::kArrayType);
+    _document.AddMember("collections",collections,_document.GetAllocator());
+}
+
+void OverallSummary::add_collection(const CollectionMeta &collection_meta)
+{
+    const std::string &collec_name=collection_meta.get_collection_name();
+    const std::string created_time=collection_meta.get_created_time();
+    uint32_t doc_num=collection_meta.get_doc_num();
+
+    rapidjson::Value collecion(rapidjson::kObjectType);
+    rapidjson::Document::AllocatorType& allocator=_document.GetAllocator();
+
+    rapidjson::Value v_name(rapidjson::kStringType);
+    v_name.SetString(collec_name.data(),collec_name.length());
+    collecion.AddMember("name",v_name,allocator);
+
+    rapidjson::Value v_time(rapidjson::kStringType);
+    v_time.SetString(created_time.data(),created_time.length()-1,allocator);
+    collecion.AddMember("created at",v_time,allocator);
+
+    rapidjson::Value v_doc_num(rapidjson::kNumberType);
+    v_doc_num.SetUint(doc_num);
+    collecion.AddMember("doc num",v_doc_num,allocator);
+
+    _document["collections"].GetArray().PushBack(collecion,allocator);
 }
 
 

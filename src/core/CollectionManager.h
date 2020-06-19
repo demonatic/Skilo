@@ -16,6 +16,10 @@ public:
 
     void init_collections();
 
+    ResultStr overall_summary() const;
+
+    ResultStr collection_summary(const std::string &collection_name) const;
+
     ResultStr create_collection(CollectionMeta &collection_meta);
 
     ResultStr add_document(const std::string &collection_name,Document &document);

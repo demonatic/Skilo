@@ -33,6 +33,8 @@ public:
     /// @throw InternalServerException,InvalidFormatException
     std::vector<CollectionMeta> get_all_collection_meta() const;
 
+    CollectionMeta get_collection_meta(const std::string &collection_name) const;
+
     StorageEngine &get_storage_engine();
 
     void scan_for_each_doc(const uint32_t collection_id,std::function<void(const std::string_view value)> callback) const;

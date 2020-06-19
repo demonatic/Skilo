@@ -17,7 +17,7 @@ class IndexSearcher
 public:
     IndexSearcher(const Query &query_info, const Index::CollectionIndexes &indexes,const Index::TokenizeStrategy *tokenizer);
 
-    std::vector<pair<uint32_t,double>> search();
+    void search(std::vector<pair<uint32_t,double>> &res_docs);
 
     void do_search_field(const std::string &field_name,TokenSet token_set,float boost,HitCollector &hit_collector);
 

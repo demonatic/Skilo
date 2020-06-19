@@ -13,7 +13,6 @@ Collection::Collection(const CollectionMeta &collection_meta,StorageService *sto
     _indexes(_collection_id,_schema,collection_meta,_storage_service),_config(config)
 {
     _next_seq_id=_storage_service->get_collection_next_seq_id(_collection_id);
-    _indexes.set_doc_num(_next_seq_id);
     _tokenizer=this->get_tokenize_strategy(collection_meta.get_tokenizer());
 
     this->build_index();
@@ -41,6 +40,7 @@ void Collection::build_index()
     });
     LOG(INFO)<<"Collection \""<<_collection_name<<"\" load finished. total "<<load_doc_count<<" documents";
     _doc_num=load_doc_count;
+    _indexes.set_doc_num(_doc_num);
 }
 
 void Collection::drop_all()
@@ -90,24 +90,27 @@ void Collection::validate_document(const Document &document)
 SearchResult Collection::search(const Query &query_info) const
 {
     Search::IndexSearcher searcher(query_info,_indexes,_tokenizer.get());
-    std::vector<std::pair<uint32_t,double>> res_docs=searcher.search();
+
+    std::vector<std::pair<uint32_t,double>> res_docs;
+    float search_time_cost=Util::timing_function(
+        std::bind(&Search::IndexSearcher::search,searcher,std::placeholders::_1),res_docs);
 
     uint32_t hit_count=static_cast<uint32_t>(res_docs.size());
 
     //load hit documents
     SearchResult result(hit_count);
     for(auto [seq_id,score]:res_docs){
-        LOG(DEBUG)<<"@collection search hit: seq_id="<<seq_id<<" score="<<score;
+        LOG(DEBUG)<<"search hit seq_id="<<seq_id<<" score="<<score;
         Document doc=_storage_service->get_document(_collection_id,seq_id);
         result.add_hit(doc,score);
     }
-
+    result.add_took_secs(search_time_cost);
     return result;
 }
 
-uint32_t Collection::document_num() const
+uint32_t Collection::get_doc_num() const
 {
-    return _next_seq_id;
+    return _doc_num;
 }
 
 std::vector<std::string_view> Collection::auto_suggest(const std::string &query_prefix) const

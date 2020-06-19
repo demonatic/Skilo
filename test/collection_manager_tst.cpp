@@ -228,14 +228,14 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
             std::string word;
             long frequency;
             size_t count=0;
-            while(std::getline(dict_file,line)){
-                size_t space=line.find(' ');
-                word=line.substr(0,space);
-                frequency=std::stol(line.substr(space+1));
-                std::string doc_str="{\"id\":"+to_string(count++)+",\"word\":\""+word+"\",\"frequency\":\""+std::to_string(frequency)+"\"}";
-                Document doc(doc_str);
-                collection_manager.add_document(collection_name_en,doc);
-            }
+//            while(std::getline(dict_file,line)){
+//                size_t space=line.find(' ');
+//                word=line.substr(0,space);
+//                frequency=std::stol(line.substr(space+1));
+//                std::string doc_str="{\"id\":"+to_string(count++)+",\"word\":\""+word+"\",\"frequency\":\""+std::to_string(frequency)+"\"}";
+//                Document doc(doc_str);
+//                collection_manager.add_document(collection_name_en,doc);
+//            }
             std::cout<<"add english dict doc count="<<count<<std::endl;
          }
      }
@@ -244,7 +244,8 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
                            {
                                "query": "酸菜",
                                "query by": ["recipe_name","context"],
-                               "boost": [5,1]
+                               "boost": [5,1],
+                               "sort by": ["favourite:asc","rate:desc"]
                            }
                            )";
     Query query("recipe",search_str);

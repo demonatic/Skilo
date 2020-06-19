@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 #include <numeric>
-#include <assert.h>
+#include <cassert>
 #include "utility/Exception.h"
 
 namespace Skilo {
@@ -80,13 +80,22 @@ namespace Util{
         return term[0]<0;
     }
 
-#define timing_code(__code_block__) \
+    template<class F,class ...Args>
+    inline float timing_function(F &&f, Args&& ...args){
+        auto start = std::chrono::system_clock::now();
+        f(std::forward<Args>(args)...);
+        auto end=std::chrono::system_clock::now();
+        auto duration=std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+        return double(duration.count())*std::chrono::microseconds::period::num/std::chrono::microseconds::period::den;
+    }
+
+#define timing_code_block(__code_block__) \
     do { \
         auto start = std::chrono::system_clock::now();\
         __code_block__;\
-        auto end   = std::chrono::system_clock::now();\
+        auto end = std::chrono::system_clock::now();\
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);\
-       printf("function costs %f s\n", double(duration.count()) *  std::chrono::microseconds::period::num /  std::chrono::microseconds::period::den);\
+        printf("function costs %f s\n", double(duration.count())*std::chrono::microseconds::period::num/std::chrono::microseconds::period::den);\
     } while (0)
 }
 

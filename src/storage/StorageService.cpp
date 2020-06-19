@@ -82,6 +82,13 @@ std::vector<CollectionMeta> StorageService::get_all_collection_meta() const
     return collection_meta;
 }
 
+CollectionMeta StorageService::get_collection_meta(const std::string &collection_name) const
+{
+    std::string meta_str;
+    _storage_engine.get(KeyConverter::collection_meta_key(collection_name),meta_str);
+    return CollectionMeta(meta_str);
+}
+
 StorageEngine &StorageService::get_storage_engine()
 {
     return this->_storage_engine;

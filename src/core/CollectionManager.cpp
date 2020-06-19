@@ -33,6 +33,26 @@ void CollectionManager::init_collections()
     LOG(INFO)<<"Loading all collections finished";
 }
 
+ResultStr CollectionManager::overall_summary() const
+{
+    OverallSummary summary;
+    std::vector<CollectionMeta> collection_meta=_storage_service->get_all_collection_meta();
+    for(CollectionMeta &meta:collection_meta){
+        auto collection=get_collection(meta.get_collection_name());
+        meta.add_doc_num(collection->get_doc_num());
+        summary.add_collection(meta);
+    }
+    return summary.dump();
+}
+
+ResultStr CollectionManager::collection_summary(const std::string &collection_name) const
+{
+    CollectionMeta meta=_storage_service->get_collection_meta(collection_name);
+    auto collection=this->get_collection(collection_name);
+    meta.add_doc_num(collection->get_doc_num());
+    return meta.dump();
+}
+
 ResultStr CollectionManager::create_collection(CollectionMeta &collection_meta)
 {
     const std::string &collection_name=collection_meta.get_collection_name();

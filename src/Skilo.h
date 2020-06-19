@@ -28,8 +28,14 @@ public:
     void stop();
 
 private:
+    ///Route: GET /collections
+    void skilo_overall_summary(QueryContext &context,std::string &response);
+
     ///Route: POST /collections
     void skilo_create_collection(QueryContext &context,std::string &response);
+
+    ///Route: GET /collections/<collection_name>
+    void skilo_collection_summary(QueryContext &context,std::string &response);
 
     ///Route: DELETE /collections/<collection_name>
     void skilo_drop_collection(QueryContext &context,std::string &response);

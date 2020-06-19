@@ -17,7 +17,7 @@ IndexSearcher::IndexSearcher(const Query &query_info, const Index::CollectionInd
 
 }
 
-std::vector<pair<uint32_t,double>> IndexSearcher::search()
+void IndexSearcher::search(std::vector<std::pair<uint32_t,double>> &res_docs)
 {
     //extract and split query terms and fields
     const std::string &query_str=_query_info.get_search_str();
@@ -48,7 +48,7 @@ std::vector<pair<uint32_t,double>> IndexSearcher::search()
     }
 
     //get top K
-    return collector.get_top_k();
+    res_docs=collector.get_top_k();
 }
 
 std::vector<std::string>& IndexSearcher::get_fuzzy_term(const TokenSet &token_set, const std::string &term, const std::string &field_name, const size_t distance) const

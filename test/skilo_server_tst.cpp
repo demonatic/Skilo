@@ -59,7 +59,13 @@ TEST(SKILO_SERVER_TEST,CRUD_TEST){
     }
 }
 
-
+#define TST_REQ(req_str){\
+    memcpy(sendbuff,req_str.data(),req_str.length());\
+    send(sockfd,sendbuff,req_str.length(),0);\
+    recv(sockfd, recvbuff, sizeof(recvbuff), 0);\
+    fputs(recvbuff,stdout);\
+    memset(recvbuff,'\0',sizeof(recvbuff));\
+}
 
 void send_request_to_server(bool init_collection,bool search){
     // 定义socket
@@ -144,10 +150,7 @@ void send_request_to_server(bool init_collection,bool search){
         std::string req_create= "POST /collections HTTP/1.1\r\n"
                          "Content-Length: "+body_len_str+"\r\n\r\n"+req_body;
 
-        memcpy(sendbuff,req_create.data(),req_create.length());
-        send(sockfd,sendbuff,req_create.length(),0);
-        recv(sockfd, recvbuff, sizeof(recvbuff), 0);
-        fputs(recvbuff,stdout);
+        TST_REQ(req_create);
     }
 
     if(init_collection){
@@ -161,17 +164,11 @@ void send_request_to_server(bool init_collection,bool search){
             std::string req= "POST /collections/recipe HTTP/1.1\r\n"
                              "Content-Length: "+body_len_str+"\r\n\r\n"+req_body;
 
-            memcpy(sendbuff,req.data(),req.length());
-            send(sockfd,sendbuff,req.length(),0);
-            recv(sockfd, recvbuff, sizeof(recvbuff), 0);
-            fputs(recvbuff,stdout);
+            TST_REQ(req);
 
             string req_delete="DELETE /collections/recipe/543432 HTTP/1.1\r\n"
                            "Host: Chrome\r\n\r\n";
-            memcpy(sendbuff,req_delete.data(),req_delete.length());
-            send(sockfd,sendbuff,req_delete.length(),0);
-            recv(sockfd, recvbuff, sizeof(recvbuff), 0);
-            fputs(recvbuff,stdout);
+            TST_REQ(req_delete);
     }
 
     if(search){
@@ -181,28 +178,21 @@ void send_request_to_server(bool init_collection,bool search){
                          }";
 
         string body_len_str=to_string(req_body.size());
-        std::string req= "GET /collections/recipe/documents HTTP/1.1\r\n"
+        std::string query_req= "GET /collections/recipe/documents HTTP/1.1\r\n"
                          "Content-Length: "+body_len_str+"\r\n\r\n"+req_body;
-
-        memcpy(sendbuff,req.data(),req.length());
-        ssize_t send_len=send(sockfd,sendbuff,req.length(),0);
-//        cout<<"client send_len="<<send_len<<endl;
-        ssize_t recv_len=recv(sockfd, recvbuff, sizeof(recvbuff), 0);
-//        cout<<"client recv_len="<<recv_len<<endl;
-        for(int i=0;i<recv_len;i++){
-            cout<<recvbuff[i];
-        }
-        cout<<endl;
+        TST_REQ(query_req);
 
         string sug_req="GET /collections/recipe/auto_suggestion?q=%e9%85%b8 HTTP/1.1\r\n"
                        "Host: Chrome\r\n\r\n";
-        memcpy(sendbuff,sug_req.data(),sug_req.length());
-        send_len=send(sockfd,sendbuff,req.length(),0);
-        recv_len=recv(sockfd, recvbuff, sizeof(recvbuff), 0);
-        for(int i=0;i<recv_len;i++){
-            cout<<recvbuff[i];
-        }
-        cout<<endl;
+        TST_REQ(sug_req);
+
+        string overall_summary_req="GET /collections HTTP/1.1\r\n"
+                       "Content-Length: 0\r\n\r\n";
+        TST_REQ(overall_summary_req);
+
+        string collec_summary_req="GET /collections/recipe HTTP/1.1\r\n"
+                       "Content-Length: 0\r\n\r\n";
+        TST_REQ(collec_summary_req);
     }
     close(sockfd);
 }
