@@ -1,7 +1,7 @@
 # Skilo Search Engine
 
 ###### USTC  软院  2019工程实践Project (Under Construction Now)
-Skilo is a simple Search Engine implemented in C++. It provides Restful API to create collection with corresponding schema, add documents to collection and word/phrase search services.
+Skilo is a simple Search Engine implemented in C++ on Linux. It provides Restful API to create collection with corresponding schema, add documents to collection and word/phrase search services.
 
 
 ## Documents
@@ -178,7 +178,8 @@ edit the file "/etc/skilo/skilo.conf" in project root directory to change databa
           ....
       }
     ],
-    "scores":[14.86,5.32]
+    "scores":[14.86,5.32],
+    "took secs": 0.000732,
   }
   ```
 
@@ -200,6 +201,33 @@ edit the file "/etc/skilo/skilo.conf" in project root directory to change databa
       "红烧带鱼"
     ]
   }
+  ```
+  
+* Overall Summary
+
+  show all collections brief information
+
+  ```http
+  GET /collections/
+  ```
+
+  we get:
+
+  ```json
+  {
+    "collections": [
+      {"name":"recipe","created at":"Mon Oct 2 00:59:08 2019","doc num":84231},
+      {"name":"order","created at":"Thu Jun 18 15:48:19 2020","doc num":5652}
+    ]
+  }
+  ```
+  
+* Collection Summary
+
+  show brief information(collection name, schema, tokenizer name, created_time, doc num...) about given collection
+
+  ```http
+  GET /collections/<collection_name>
   ```
 
 ## Test
