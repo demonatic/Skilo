@@ -21,7 +21,7 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
     log_worker->addSink(std::make_unique<CustomLogSink>(),&CustomLogSink::ReceiveLogMessage);
     g3::initializeLogging(log_worker.get());
 
-    conf.set_db_dir("/tmp/collection_manager_tst");
+    conf.set_db_dir("/tmp/collection_manager_test");
     CollectionManager collection_manager(conf);
     collection_manager.init_collections();
 
@@ -228,14 +228,14 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
             std::string word;
             long frequency;
             size_t count=0;
-//            while(std::getline(dict_file,line)){
-//                size_t space=line.find(' ');
-//                word=line.substr(0,space);
-//                frequency=std::stol(line.substr(space+1));
-//                std::string doc_str="{\"id\":"+to_string(count++)+",\"word\":\""+word+"\",\"frequency\":\""+std::to_string(frequency)+"\"}";
-//                Document doc(doc_str);
-//                collection_manager.add_document(collection_name_en,doc);
-//            }
+            while(std::getline(dict_file,line)){
+                size_t space=line.find(' ');
+                word=line.substr(0,space);
+                frequency=std::stol(line.substr(space+1));
+                std::string doc_str="{\"id\":"+to_string(count++)+",\"word\":\""+word+"\",\"frequency\":\""+std::to_string(frequency)+"\"}";
+                Document doc(doc_str);
+                collection_manager.add_document(collection_name_en,doc);
+            }
             std::cout<<"add english dict doc count="<<count<<std::endl;
          }
      }

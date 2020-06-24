@@ -47,6 +47,7 @@ public:
     void index_str_record(const StrRecord &record);
     void remove_str_record(const StrRecord &record);
 
+    bool contain_term(const std::string &term) const;
     size_t dict_size() const;
 
     void debug_print_dict() const;

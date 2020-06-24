@@ -71,6 +71,12 @@ void InvertIndex::remove_str_record(const StrRecord &record)
      }
 }
 
+bool InvertIndex::contain_term(const std::string &term) const
+{
+    ReaderLockGuard lock_guard(this->_term_posting_lock);
+    return _term_postings.find(term);
+}
+
 uint32_t InvertIndex::term_docs_num(const string &term) const
 {
     ReaderLockGuard lock_guard(this->_term_posting_lock);

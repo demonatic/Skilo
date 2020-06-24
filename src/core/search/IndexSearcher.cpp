@@ -51,12 +51,21 @@ void IndexSearcher::search(std::vector<std::pair<uint32_t,double>> &res_docs)
     res_docs=collector.get_top_k();
 }
 
-std::vector<std::string>& IndexSearcher::get_fuzzy_term(const TokenSet &token_set, const std::string &term, const std::string &field_name, const size_t distance) const
+std::vector<string>& IndexSearcher::get_fuzzy_term(const TokenSet &token_set, const std::string &term, const std::string &field_name, const size_t distance) const
 {
     return token_set.get_fuzzies(term,distance,[&,this](const size_t distance){
-        return Util::is_chinese(term)?
-            this->search_ch_fuzz_term(field_name,term,0,distance):
-            this->search_en_fuzz_term(field_name,term,1,distance);
+        std::vector<string> match_token; //tokens have given edit distance from 'term'
+        if(distance==0){
+            if(_indexes.get_invert_index(field_name)->contain_term(term)){
+                match_token.push_back(term);
+            }
+        }
+        else{
+            match_token=Util::is_chinese(term)?
+                this->search_ch_fuzz_term(field_name,term,0,distance):
+                    this->search_en_fuzz_term(field_name,term,1,distance);
+        }
+        return match_token;
     });
 }
 
@@ -65,12 +74,12 @@ void IndexSearcher::do_search_field(const std::string &field_name,TokenSet token
     if(token_set.empty())
         return;
 
-    LOG(DEBUG)<<"search field:\""<<field_name<<"\" token:\""<<token_set.to_string()<<"\"";
+    LOG(DEBUG)<<"do search field:\""<<field_name<<"\" token:\""<<token_set.to_string()<<"\"";
     const InvertIndex *index=_indexes.get_invert_index(field_name);
 
     size_t slop=0;
     size_t query_len_total=0;
-    std::vector<string> token_names;
+    std::vector<string> token_names; //the order doesn't need to be consistent with the query string
     std::vector<std::vector<size_t>> token_allowing_costs;
 
     for(auto &&[term,offsets]:token_set.term_to_offsets()){
@@ -96,6 +105,7 @@ void IndexSearcher::do_search_field(const std::string &field_name,TokenSet token
         for(size_t i=0;i<costs.size();i++){
             std::vector<std::string> &fuzzies=this->get_fuzzy_term(token_set,token_names[i],field_name,costs[i]);
             if(fuzzies.empty()){ //the i'th token doesn't have any match with edit distance costs[i]
+                LOG(DEBUG)<<"token "<<token_names[i]<<" doesn't have fuzzy match with edit distance "<<costs[i];
                 return;
             }
             //sort fuzzy terms according to term frequency
@@ -115,14 +125,14 @@ void IndexSearcher::do_search_field(const std::string &field_name,TokenSet token
                 std::vector<uint32_t> offsets=token_set.get_offsets(token_names[i]);
                 token_to_offsets.emplace(query_term[i],std::move(offsets));
             }
-            LOG(DEBUG)<<"query term="<<query_term<<" costs="<<costs;
+            LOG(DEBUG)<<"search index with query terms="<<query_term<<" costs="<<costs;
             _indexes.search_fields(field_name,token_to_offsets,costs,slop,[&](Search::MatchContext &match_ctx){
                 match_ctx.boost=boost;
                 hit_collector.collect(match_ctx);
             });
         },_max_term_comb);
     };
-
+    LOG(DEBUG)<<"token allowing cost="<<token_allowing_costs;
     Util::cartesian(token_allowing_costs,on_cost_comb,_max_cost_comb);
 
     // check if num of result collected is too small, if so, calculate the token(along with it's fuzzy terms) frequency,
@@ -149,49 +159,49 @@ void IndexSearcher::do_search_field(const std::string &field_name,TokenSet token
     }
 }
 
-std::vector<std::vector<std::string>> IndexSearcher::search_en_fuzz_term(const std::string &field_name, const std::string &term, size_t exact_prefix_len, size_t max_edit_distance) const
+std::vector<std::string> IndexSearcher::search_en_fuzz_term(const std::string &field_name, const std::string &term, size_t exact_prefix_len, size_t distance) const
 {
-    auto en_fuzzy_term_collector=[](std::vector<std::vector<std::string>> &fuzzy_matches,size_t distance,unsigned char *fuzz_str, size_t len,PostingList *){
-        fuzzy_matches[distance].emplace_back(std::string(fuzz_str,fuzz_str+len));
+    auto en_fuzzy_term_collector=[](std::vector<string> &fuzzy_matches,unsigned char *fuzz_str, size_t len,PostingList *){
+        fuzzy_matches.emplace_back(string(fuzz_str,fuzz_str+len));
     };
     auto term_iterator=[](const InvertIndex *index){
         return std::bind(&InvertIndex::iterate_terms,index,
             std::placeholders::_1,std::placeholders::_2,std::placeholders::_3,std::placeholders::_4);
     };
-    return search_fuzz_term<PostingList>(field_name,term,term_iterator,en_fuzzy_term_collector,exact_prefix_len,max_edit_distance);
+    return search_fuzz_term<PostingList>(field_name,term,term_iterator,en_fuzzy_term_collector,exact_prefix_len,distance);
 }
 
-std::vector<std::vector<string>> IndexSearcher::search_ch_fuzz_term(const std::string &field_name, const std::string &term, size_t exact_prefix_len, size_t max_edit_distance) const
+std::vector<string> IndexSearcher::search_ch_fuzz_term(const std::string &field_name, const std::string &term, size_t exact_prefix_len, size_t distance) const
 {
+    assert(distance>=1);
     std::string term_pinyin=rocapinyin::getpinyin_str(term);
     Util::trim(term_pinyin,' ');
-    auto ch_fuzzy_term_collector=[&](std::vector<std::vector<std::string>> &fuzzy_matches,size_t distance,unsigned char *, size_t,std::unordered_set<std::string> *term_set){
-        if(distance+1>max_edit_distance){
-            return;
-        }
-        if(distance==0&&term_set->count(term)){
-            fuzzy_matches[0].push_back(term);
-            term_set->erase(term);
-        }
-        for(auto &&term:*term_set){
-            fuzzy_matches[distance+1].push_back(term);
+
+    auto ch_fuzzy_term_collector=[&](std::vector<string> &fuzzy_matches,unsigned char *, size_t,std::unordered_set<std::string> *term_set){
+        //由于同音字设定编辑距离为1，但是与'term'拼音相同的同音字可能和term在同一个set内，因此需要去除'term'
+        bool remove_none_fuzzy=(distance==0&&term_set->count(term));
+        for(auto &&match_term:*term_set){
+            if(remove_none_fuzzy&&match_term==term){
+                continue;
+            }
+            fuzzy_matches.push_back(match_term);
         }
     };
     auto pinyin_iterator=[](const InvertIndex *index){
         return std::bind(&InvertIndex::iterate_pinyin,index,
             std::placeholders::_1,std::placeholders::_2,std::placeholders::_3,std::placeholders::_4);
     };
-    return search_fuzz_term<std::unordered_set<std::string>>(field_name,term_pinyin,pinyin_iterator,ch_fuzzy_term_collector,exact_prefix_len,max_edit_distance);
+    return search_fuzz_term<std::unordered_set<std::string>>(field_name,term_pinyin,pinyin_iterator,ch_fuzzy_term_collector,exact_prefix_len,distance-1);
 }
 
 size_t IndexSearcher::max_edit_distance_allowed(const std::string &term) const
 {
-    size_t len=Util::utf8_len(term);
-    size_t max_allow_dis=0;
+    size_t len=Util::is_chinese(term)?rocapinyin::getpinyin_str(term).length():term.length();
+    size_t max_allow_dis;
     if(len<=3){
         max_allow_dis=0;
     }
-    else if(len<=5){
+    else if(len<=6){
         max_allow_dis=1;
     }
     else{
@@ -201,14 +211,12 @@ size_t IndexSearcher::max_edit_distance_allowed(const std::string &term) const
 }
 
 template<typename T,typename F1,typename F2>
-std::vector<std::vector<std::string>> IndexSearcher::search_fuzz_term(const std::string &field_name,const std::string &term,
-                                                                      F1 iterator,F2 fuzzy_term_collector,size_t exact_prefix_len,size_t max_edit_distance) const
+std::vector<std::string> IndexSearcher::search_fuzz_term(const std::string &field_name,const std::string &term,
+                                                         F1 iterator,F2 fuzzy_term_collector,size_t exact_prefix_len,size_t target_distance) const
 {
     const InvertIndex *invert_index=_indexes.get_invert_index(field_name);
-    if(!invert_index)
-        return{};
 
-    std::vector<std::vector<std::string>> fuzzy_matches(max_edit_distance+1); //index: edit distance, elm: fuzzy matches
+    std::vector<std::string> fuzzy_matches;
     size_t term_len=term.length();
     std::string exact_match_prefix=term.substr(0,exact_prefix_len);
 
@@ -225,8 +233,8 @@ std::vector<std::vector<std::string>> IndexSearcher::search_fuzz_term(const std:
     auto on_fuzzy_node=[&](unsigned char *str, size_t len, T* t){
         std::string match=std::string(str,str+len);
         size_t distance=static_cast<size_t>(distance_table.back().back());
-        if(distance<=max_edit_distance){
-            fuzzy_term_collector(fuzzy_matches,distance,str,len,t);
+        if(distance==target_distance){
+            fuzzy_term_collector(fuzzy_matches,str,len,t);
         }
     };
     auto early_termination=[&](unsigned char c){
@@ -245,7 +253,7 @@ std::vector<std::vector<std::string>> IndexSearcher::search_fuzz_term(const std:
             last_row_min_dis=std::min(curr_row[i],last_row_min_dis);
         }
         //if current row's min distance is greater than max_distance, we stop traversing downwards
-        if(last_row_min_dis>max_edit_distance){
+        if(last_row_min_dis>target_distance){
             return true;
         }
         distance_table.emplace_back(std::move(curr_row));
