@@ -151,8 +151,8 @@ void IndexSearcher::do_search_field(const std::string &field_name,TokenSet token
 
 std::vector<std::vector<std::string>> IndexSearcher::search_en_fuzz_term(const std::string &field_name, const std::string &term, size_t exact_prefix_len, size_t max_edit_distance) const
 {
-    auto en_fuzzy_term_collector=[](std::vector<std::string> &terms,unsigned char *fuzz_str, size_t len,PostingList *){
-        terms.emplace_back(std::string(fuzz_str,fuzz_str+len));
+    auto en_fuzzy_term_collector=[](std::vector<std::vector<std::string>> &fuzzy_matches,size_t distance,unsigned char *fuzz_str, size_t len,PostingList *){
+        fuzzy_matches[distance].emplace_back(std::string(fuzz_str,fuzz_str+len));
     };
     auto term_iterator=[](const InvertIndex *index){
         return std::bind(&InvertIndex::iterate_terms,index,
@@ -165,9 +165,16 @@ std::vector<std::vector<string>> IndexSearcher::search_ch_fuzz_term(const std::s
 {
     std::string term_pinyin=rocapinyin::getpinyin_str(term);
     Util::trim(term_pinyin,' ');
-    auto ch_fuzzy_term_collector=[](std::vector<std::string> &terms,unsigned char *, size_t,std::unordered_set<std::string> *term_set){
+    auto ch_fuzzy_term_collector=[&](std::vector<std::vector<std::string>> &fuzzy_matches,size_t distance,unsigned char *, size_t,std::unordered_set<std::string> *term_set){
+        if(distance+1>max_edit_distance){
+            return;
+        }
+        if(distance==0&&term_set->count(term)){
+            fuzzy_matches[0].push_back(term);
+            term_set->erase(term);
+        }
         for(auto &&term:*term_set){
-            terms.push_back(term);
+            fuzzy_matches[distance+1].push_back(term);
         }
     };
     auto pinyin_iterator=[](const InvertIndex *index){
@@ -219,7 +226,7 @@ std::vector<std::vector<std::string>> IndexSearcher::search_fuzz_term(const std:
         std::string match=std::string(str,str+len);
         size_t distance=static_cast<size_t>(distance_table.back().back());
         if(distance<=max_edit_distance){
-            fuzzy_term_collector(fuzzy_matches[distance],str,len,t);
+            fuzzy_term_collector(fuzzy_matches,distance,str,len,t);
         }
     };
     auto early_termination=[&](unsigned char c){

@@ -245,7 +245,7 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
                                "query": "酸菜",
                                "query by": ["recipe_name","context"],
                                "boost": [5,1],
-                               "sort by": ["favourite:asc","rate:desc"]
+                               "sort by": ["difficulty:asc","rank:desc"]
                            }
                            )";
     Query query("recipe",search_str);
@@ -276,14 +276,9 @@ TEST(COLLECTION_MANAGER_TEST,CRUD_TEST){
                            }";
     Query query_en("english_dict",search_str_en);
     cout<<"-------start fuzzy--------"<<endl;
-
-    timing_code(
-        for(int i=0;i<1;i++){
-            cout<<collection_manager.search(query_en)<<endl;
-        }
-    );
-
-
+    for(int i=0;i<1;i++){
+        cout<<collection_manager.search(query_en)<<endl;
+    }
     cout<<"-------end fuzzy--------"<<endl;
 
 }

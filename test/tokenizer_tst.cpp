@@ -8,7 +8,7 @@ using namespace Skilo::Index;
 
 TEST(TOKENIZER_TEST,JIEBA_TEST) {
 
-    JiebaTokenizer tokenizer("../3rd/dict/");
+    JiebaTokenizer tokenizer("../src/dict");
     string s1="我是手扶拖拉机专业的,21世纪是拖拉机的世纪";
     std::unordered_map<std::string, std::vector<uint32_t>> r1=tokenizer.tokenize(s1).term_to_offsets();
     cout<<"<---sentence="<<s1<<"--->"<<endl;
