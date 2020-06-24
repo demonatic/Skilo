@@ -64,12 +64,6 @@ string TokenSet::to_string() const
     return str;
 }
 
-std::vector<std::string> TokenSet::get_ordered_tokens() const
-{
-
-}
-
-
 TokenizeStrategy::TokenizeStrategy([[maybe_unused]]const string &dict_dir)
 {
 

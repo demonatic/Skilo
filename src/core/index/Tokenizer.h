@@ -33,7 +33,6 @@ struct TokenSet{
     void drop_token(const std::string &term);
 
     string to_string() const;
-    std::vector<string> get_ordered_tokens() const;
 
 private:
     std::unordered_map<string,std::vector<uint32_t>> _term_to_offsets;
