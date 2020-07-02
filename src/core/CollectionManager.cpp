@@ -74,7 +74,7 @@ ResultStr CollectionManager::create_collection(CollectionMeta &collection_meta)
     _collection_name_id_map.insert(collection_name,collection_id);
     LOG(INFO)<<"Collection \""<<collection_name<<"\" id="<<collection_id<<" has created";
 
-    return "create collection with name \""+collection_name+"\" ok";
+    return ResultStr("create collection with name \""+collection_name+"\" ok");
 }
 
 ResultStr CollectionManager::add_document(const std::string &collection_name,Document &document)
@@ -88,7 +88,16 @@ ResultStr CollectionManager::add_document(const std::string &collection_name,Doc
         throw ConflictException("The collection with name `"+collection_name+"` has already contained document with id=\""+std::to_string(doc_id)+"\"");
     }
     collection->add_new_document(document);
-    return "add document id=\""+std::to_string(doc_id)+"\" success";
+    return ResultStr("add document id=\""+std::to_string(doc_id)+"\" success");
+}
+
+ResultStr CollectionManager::get_document(const std::string &collection_name, const uint32_t id,bool seq)
+{
+    std::shared_ptr<Collection> collection=this->get_collection(collection_name);
+    if(!collection)
+        throw NotFoundException("collection \""+collection_name+"\" not exist");
+
+    return collection->get_document(id,seq).dump();
 }
 
 ResultStr CollectionManager::remove_document(const std::string &collection_name, const uint32_t doc_id)
@@ -99,10 +108,10 @@ ResultStr CollectionManager::remove_document(const std::string &collection_name,
         throw NotFoundException("collection \""+collection_name+"\" not exist");
     }
     if(!collection->contain_document(doc_id)){
-        throw ConflictException("The collection with name `"+collection_name+"` does not contained document with id=\""+std::to_string(doc_id)+"\"");
+        throw NotFoundException("The collection with name `"+collection_name+"` does not contained document with id=\""+std::to_string(doc_id)+"\"");
     }
     collection->remove_document(doc_id);
-    return "remove document id=\""+std::to_string(doc_id)+"\" success";
+    return ResultStr("remove document id=\""+std::to_string(doc_id)+"\" success");
 }
 
 ResultStr CollectionManager::add_document_batch(const string &collection_name, DocumentBatch &doc_batch)
@@ -113,7 +122,7 @@ ResultStr CollectionManager::add_document_batch(const string &collection_name, D
     for(Document &doc:docs){
         this->add_document(collection_name,doc);
     }
-    return std::to_string(docs.size())+" docs added";
+    return ResultStr(std::to_string(docs.size())+" docs added");
 }
 
 ResultStr CollectionManager::drop_collection(const std::string &collection_name)
@@ -127,7 +136,7 @@ ResultStr CollectionManager::drop_collection(const std::string &collection_name)
     target_collection->drop_all();
     _collection_map.erase(target_collection->get_id());
     LOG(INFO)<<"collection \""<<collection_name<<"\" has been dropped";
-    return "drop collection \""+collection_name+"\" success";
+    return ResultStr("drop collection \""+collection_name+"\" success");
 }
 
 ResultStr CollectionManager::search(const Query &query_info) const

@@ -24,6 +24,9 @@ public:
 
     ResultStr add_document(const std::string &collection_name,Document &document);
 
+    /// @param 'seq' indicate whether the 'id' is seq id, if not, use doc id
+    ResultStr get_document(const std::string &collection_name,const uint32_t id,bool seq=false);
+
     ResultStr remove_document(const std::string &collection_name,const uint32_t doc_id);
 
     ResultStr add_document_batch(const std::string &collection_name,DocumentBatch &doc_batch);

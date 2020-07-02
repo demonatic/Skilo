@@ -43,6 +43,12 @@ private:
     ///Route: POST /collections/<collection_name>
     void skilo_add_document(QueryContext &context,std::string &response);
 
+    ///Route: GET /collections/<collection_name>/<document_id>
+    void skilo_get_document(QueryContext &context,std::string &response);
+
+    ///Route: GET /collections/<collection_name>/seq_id/<seq_id>
+    void skilo_get_document_in_seq(QueryContext &context,std::string &response);
+
     ///Route: DELETE /collections/<collection_name>/<document_id>
     void skilo_remove_document(QueryContext &context,std::string &response);
 
@@ -54,7 +60,7 @@ private:
 
     
 private:
-    std::string extract_collection_name(std::string_view uri) const;
+    string extract_collection_name(std::string_view uri) const;
     uint32_t extract_document_id(std::string_view uri) const;
 
     void init_http_route(Rinx::RxProtocolHttp1Factory &http1);

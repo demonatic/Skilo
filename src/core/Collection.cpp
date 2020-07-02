@@ -82,6 +82,16 @@ bool Collection::contain_document(const uint32_t doc_id) const
     return _storage_service->contain_document(_collection_id,doc_id);
 }
 
+Document Collection::get_document(const uint32_t id,bool seq) const
+{
+    try {
+        uint32_t seq_id=seq?id:_storage_service->get_doc_seq_id(_collection_id,id);
+        return _storage_service->get_document(_collection_id,seq_id);
+    }  catch (InternalServerException &e) {
+        throw NotFoundException("Can not fetch document with "+string(seq?"seq":"doc")+" id \'"+std::to_string(id)+'\'');
+    }
+}
+
 void Collection::validate_document(const Document &document)
 {
     return _schema.validate(document);

@@ -53,7 +53,12 @@ uint32_t StorageService::get_collection_next_seq_id(uint32_t collection_id) cons
 uint32_t StorageService::get_doc_seq_id(const uint32_t collection_id, const uint32_t doc_id)
 {
     std::string seq_id_str;
-    _storage_engine.get(KeyConverter::doc_id_key(collection_id,doc_id),seq_id_str);
+    StorageEngine::Status status=_storage_engine.get(KeyConverter::doc_id_key(collection_id,doc_id),seq_id_str);
+    if(status!=StorageEngine::FOUND){
+        std::string err="Can not get doc seq id with doc id\""+std::to_string(doc_id)+"\" from storage";
+        LOG(INFO)<<err;
+        throw InternalServerException(err);
+    }
     return KeyConverter::deserialize_to_uint32_t(seq_id_str);
 }
 
@@ -64,8 +69,8 @@ Document StorageService::get_document(const uint32_t collection_id,const uint32_
     StorageEngine::Status status=_storage_engine.get(seq_key,doc_json_str);
     if(status!=StorageEngine::FOUND){
         std::string err="Can not fetch document of sequence id \""+std::to_string(seq_id)+"\" from storage";
-        LOG(WARNING)<<err;
-        throw InternalServerException(err);
+        LOG(INFO)<<err;
+        throw NotFoundException(err);
     }
     return Document(doc_json_str);
 }

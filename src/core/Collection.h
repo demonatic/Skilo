@@ -36,6 +36,9 @@ public:
 
     bool contain_document(const uint32_t doc_id) const;
 
+    /// @throw InternelServerException
+    Document get_document(const uint32_t id,bool seq) const;
+
     /// @brief check whether document adhere to the schema
     /// @throw InvalidFormatException
     void validate_document(const Document &document);
