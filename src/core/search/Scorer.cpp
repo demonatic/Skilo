@@ -1,6 +1,7 @@
 #include "Scorer.h"
 #include "HitCollector.h"
 #include "core/index/Indexes.h"
+#include "g3log/g3log.hpp"
 #include <cmath>
 
 namespace Skilo {
@@ -25,7 +26,8 @@ number_t TextScorer::get_score(const MatchContext &context) const
 double TextScorer::apply_term_cost_penalty(double score, const size_t cost) const
 {
     assert(cost<=_max_term_cost);
-    return score*(1<<(4-cost));
+    auto penalty_score=score*(1<<((_max_term_cost-cost)<<2));
+    return penalty_score;
 }
 
 
@@ -33,7 +35,8 @@ double TextScorer::apply_total_cost_penalty(double score,const std::vector<size_
 {
     size_t total_cost=std::accumulate(costs.begin(),costs.end(),0);
     size_t max_cost=costs.size()<<2;
-    return score*(max_cost-total_cost)/max_cost;
+    auto penalty_score=score*(max_cost-total_cost)/max_cost;
+    return penalty_score;
 }
 
 double TextScorer::apply_phrase_match_boost(double score, const MatchContext &context) const
@@ -54,7 +57,7 @@ double BM25_Scorer::calcu_term_score(const Index::PostingList *posting, const Ma
     uint32_t doc_len=posting->get_doc_len(context.doc_seq_id);
     double R=(k1*tf)/(tf+k1*(1-b+b*doc_len/posting->avg_doc_len()));
     uint32_t df=posting->num_docs();
-    double W=log(context.collection_doc_count-df+0.5)/(df+0.5);
+    double W=log(context.collection_doc_count-df+0.5)/std::max((df+0.5),20.0);
     return W*R;
 }
 

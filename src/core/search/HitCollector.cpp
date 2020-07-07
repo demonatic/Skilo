@@ -4,7 +4,7 @@ namespace Skilo  {
 namespace Search {
 
 HitCollector::HitCollector(const size_t K,DocRanker &ranker):
-    _K(K),_hits(_K+1),_ranker(std::move(ranker)),_heap_index(0),_min_score_heap(_K+1,nullptr)
+    _K(K),_num_docs_checked(0),_hits(_K+1),_ranker(std::move(ranker)),_heap_index(0),_min_score_heap(_K+1,nullptr)
 {
     for(size_t i=1;i<=_K;i++){
         _min_score_heap[i]=_hits.data()+i;
@@ -50,6 +50,7 @@ void HitCollector::collect(const MatchContext &context)
         }
         this->push_new_hit(new_hit);
     }
+    _num_docs_checked++;
 }
 
 HitCollector::Hit &HitCollector::top()
@@ -111,6 +112,10 @@ void HitCollector::push_new_hit(HitCollector::Hit &hit)
 uint32_t HitCollector::num_docs_collected() const
 {
     return static_cast<uint32_t>(_heap_index);
+}
+
+uint32_t HitCollector::num_docs_checked() const{
+    return _num_docs_checked;
 }
 
 uint32_t HitCollector::get_k() const

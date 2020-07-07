@@ -46,7 +46,6 @@ void IndexSearcher::search(std::vector<std::pair<uint32_t,double>> &res_docs)
         }
         do_search_field(field,token_set,_query_info.get_field_boosts()[i],collector);
     }
-
     //get top K
     res_docs=collector.get_top_k();
 }
@@ -126,18 +125,23 @@ void IndexSearcher::do_search_field(const std::string &field_name,TokenSet token
                 token_to_offsets.emplace(query_term[i],std::move(offsets));
             }
             LOG(DEBUG)<<"search index with query terms="<<query_term<<" costs="<<costs;
+            size_t collected=0;
             _indexes.search_fields(field_name,token_to_offsets,costs,slop,[&](Search::MatchContext &match_ctx){
                 match_ctx.boost=boost;
                 hit_collector.collect(match_ctx);
+                collected++;
             });
+            LOG(DEBUG)<<"collect "<<collected<<" results";
         },_max_term_comb);
     };
     LOG(DEBUG)<<"token allowing cost="<<token_allowing_costs;
-    Util::cartesian(token_allowing_costs,on_cost_comb,_max_cost_comb);
+    Util::cartesian(token_allowing_costs,on_cost_comb,_max_cost_comb,[&](){
+        return hit_collector.num_docs_checked()>hit_collector.get_k();
+    });
 
     // check if num of result collected is too small, if so, calculate the token(along with it's fuzzy terms) frequency,
     // drop the least occuring token and search again
-    if(hit_collector.num_docs_collected()<hit_collector.get_k()/2){
+    if(hit_collector.num_docs_checked()<(hit_collector.get_k()<<1)){
         for(const auto &token_name:token_names){
             token_count_sum[token_name]=0;
         }
@@ -179,7 +183,7 @@ std::vector<string> IndexSearcher::search_ch_fuzz_term(const std::string &field_
 
     auto ch_fuzzy_term_collector=[&](std::vector<string> &fuzzy_matches,unsigned char *, size_t,std::unordered_set<std::string> *term_set){
         //由于同音字设定编辑距离为1，但是与'term'拼音相同的同音字可能和term在同一个set内，因此需要去除'term'
-        bool remove_none_fuzzy=(distance==0&&term_set->count(term));
+        bool remove_none_fuzzy=(distance==1&&term_set->count(term));
         for(auto &&match_term:*term_set){
             if(remove_none_fuzzy&&match_term==term){
                 continue;

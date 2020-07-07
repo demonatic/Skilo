@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <numeric>
+#include <functional>
 #include <cassert>
 #include "utility/Exception.h"
 
@@ -27,7 +28,7 @@ namespace Util{
     }
 
     template<typename T,typename F>
-    inline void cartesian(std::vector<std::vector<T>> &vec,F on_choice,size_t max_combination=std::numeric_limits<size_t>::max()){
+    inline void cartesian(std::vector<std::vector<T>> &vec,F on_choice,size_t max_combination=std::numeric_limits<size_t>::max(),std::function<bool()> early_termination=[](){return false;}){
         const size_t N = std::accumulate(vec.begin(),vec.end(),1LL,[](size_t a, std::vector<T>& b){
             return a*b.size();
         });
@@ -38,6 +39,9 @@ namespace Util{
           for(int i=vec.size()-1;i>=0;i--) {
             q=div(q.quot,vec[i].size());
             u[i]=vec[i][q.rem];
+            if(early_termination()){
+                return;
+            }
           }
           on_choice(u);
         }

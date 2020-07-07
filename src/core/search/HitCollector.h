@@ -30,8 +30,11 @@ public:
 
     bool empty() const;
 
-    uint32_t num_docs_collected() const;
     uint32_t get_k() const;
+
+    uint32_t num_docs_checked() const;
+
+    uint32_t num_docs_collected() const;
 
     DocRanker& get_ranker();
 
@@ -54,6 +57,7 @@ private:
 
 private:
     const size_t _K;
+    uint32_t _num_docs_checked;
     std::vector<Hit> _hits; //pre-allocated space for heap entry
 
     DocRanker _ranker;

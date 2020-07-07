@@ -78,6 +78,7 @@ void SkiloServer::skilo_get_document_in_seq(SkiloServer::QueryContext &context, 
     bool in_seq=true;
     const string &uri=context.req->uri();
     string collection_name=extract_collection_name(uri);
+
     uint32_t seq_id=stoul(uri.substr(uri.find_last_of('/')+1)); //since regex matches, wouldn't throw
     response=_collection_manager->get_document(collection_name,seq_id,in_seq);
 }
@@ -170,7 +171,7 @@ void SkiloServer::init_http_route(Rinx::RxProtocolHttp1Factory &http1)
     http1.POST(R"(^\/collections$)",MakeAsync(BIND_SKILO_CALLBACK(SkiloServer::skilo_create_collection));
     http1.DELETE(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*$)",MakeAsync(BIND_SKILO_CALLBACK(SkiloServer::skilo_drop_collection));
 
-    http1.POST(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*$)",MakeAsync(BIND_SKILO_CALLBACK(SkiloServer::skilo_add_document));        
+    http1.POST(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*$)",MakeAsync(BIND_SKILO_CALLBACK(SkiloServer::skilo_add_document));
     http1.GET(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*\/[0-9]+$)",BIND_SKILO_CALLBACK(SkiloServer::skilo_get_document);
     http1.GET(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*\/seq_id\/[0-9]+$)",BIND_SKILO_CALLBACK(SkiloServer::skilo_get_document_in_seq);
     http1.DELETE(R"(^\/collections\/[a-zA-Z_\$][a-zA-Z\d_]*\/[0-9]+$)",MakeAsync(BIND_SKILO_CALLBACK(SkiloServer::skilo_remove_document));
