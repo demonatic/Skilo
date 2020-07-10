@@ -62,9 +62,11 @@ Skilo搜索流程分为如下几步：
   
   ​	上述已经求得了包含所有词元的文档，现在需要计算文档中是否存在用户搜索的词组以及出现了几次。有了doc_id信息可以从每个词元的PostList中取出该词元在文档中出现过的一系列位置offsets，每个offsets列表也是有序存储的，设词元数量为k那么这样也有了k个有序列表。
   ​	![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/phrase_match.png)
-  假设搜索字符串为”我们都是宝宝“，被分词为三个词元[”我们“，"都是"，”宝宝“]，那么三个词元在搜索字符串中的偏移量可以作为每个词元倒排列表中offsets的基数，整体思路和倒排列表求交集的方式一相似，计算词元”我们“所属cursor的元素与它的基数之间的相对偏移量relative_pos，然后线性搜索后续每个词元与它们各自的基数是否相等即可，如果每个词元的cursor都找到了一个位置使它们拥有共同的relative_pos，则此时能构成一个短语。如果至少能构成一个短语，则collect此文档。
+  假设搜索字符串为”我们都是宝宝“，被分词为三个词元[”我们“，"都是"，”宝宝“]，那么三个词元在搜索字符串中的偏移量可以作为每个词元倒排列表中offsets的基数，整体思路和倒排列表求交集的方式一相似，计算词元”我们“所属cursor的元素与它的基数之间的相对偏移量relative_pos，然后线性搜索后续每个词元与它们各自的基数是否相等即可，如果每个词元的cursor都找到了一个位置使它们拥有共同的relative_pos，则此时能构成一个短语。如果至少能构成一个短语，则collect此文档。当然offset间匹配实际上无需如此严格，允许相差一定间隔(sloppy)
   
   ```c++
+  void InvertIndex::search_field(const std::string &field_path,const std::unordered_map<string,std::vector<uint32_t>> 		&token_to_offsets,const std::vector<size_t> &costs,size_t slop,uint32_t total_doc_count,const std::unordered_map<std::string, SortIndex> *sort_indexes,std::function<void(Search::MatchContext&)> on_match) const
+  {
       /// \brief find the conjuction doc_ids of the query terms
       /// @example:
       /// query_term_A -> doc_id_1, doc_id_5, ...
@@ -130,17 +132,15 @@ Skilo搜索流程分为如下几步：
               uint32_t phrase_match_count=0;
               while(term_cursors[0].first<leading_term_offsets.size()){
                   long rel_pos,next_rel_pos; //relative position
-                  // equivalent to "11-0" in above example
-                  rel_pos=next_rel_pos=leading_term_offsets[term_cursors[0].first]-leading_qt_offset; 
+                  rel_pos=next_rel_pos=leading_term_offsets[term_cursors[0].first]-leading_qt_offset; // equivalent to "11-0" in above example
   
-                  //move each term's cursor except the leading one 
-                  //to where the relative offset is no smaller than rel_pos
+                  //move each term's cursor except the leading one to where the relative offset is no smaller than rel_pos
                   for(size_t i=1;i<query_term_count;i++){
                       uint32_t cur_pos=term_cursors[i].first;
                       uint32_t following_qt_offset=query_offset_entry[i].first;
                       std::vector<uint32_t> &term_offs=term_cursors[i].second;
   
-                      while(cur_pos<term_offs.size()&&term_offs[cur_pos]-following_qt_offset<rel_pos){ 							//skip '7' in term_B since 7-2<11-0 until reaching 13
+                      while(cur_pos<term_offs.size()&&term_offs[cur_pos]-following_qt_offset<rel_pos){ //skip '7' in term_B since 7-2<11-0 until reaching 13
                           cur_pos++;
                       }
                       if(cur_pos==term_offs.size()){ //one of the cursor go to the end
@@ -168,14 +168,25 @@ Skilo搜索流程分为如下几步：
                   }
               }
               // collect this hit
-              Search::MatchContext context{lead_doc,total_doc_count,phrase_match_count,field_path,candidate_postings,costs,token_to_offsets,*sort_indexes};
+              Search::MatchContext context{lead_doc,total_doc_count,phrase_match_count,1,field_path,candidate_postings,costs,token_to_offsets,*sort_indexes};
               on_match(context);
           }
   END_OF_MATCH:
           void(0);
       }
+  }
   ```
-  
+* ### 模糊搜索
+  见图：
+![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/fuzzy1.png)
+![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/fuzzy2.png)
+
+* ### 搜索提示
+  见图：
+  ![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/search_suggest.png)
+  ![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/Auto%20Suggestion.png)
+  设每个串使用edge-kgram进行前缀切分，每次搜索提示l个热词/串，则算法更新时间复杂度为O(k*l)，查询给定前缀开头的l个热词/串时间为O(l)。
+		
 * ### 文档评分与TopK搜集
 
   Skilo目前支持以下几种评分和排序方式：TF-IDF, BM25,按一个或多个数值字段递增递减排序。
