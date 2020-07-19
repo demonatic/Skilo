@@ -176,16 +176,54 @@ Skilo搜索流程分为如下几步：
       }
   }
   ```
+  
 * ### 模糊搜索
-  见图：
-![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/fuzzy1.png)
-![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/fuzzy2.png)
+  实现上需要分两步，一是实现一算法能衡量两个字符串s和t直接的相似度k，二是找到搜索引擎单词词典中所有与搜索词相似度≤k的词。
+
+衡量两个字符串s和t直接的相似度可以用Levenshtein编辑距离来衡量。两个单词之间的Levenshtein Distance是将一个单词转换为另一个单词所需的单字符编辑（插入、删除或替换）的最小数量。Levenshtein Distance是1965年由苏联数学家Vladimir Levenshtein发明的。Levenshtein Distance也被称为编辑距离（Edit Distance）。
+
+  编辑距离可是使用二维动态规划来求解，对于长为s和t的两个字符串，求解编辑距离的时间复杂度和空间复杂度均为O(st)，过程如图所示：
+
+  ![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/fuzzy1.png)
+
+  寻找搜索引擎单词词典中所有与搜索词相似度≤k的词也有多种方式。蛮力法可以遍历单词词典，对其中所有词与搜索词逐个计算编辑距离，设单词词典有n个词，平均长度为l，搜索词长为m，则时间复杂度为O(n*l*m) ,过高。
+
+  有以下一些方式来降低复杂度：
+
+  1. 使用前缀树增量更新编辑距离二维表
+
+  既然单词词典使用前缀树，那么沿着单词词典构成的前缀树从根到叶子的一条路径增量构建编辑距离动态规划二维表，当表构建完后，整条前缀树路径上的所有单词编辑距离都可以得到。
+
+  并且从根到叶子某条路径上的编辑距离计算可以提前终止，因为执行前述沿前缀树某条路径增量更新编辑距离表的过程时，若某一行最小值大于我们允许的最大编辑距离，则后续以当前单词为前缀的词编辑距离不可能低于最大编辑距离，可以提前终止。由此时间复杂度降低为O(n’*m)，由于提前终止，对于大多数搜索词，n’<<n。
+
+  此外若查询可能用到的最大编辑距离为kmax，则可以给单词词典前缀树每个结点设置一个大小为kmax位的位图，记录从该结点开始到后续所有单词的长度有哪些，如果搜索词长度为l，允许编辑距离为k，则如果[l-k,l+k]范围的位图内都没有设置为1，则说明这条路径上不存在我们想要编辑距离范围内的词，此时也可以提前终止。
+
+  ![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/fuzzy2.png)
+
+  2. BK-tree
+
+  BK树使用Levenshtein编辑距离所满足的三角不等式性质：
+
+  Levenstein(A,B)+Levenstein(A,C)≥Levenstein(B,C)
+
+  Levenstein(A,B)−Levenstein(A,C)≤Levenstein(B,C).
+
+  在索引期间Levenshtein(root node,child node)被提前计算好。在查询时计算Levenshtein(input ,root node)，前述三角不等式被用于过滤，来递归寻找提前计算的编辑距离在[Levenstein(input ,root node)-dmax, Levenstein(input ,root node)+dmax]范围内的子节点。
+详情见：[The BK-Tree – A Data Structure for Spell Checking](https://nullwords.wordpress.com/2013/03/13/the-bk-tree-a-data-structure-for-spell-checking/) 
+
+  3. SymSpell Algorithm
+
+  主要思路为索引时对插入单词词典的词进行deletion操作产生一系列删除一定字符后的词，和原词一并插入单词词典；对于搜索词也同样做deletion操作，用产生的词和原词进行搜索。对于一个长度为n的词，字典大小为a,编辑距离为1，最多有n次删除，一共搜索n个词。
+  详情见：[1000x Faster Spelling Correction algorithm](https://medium.com/@wolfgarbe/1000x-faster-spelling-correction-algorithm-2012-8701fcd87a5f) 
 
 * ### 搜索提示
-  见图：
-  ![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/search_suggest.png)
-  ![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/Auto%20Suggestion.png)
-  设每个串使用edge-kgram进行前缀切分，每次搜索提示l个热词/串，则算法更新时间复杂度为O(k*l)，查询给定前缀开头的l个热词/串时间为O(l)。
+  实现该功能的主要数据结构为两个哈希表。第一个哈希表存完整的串以及它的出现频率，第二个哈希表存前缀串到以该前缀串开头的按出现频率排序由高到低排序的大小为k的完整热串列表。
+  
+  当一个串s被索引时，先访问第一个hash表将其频率+1，假设出现频率为m，然后使用edge-ngram算法进行切分，生成n个前缀串，如串‘鸡蛋饼’被切分为[‘鸡’，’鸡蛋‘，’鸡蛋饼‘]三个前缀串，对这三个前缀串查询第二个哈希表，如果大小为k的热串列表中已经有串s，则将其在列表中的频率+1，并调整到合适的位置使列表保持有序；如果s不在列表中，且其频率m>列表中最小频率热串的频率，则将该最小频率热串替换为s。
+  
+	![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/search_suggest.png)
+	![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/Auto%20Suggestion.png)
+	设每个串使用edge-lgram进行前缀切分，每次搜索提示k个热词/串，则算法更新时间复杂度为O(k*l)，查询给定前缀开头的k个热词/串时间复杂度为O(k)
 	
 * ### 文档评分与TopK搜集
 
