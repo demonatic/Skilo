@@ -201,4 +201,4 @@ public:
 
 * ### 未来展望
 
-  目前Schema只实现了最基本的功能，未来将会加入更多内容，如在attrubute中指定facet属性，指定排序方式等。
+  目前Schema只实现了比较基本的功能，未来将会加入更多内容，如在attrubute中指定facet属性等。

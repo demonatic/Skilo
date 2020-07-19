@@ -2,7 +2,7 @@
 
 * ###  概览
 
-Skilo目前实现了单词word和词组phrase的匹配搜索，假设对于以下文档(省略了文档中的其他字段):
+Skilo目前实现了单词word和词组phrase的匹配搜索和基于拼音+编辑距离的模糊搜索，假设对于以下文档(省略了文档中的其他字段):
 
 ```json
 {
@@ -186,7 +186,7 @@ Skilo搜索流程分为如下几步：
   ![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/search_suggest.png)
   ![](https://github.com/demonatic/Image-Hosting/blob/master/Skilo/Auto%20Suggestion.png)
   设每个串使用edge-kgram进行前缀切分，每次搜索提示l个热词/串，则算法更新时间复杂度为O(k*l)，查询给定前缀开头的l个热词/串时间为O(l)。
-		
+	
 * ### 文档评分与TopK搜集
 
   Skilo目前支持以下几种评分和排序方式：TF-IDF, BM25,按一个或多个数值字段递增递减排序。
