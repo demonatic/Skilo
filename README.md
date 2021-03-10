@@ -251,12 +251,12 @@ Unit Test  and Integration Testing are based on [GoogleTest](https://github.com/
 
 [TypeSense Guide](https://typesense.org/docs/0.11.1/guide/ "Title") 
 
-[ELASTICSEARCH 搜索的评分机制](https://www.cnblogs.com/hoojjack/p/8261075.html "Title") 
+[ELASTICSEARCH 搜索的评分机制](https://www.cnblogs.com/hoojjack/p/8261075.html) 
 
 [Lucene系列（10）——相似度评分机制浅析（终篇）](
-https://niyanchun.com/lucene-learning-10.html"Title") 
+https://niyanchun.com/lucene-learning-10.html) 
 
-[Elasticsearch权威指南（中文版）](https://es.xiaoleilu.com/052_Mapping_Analysis/35_Inverted_index.html"Title") 
+[Elasticsearch权威指南（中文版）](https://es.xiaoleilu.com/052_Mapping_Analysis/35_Inverted_index.html) 
 
 [Autosuggest Retrieval Data Structures & Algorithms](https://medium.com/related-works-inc/autosuggest-retrieval-data-structures-algorithms-3a902c74ffc8) 
 
