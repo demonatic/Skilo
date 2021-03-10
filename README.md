@@ -1,6 +1,6 @@
 # Skilo Search Engine
 
-###### USTC  软院  2019工程实践Project (Under Construction Now)
+###### USTC  软院  2019工程实践Project
 Skilo is a simple Search Engine implemented in C++ on Linux. It provides Restful API to create collection with corresponding schema, add documents to collection and word/phrase/fuzzy search services and etc.
 
 ## Demo
